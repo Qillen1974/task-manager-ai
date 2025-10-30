@@ -5,8 +5,10 @@ import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { canCreateRootProject, canCreateSubproject } from "@/lib/projectLimits";
 
 /**
- * GET /api/projects - List all root projects for the user (hierarchical view)
- * Optional query: includeChildren=true to get full tree
+ * GET /api/projects - List all projects for the user
+ * Returns root projects by default.
+ * Optional query: includeAll=true to get all projects (including non-root)
+ * Optional query: includeChildren=true to get full tree structure
  */
 export async function GET(request: NextRequest) {
   return handleApiError(async () => {
@@ -17,13 +19,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const includeChildren = searchParams.get("includeChildren") === "true";
+    const includeAll = searchParams.get("includeAll") === "true";
 
-    // Get only root projects
+    // Get projects - root projects only by default, or all if requested
+    const where: any = {
+      userId: auth.userId,
+    };
+
+    // Only filter for root projects if not requesting all
+    if (!includeAll) {
+      where.parentProjectId = null;
+    }
+
     const projects = await db.project.findMany({
-      where: {
-        userId: auth.userId,
-        parentProjectId: null, // Only root projects
-      },
+      where,
       include: {
         tasks: {
           select: {
