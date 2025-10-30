@@ -12,6 +12,7 @@ interface NavigationProps {
   pendingTaskCount: number;
   userName?: string;
   userEmail?: string;
+  isAdmin?: boolean;
   onLogout?: () => void;
   onSettingsClick?: () => void;
 }
@@ -40,6 +41,7 @@ export function Navigation({
   pendingTaskCount,
   userName,
   userEmail,
+  isAdmin,
   onLogout,
   onSettingsClick,
 }: NavigationProps) {
@@ -134,13 +136,15 @@ export function Navigation({
                       </svg>
                       Settings
                     </button>
-                    <Link
-                      href="/admin"
-                      onClick={() => setShowUserMenu(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-                    >
-                      Admin Panel
-                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setShowUserMenu(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
                     {onLogout && (
                       <button
                         onClick={() => {

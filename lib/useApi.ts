@@ -132,7 +132,7 @@ export function useApi() {
   const register = useCallback(
     async (email: string, password: string, name?: string) => {
       const response = await call<{
-        user: { id: string; email: string; name: string };
+        user: { id: string; email: string; name: string; isAdmin: boolean };
         tokens: { accessToken: string; refreshToken: string };
       }>('POST', '/auth/register', { email, password, name });
 
@@ -143,6 +143,7 @@ export function useApi() {
         localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
         localStorage.setItem('userId', response.data.user.id);
         localStorage.setItem('userEmail', response.data.user.email);
+        localStorage.setItem('isAdmin', String(response.data.user.isAdmin));
       }
 
       return response;
@@ -156,7 +157,7 @@ export function useApi() {
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await call<{
-        user: { id: string; email: string; name: string };
+        user: { id: string; email: string; name: string; isAdmin: boolean };
         tokens: { accessToken: string; refreshToken: string };
       }>('POST', '/auth/login', { email, password });
 
@@ -167,6 +168,7 @@ export function useApi() {
         localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
         localStorage.setItem('userId', response.data.user.id);
         localStorage.setItem('userEmail', response.data.user.email);
+        localStorage.setItem('isAdmin', String(response.data.user.isAdmin));
       }
 
       return response;
@@ -184,6 +186,7 @@ export function useApi() {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('isAdmin');
   }, []);
 
   /**

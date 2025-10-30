@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Task, Project } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
@@ -8,7 +8,6 @@ import { TaskForm } from "@/components/TaskForm";
 import { ProjectForm } from "@/components/ProjectForm";
 import { TaskCard } from "@/components/TaskCard";
 import { EisenhowerMatrix } from "@/components/EisenhowerMatrix";
-import { UserSettings } from "@/components/UserSettings";
 import { getPendingTaskCount, getTasksByProject } from "@/lib/utils";
 import { AuthPage } from "@/components/AuthPage";
 
@@ -18,37 +17,31 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const initialLoadDoneRef = useRef(false);
 
   const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>("dashboard");
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
-  const [showUserSettings, setShowUserSettings] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [editingProject, setEditingProject] = useState<Project | undefined>();
   const [defaultProjectId, setDefaultProjectId] = useState<string>("");
 
-  // Load initial data on mount
+  // Load data from API on mount and when logged in
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (initialLoadDoneRef.current) return;
-
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setHydrated(true);
-      return;
-    }
-
-    initialLoadDoneRef.current = true;
-
     const loadData = async () => {
+      if (!api.isLoggedIn) {
+        setHydrated(true);
+        return;
+      }
+
       setIsLoading(true);
       try {
+        // Fetch projects
         const projectsResponse = await api.getProjects();
         if (projectsResponse.success && projectsResponse.data) {
           setProjects(projectsResponse.data);
         }
 
+        // Fetch tasks
         const tasksResponse = await api.getTasks();
         if (tasksResponse.success && tasksResponse.data) {
           setTasks(tasksResponse.data);
@@ -62,46 +55,7 @@ export default function Home() {
     };
 
     loadData();
-  }, []);
-
-  // Handle auth success - reload data when user logs in
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleAuthSuccess = () => {
-      // Reset the load flag and reload data
-      initialLoadDoneRef.current = false;
-
-      const token = localStorage.getItem('accessToken');
-      if (!token) return;
-
-      setIsLoading(true);
-
-      // Immediately reload the data
-      const loadData = async () => {
-        try {
-          const projectsResponse = await api.getProjects();
-          if (projectsResponse.success && projectsResponse.data) {
-            setProjects(projectsResponse.data);
-          }
-
-          const tasksResponse = await api.getTasks();
-          if (tasksResponse.success && tasksResponse.data) {
-            setTasks(tasksResponse.data);
-          }
-        } catch (error) {
-          console.error("Failed to load data:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadData();
-    };
-
-    window.addEventListener('authSuccess', handleAuthSuccess);
-    return () => window.removeEventListener('authSuccess', handleAuthSuccess);
-  }, [api]);
+  }, [api.isLoggedIn]);
 
   const projectsMap = useMemo(() => {
     const map = new Map<string, Project>();
@@ -156,14 +110,9 @@ export default function Home() {
 
       if (response.success && response.data) {
         setTasks(tasks.map((t) => (t.id === updatedTask.id ? response.data : t)));
-      } else if (!response.success && response.error) {
-        const errorMsg = response.error?.message || "Failed to update task";
-        alert(`Error: ${errorMsg}`);
-        console.error("Task update failed:", response.error);
       }
     } catch (error) {
       console.error("Failed to update task:", error);
-      alert("Error: An unexpected error occurred while updating the task");
     }
   };
 
@@ -214,14 +163,9 @@ export default function Home() {
       const response = await api.createProject(project.name, project.color, project.description);
       if (response.success && response.data) {
         setProjects([...projects, response.data]);
-      } else {
-        const errorMsg = response.error?.message || "Failed to create project";
-        alert(`Error: ${errorMsg}`);
-        console.error("Project creation failed:", response.error);
       }
     } catch (error) {
       console.error("Failed to create project:", error);
-      alert("Error: An unexpected error occurred while creating the project");
     }
   };
 
@@ -236,14 +180,9 @@ export default function Home() {
 
       if (response.success && response.data) {
         setProjects(projects.map((p) => (p.id === updatedProject.id ? response.data : p)));
-      } else {
-        const errorMsg = response.error?.message || "Failed to update project";
-        alert(`Error: ${errorMsg}`);
-        console.error("Project update failed:", response.error);
       }
     } catch (error) {
       console.error("Failed to update project:", error);
-      alert("Error: An unexpected error occurred while updating the project");
     }
   };
 
@@ -255,18 +194,16 @@ export default function Home() {
           setProjects(projects.filter((p) => p.id !== projectId));
           setTasks(tasks.filter((t) => t.projectId !== projectId));
           setActiveView("dashboard");
-        } else {
-          const errorMsg = response.error?.message || "Failed to delete project";
-          alert(`Error: ${errorMsg}`);
-          console.error("Project deletion failed:", response.error);
         }
       } catch (error) {
         console.error("Failed to delete project:", error);
-        alert("Error: An unexpected error occurred while deleting the project");
       }
     }
   };
 
+  const handleAuthSuccess = () => {
+    // Data will be loaded by useEffect when isLoggedIn changes
+  };
 
   const handleLogout = () => {
     api.logout();
@@ -275,11 +212,23 @@ export default function Home() {
     setActiveView("dashboard");
   };
 
-  // Check if user has a token in localStorage
-  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('accessToken');
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-blue-600 rounded-lg mx-auto mb-4 flex items-center justify-center animate-spin">
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <p className="text-gray-600">Loading TaskMaster...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!hydrated || !hasToken) {
-    return <AuthPage onAuthSuccess={() => {}} />;
+  if (!api.isLoggedIn) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
   }
 
   if (isLoading) {
@@ -303,17 +252,13 @@ export default function Home() {
         projects={projects}
         activeView={activeView}
         onViewChange={setActiveView}
-        onProjectSelect={() => {}} // No-op callback - onViewChange handles the navigation
         pendingTaskCount={pendingTaskCount}
         userName={localStorage.getItem("userEmail") || "User"}
-        userEmail={localStorage.getItem("userEmail") || ""}
-        isAdmin={localStorage.getItem("isAdmin") === "true"}
         onLogout={handleLogout}
-        onSettingsClick={() => setShowUserSettings(true)}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard View */}
+        {/* Content sections */}
         {activeView === "dashboard" && (
           <div className="space-y-8">
             <div className="flex items-center justify-between">
@@ -344,14 +289,13 @@ export default function Home() {
             <EisenhowerMatrix
               tasks={tasks}
               projects={projectsMap}
-              onTaskComplete={handleCompleteTask}
-              onTaskEdit={handleEditTask}
-              onTaskDelete={handleDeleteTask}
+              onCompleteTask={handleCompleteTask}
+              onEditTask={handleEditTask}
+              onDeleteTask={handleDeleteTask}
             />
           </div>
         )}
 
-        {/* Projects View */}
         {activeView === "projects" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -381,15 +325,13 @@ export default function Home() {
                           setEditingProject(project);
                           setShowProjectForm(true);
                         }}
-                        className="text-blue-600 hover:text-blue-700 font-medium text-xl px-2 py-1 rounded hover:bg-blue-50 transition"
-                        title="Edit project"
+                        className="text-blue-600 hover:text-blue-700 font-medium"
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDeleteProject(project.id)}
-                        className="text-red-600 hover:text-red-700 font-medium text-xl px-2 py-1 rounded hover:bg-red-50 transition"
-                        title="Delete project"
+                        className="text-red-600 hover:text-red-700 font-medium"
                       >
                         🗑️
                       </button>
@@ -402,6 +344,21 @@ export default function Home() {
                     <span className="text-sm text-gray-500">
                       {tasks.filter((t) => t.projectId === project.id).length} tasks
                     </span>
+                    <div
+                      className={`w-4 h-4 rounded-full`}
+                      style={{
+                        backgroundColor: {
+                          blue: "#3b82f6",
+                          red: "#ef4444",
+                          green: "#10b981",
+                          purple: "#a855f7",
+                          pink: "#ec4899",
+                          yellow: "#f59e0b",
+                          indigo: "#6366f1",
+                          cyan: "#06b6d4",
+                        }[project.color as string] || "#3b82f6",
+                      }}
+                    />
                   </div>
                 </div>
               ))}
@@ -409,7 +366,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* All Tasks View */}
         {activeView === "all-tasks" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -445,7 +401,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Project View */}
         {activeView.startsWith("project-") && (
           <div className="space-y-6">
             {(() => {
@@ -535,19 +490,9 @@ export default function Home() {
                 setShowProjectForm(false);
                 setEditingProject(undefined);
               }}
-              onDelete={handleDeleteProject}
             />
           </div>
         </div>
-      )}
-
-      {/* User Settings Modal */}
-      {showUserSettings && (
-        <UserSettings
-          userName={localStorage.getItem("userEmail") || "User"}
-          userEmail={localStorage.getItem("userEmail") || ""}
-          onClose={() => setShowUserSettings(false)}
-        />
       )}
     </div>
   );

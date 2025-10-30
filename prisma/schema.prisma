@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://taskmaster:taskmaster123@localhost:5432/taskmaster_dev"
+}
+
+// User model - represents a registered user
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String     // bcrypt hashed password
+  name          String?
+  isAdmin       Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  projects      Project[]
+  tasks         Task[]
+  subscription  Subscription?
+  sessions      Session[]
+
+  @@index([email])
+}
+
+// Session model - for tracking logged-in sessions
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// Subscription model - manages user subscription plans
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Subscription details
+  plan              SubscriptionPlan @default(FREE)
+  status            SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId  String?
+  stripeSubId       String?
+
+  // Billing dates
+  currentPeriodStart DateTime?
+  currentPeriodEnd  DateTime?
+  cancelledAt       DateTime?
+
+  // Limits (enforced by plan)
+  projectLimit      Int      @default(3)    // FREE: 3, PRO: unlimited
+  taskLimit         Int      @default(50)   // FREE: 50, PRO: unlimited
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+  EXPIRED
+}
+
+// Project model - represents a task project
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String
+  color     String   @default("blue")
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tasks     Task[]
+
+  @@index([userId])
+}
+
+// Task model - represents an individual task
+model Task {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  priority      String   @default("not-urgent-not-important") // Eisenhower matrix priority
+
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+
+  dueDate       DateTime?
+  dueTime       String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([completed])
+}
+
+// AuditLog model - track all important actions for compliance
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // e.g., "TASK_CREATED", "USER_LOGIN", "SUBSCRIPTION_UPGRADE"
+  resource  String   // e.g., "task", "user", "subscription"
+  details   String   // JSON string with details
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
+
+// ApiKey model - for third-party integrations
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  key       String   @unique
+  lastUsedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Feedback model - for user feedback and feature requests
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  type      String   // "bug", "feature_request", "general"
+  title     String
+  message   String
+
+  resolved  Boolean  @default(false)
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}

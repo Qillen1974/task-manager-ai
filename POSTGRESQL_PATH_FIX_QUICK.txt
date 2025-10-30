@@ -1,0 +1,160 @@
+================================================================================
+  QUICK FIX: PostgreSQL "not recognized" Error
+================================================================================
+
+PROBLEM:
+  You installed PostgreSQL but "psql --version" doesn't work in Command Prompt
+
+REASON:
+  PostgreSQL is installed but not in your system PATH
+
+SOLUTION:
+  Add PostgreSQL to your system PATH
+
+================================================================================
+EASIEST FIX - RUN BATCH SCRIPT
+================================================================================
+
+1. Find file: fix_postgresql_path.bat
+   Location: C:\Users\charl\Downloads\Claude Code Coursera lesson\task-manager-ai\
+
+2. Right-click the file
+
+3. Select "Run as Administrator"
+
+4. Wait for success message
+
+5. Close the Command Prompt window
+
+6. Open a NEW Command Prompt (important!)
+
+7. Test: psql --version
+
+8. Should show: psql (PostgreSQL) 16.0 (or similar)
+
+If you see the version number, PATH is fixed! ✅
+
+================================================================================
+MANUAL FIX (If batch script doesn't work)
+================================================================================
+
+Step 1: Open Environment Variables
+  - Press: Windows Key + R
+  - Type: sysdm.cpl
+  - Press: Enter
+
+Step 2: Click "Environment Variables" button (bottom right)
+
+Step 3: In upper section, click "New"
+
+Step 4: Fill in:
+  Variable name: PATH
+
+  Variable value:
+  C:\Program Files\PostgreSQL\16\bin
+
+  (If you have version 17 or 15, change 16 to your version)
+
+Step 5: Click "OK" three times
+
+Step 6: Close all Command Prompt windows
+
+Step 7: Open NEW Command Prompt
+
+Step 8: Test: psql --version
+
+Should show PostgreSQL version now!
+
+================================================================================
+FIND YOUR POSTGRESQL VERSION
+================================================================================
+
+Open File Explorer and go to:
+  C:\Program Files\PostgreSQL\
+
+You'll see a folder named:
+  PostgreSQL\16   OR   PostgreSQL\17   OR   PostgreSQL\15
+
+That's your version number. Use it in the PATH:
+  C:\Program Files\PostgreSQL\16\bin
+
+(Replace 16 with your actual version)
+
+================================================================================
+VERIFY IT WORKS
+================================================================================
+
+After fixing PATH:
+
+1. Close current Command Prompt (important!)
+2. Open NEW Command Prompt
+3. Type: psql --version
+4. Should show: psql (PostgreSQL) XX.X
+
+If you see version number: ✅ FIXED!
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Once "psql --version" works:
+
+1. Follow: QUICK_DATABASE_SETUP.txt
+   OR
+2. Follow: SETUP_DATABASE_GUIDE.md
+
+These guides will walk you through creating your database.
+
+================================================================================
+STILL NOT WORKING?
+================================================================================
+
+1. Restart your computer
+   (PATH changes sometimes need restart)
+
+2. Open new Command Prompt and try again
+
+3. If still not working:
+   - Check PostgreSQL folder exists:
+     C:\Program Files\PostgreSQL\XX
+   - If folder exists, manually add to PATH (see MANUAL FIX above)
+   - If folder doesn't exist, PostgreSQL not installed properly
+
+4. If nothing works:
+   - Uninstall PostgreSQL (Add/Remove Programs)
+   - Restart computer
+   - Download fresh installer
+   - Install again
+   - Run fix_postgresql_path.bat
+
+================================================================================
+COMMON MISTAKES
+================================================================================
+
+❌ Wrong: C:\Program Files\PostgreSQL\16
+✅ Right: C:\Program Files\PostgreSQL\16\bin
+         (Must have \bin at the end!)
+
+❌ Wrong: Using PostgreSQL 17 path for version 16
+✅ Right: Check which version you have in C:\Program Files\PostgreSQL\
+         Then use correct version in PATH
+
+❌ Wrong: Not restarting Command Prompt after PATH change
+✅ Right: Must CLOSE all Command Prompts and open NEW one
+         PATH changes don't apply to already-open windows
+
+================================================================================
+TRY THIS NOW
+================================================================================
+
+1. Find: fix_postgresql_path.bat
+2. Right-click: "Run as Administrator"
+3. Close Command Prompt when done
+4. Open NEW Command Prompt
+5. Type: psql --version
+
+DONE! ✅
+
+================================================================================
+For more detailed help, see: ADD_POSTGRESQL_TO_PATH.md
+================================================================================

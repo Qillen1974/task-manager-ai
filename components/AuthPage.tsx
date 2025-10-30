@@ -1,0 +1,205 @@
+"use client";
+
+import { useState } from "react";
+import { useApi } from "@/lib/useApi";
+
+interface AuthPageProps {
+  onAuthSuccess: () => void;
+}
+
+export function AuthPage({ onAuthSuccess }: AuthPageProps) {
+  const api = useApi();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        // Login
+        const result = await api.login(email, password);
+        if (result.success) {
+          // Dispatch custom event to notify parent component
+          window.dispatchEvent(new Event('authSuccess'));
+          onAuthSuccess();
+        } else {
+          setError(result.error?.message || "Login failed");
+        }
+      } else {
+        // Register
+        if (password !== confirmPassword) {
+          setError("Passwords do not match");
+          setLoading(false);
+          return;
+        }
+
+        const result = await api.register(email, password);
+        if (result.success) {
+          // Dispatch custom event to notify parent component
+          window.dispatchEvent(new Event('authSuccess'));
+          // Auto-login after registration
+          onAuthSuccess();
+        } else {
+          setError(result.error?.message || "Registration failed");
+        }
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-8">
+        {/* Logo */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM15 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">TaskMaster</h1>
+        <p className="text-center text-gray-600 mb-8">Professional Task Management</p>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={() => setIsLogin(true)}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+              isLogin
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => setIsLogin(false)}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+              !isLogin
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Register
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              required
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              required
+              minLength={6}
+            />
+            {!isLogin && (
+              <p className="text-xs text-gray-500 mt-1">At least 6 characters</p>
+            )}
+          </div>
+
+          {/* Confirm Password (Register only) */}
+          {!isLogin && (
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                required
+              />
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Loading..." : isLogin ? "Login" : "Create Account"}
+          </button>
+        </form>
+
+        {/* Info */}
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <p className="text-xs text-gray-600">
+            <strong>Demo Mode:</strong> Passwords are stored in localStorage (not hashed). For production, use proper authentication.
+          </p>
+        </div>
+
+        {/* Test Credentials */}
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <p className="text-xs text-gray-600 mb-2">
+            <strong>Test Accounts:</strong>
+          </p>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li>📧 user1@example.com / password123</li>
+            <li>📧 user2@example.com / password456</li>
+          </ul>
+        </div>
+
+        {/* Admin Panel Link */}
+        <div className="mt-4 text-center pt-4 border-t border-gray-200">
+          <p className="text-xs text-gray-600 mb-2">Are you an administrator?</p>
+          <a
+            href="/admin"
+            className="text-sm font-medium text-slate-700 hover:text-slate-900 underline"
+          >
+            Go to Admin Panel →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

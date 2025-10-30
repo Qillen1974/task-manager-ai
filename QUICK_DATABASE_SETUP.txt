@@ -1,0 +1,176 @@
+================================================================================
+  TASKMASTER - QUICK DATABASE SETUP FOR WINDOWS
+================================================================================
+
+This file has all the commands you need to set up PostgreSQL quickly.
+
+================================================================================
+STEP 1: INSTALL POSTGRESQL
+================================================================================
+
+1. Download: https://www.postgresql.org/download/windows/
+2. Click "Download the installer"
+3. Run the installer (postgresql-XX-windows-x64.exe)
+4. During installation:
+   - Set superuser password: postgres123
+   - Keep port: 5432
+   - Keep other defaults
+5. Wait for completion
+
+Verify installation:
+  Open Command Prompt and type:
+  psql --version
+
+  Should show: psql (PostgreSQL) 16.0 (or similar)
+
+================================================================================
+STEP 2: CREATE DATABASE
+================================================================================
+
+Open Command Prompt and run:
+
+  psql -U postgres
+
+When prompted for password, type: postgres123
+
+Then paste these commands (copy and paste one at a time):
+
+  CREATE DATABASE taskmaster_dev;
+  CREATE USER taskmaster WITH PASSWORD 'taskmaster123';
+  ALTER ROLE taskmaster SET client_encoding TO 'utf8';
+  ALTER ROLE taskmaster SET default_transaction_isolation TO 'read committed';
+  GRANT ALL PRIVILEGES ON DATABASE taskmaster_dev TO taskmaster;
+  \q
+
+You should see confirmation messages for each command.
+
+================================================================================
+STEP 3: VERIFY DATABASE
+================================================================================
+
+Test connection:
+
+  psql -U taskmaster -d taskmaster_dev -c "SELECT 1"
+
+Should show:
+  ?column?
+  ----------
+         1
+
+If you see this, database is working! ✅
+
+================================================================================
+STEP 4: SETUP APPLICATION
+================================================================================
+
+The .env.local file is already updated with:
+  DATABASE_URL="postgresql://taskmaster:taskmaster123@localhost:5432/taskmaster_dev"
+
+Now run Prisma migrations to create tables:
+
+1. Open Command Prompt
+2. Navigate to project:
+   cd "C:\Users\charl\Downloads\Claude Code Coursera lesson\task-manager-ai"
+
+3. Generate Prisma client:
+   npx prisma generate
+
+4. Create tables:
+   npx prisma migrate deploy
+
+You should see:
+  All migrations have been applied successfully.
+
+================================================================================
+STEP 5: RESTART APPLICATION
+================================================================================
+
+1. Stop current application (Ctrl+C in the terminal)
+2. Start application:
+   npm run dev
+
+3. Open browser:
+   http://localhost:3001
+
+4. Create account and test!
+
+================================================================================
+VERIFY IT WORKS
+================================================================================
+
+1. Open http://localhost:3001
+2. Register account
+3. Create a project
+4. Create a task
+5. Refresh page (F5)
+6. Task still there? ✅ Database working!
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+PostgreSQL Connection:
+  Host: localhost
+  Port: 5432
+  Database: taskmaster_dev
+  User: taskmaster
+  Password: taskmaster123
+
+Useful Commands:
+
+  Connect to PostgreSQL:
+    psql -U taskmaster -d taskmaster_dev
+
+  View database in GUI:
+    npx prisma studio
+    (Opens http://localhost:5555)
+
+  Check PostgreSQL is running:
+    psql -U postgres -c "SELECT version();"
+
+  Stop application:
+    Ctrl+C in terminal
+
+  Start application:
+    npm run dev
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+"psql: command not found"
+  → Restart computer and try again
+  → PostgreSQL not in PATH
+
+"password authentication failed"
+  → Check password is postgres123 (for postgres user)
+  → Or taskmaster123 (for taskmaster user)
+
+"database does not exist"
+  → Run the CREATE DATABASE command again
+
+"Cannot connect to database"
+  → Check PostgreSQL is running (Services > postgresql)
+  → Check .env.local has correct DATABASE_URL
+
+"Port 5432 in use"
+  → Another app using PostgreSQL
+  → Restart computer
+  → Or use different port during PostgreSQL install
+
+================================================================================
+THAT'S IT!
+================================================================================
+
+You now have:
+  ✅ PostgreSQL installed
+  ✅ Database created
+  ✅ Application connected
+  ✅ Tables created
+  ✅ Ready to use!
+
+Your TaskMaster app now stores data in a professional database!
+
+For detailed help, see: SETUP_DATABASE_GUIDE.md
+
+================================================================================
