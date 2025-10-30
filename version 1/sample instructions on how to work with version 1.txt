@@ -1,0 +1,20 @@
+ Future Conversation Example
+
+  When you come back later needing help:
+
+  "Hi, I'm working on v1.0-stable of my TaskMaster application. I want to:
+  - Create a deployment script for Ubuntu 22.04
+  - Set up PostgreSQL and Node.js automatically
+  - Configure the app to run on port 3000
+  - Set up SSL with Let's Encrypt
+
+  Can you help me create the script?"
+
+  I can then:
+  1. Ask for confirmation of the version
+  2. Reference the features we know are in v1.0-stable
+  3. Ask about your VPS environment (OS, hosting provider, etc.)
+  4. Create the appropriate installation script
+
+  ---
+  In summary: Just say "v1.0-stable" and I'll know exactly which version you mean! 🎯

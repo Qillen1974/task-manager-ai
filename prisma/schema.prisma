@@ -61,8 +61,12 @@ model Subscription {
   cancelledAt       DateTime?
 
   // Limits (enforced by plan)
-  projectLimit      Int      @default(3)    // FREE: 3, PRO: unlimited
-  taskLimit         Int      @default(50)   // FREE: 50, PRO: unlimited
+  projectLimit      Int      @default(3)    // FREE: 3, PRO: 5, ENTERPRISE: unlimited
+  taskLimit         Int      @default(50)   // FREE: 50, PRO: unlimited, ENTERPRISE: unlimited
+
+  // Project hierarchy limits
+  maxProjectNestingLevel Int @default(0)   // FREE: 0 (no subprojects), PRO: 1 (one level), ENTERPRISE: unlimited
+  maxSubprojectsPerProject Int @default(0) // FREE: 0, PRO: unlimited, ENTERPRISE: unlimited
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -84,23 +88,49 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-// Project model - represents a task project
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  COMPLETED
+  ON_HOLD
+}
+
+// Project model - represents a task project with hierarchical support
 model Project {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  name      String
-  color     String   @default("blue")
-  description String?
+  name              String
+  color             String   @default("blue")
+  description       String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Hierarchical project support
+  parentProjectId   String?
+  parentProject     Project? @relation("ProjectHierarchy", fields: [parentProjectId], references: [id], onDelete: Cascade)
+  childProjects     Project[] @relation("ProjectHierarchy")
+
+  // Project metadata
+  status            ProjectStatus @default(ACTIVE)  // ACTIVE, ARCHIVED, COMPLETED
+  projectLevel      Int      @default(0)            // 0 = root project
+
+  // Professional features
+  startDate         DateTime?
+  endDate           DateTime?
+  budget            Float?
+  budget_currency   String?  @default("USD")
+  owner             String?                           // Project owner/lead name
+  metadata          String?                           // JSON string for custom fields
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  tasks     Task[]
+  tasks             Task[]
 
   @@index([userId])
+  @@index([parentProjectId])
+  @@index([status])
 }
 
 // Task model - represents an individual task
