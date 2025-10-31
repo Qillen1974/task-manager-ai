@@ -148,6 +148,7 @@ model Task {
 
   completed     Boolean  @default(false)
   completedAt   DateTime?
+  progress      Int      @default(0)  // Task progress percentage (0-100)
 
   dueDate       DateTime?
   dueTime       String?

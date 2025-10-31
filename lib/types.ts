@@ -9,6 +9,8 @@ export interface Task {
   dueDate?: string;
   dueTime?: string;
   completed: boolean;
+  completedAt?: string;
+  progress?: number; // Task progress percentage (0-100)
   createdAt: string;
   updatedAt: string;
 }

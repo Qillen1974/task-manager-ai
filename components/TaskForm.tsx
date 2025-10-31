@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Task, Project, Priority } from "@/lib/types";
 import { generateId, getPriorityLabel } from "@/lib/utils";
+import { ProgressSlider } from "./ProgressSlider";
 
 interface TaskFormProps {
   projects: Project[];
@@ -35,6 +36,7 @@ export function TaskForm({
   const [priority, setPriority] = useState<Priority>(editingTask?.priority || "not-urgent-not-important");
   const [dueDate, setDueDate] = useState(editingTask?.dueDate ? editingTask.dueDate.split('T')[0] : "");
   const [dueTime, setDueTime] = useState(editingTask?.dueTime || "");
+  const [progress, setProgress] = useState(editingTask?.progress || 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const priorities: Priority[] = [
@@ -102,6 +104,7 @@ export function TaskForm({
       dueDate: dueDate || undefined,
       dueTime: dueTime || undefined,
       completed: editingTask?.completed || false,
+      progress: progress,
       createdAt: editingTask?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -213,7 +216,7 @@ export function TaskForm({
             </select>
           </div>
 
-          {/* Due Date */}
+          {/* Due Date and Progress */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -246,6 +249,19 @@ export function TaskForm({
               />
               {errors.dueTime && <p className="text-red-500 text-sm mt-1">{errors.dueTime}</p>}
             </div>
+          </div>
+
+          {/* Progress */}
+          <div>
+            <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
+              Progress Completion
+            </label>
+            <ProgressSlider
+              value={progress}
+              onChange={setProgress}
+              showLabel={true}
+              size="medium"
+            />
           </div>
 
           {/* Buttons */}
