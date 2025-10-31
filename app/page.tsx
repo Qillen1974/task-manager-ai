@@ -255,6 +255,11 @@ export default function Home() {
     return projects.filter((p) => !p.parentProjectId);
   }, [projects]);
 
+  // Get all projects flattened (for dropdown selections)
+  const allProjectsFlattened = useMemo(() => {
+    return flattenProjectTree(projects);
+  }, [projects]);
+
   // Find active project (search recursively through hierarchy)
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
@@ -639,6 +644,7 @@ export default function Home() {
           <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-96 overflow-y-auto">
             <TaskForm
               projects={projects}
+              allProjects={allProjectsFlattened}
               editingTask={editingTask}
               defaultProjectId={defaultProjectId}
               activeProjectId={activeProjectId}

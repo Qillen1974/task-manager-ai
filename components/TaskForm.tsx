@@ -14,6 +14,7 @@ interface TaskFormProps {
   onSubmit?: (task: Task) => void | Promise<void>;
   activeProjectId?: string;
   childProjects?: Project[];
+  allProjects?: Project[]; // Flattened list of all projects including nested ones
 }
 
 export function TaskForm({
@@ -25,7 +26,8 @@ export function TaskForm({
   defaultProjectId,
   onSubmit,
   activeProjectId,
-  childProjects = []
+  childProjects = [],
+  allProjects = []
 }: TaskFormProps) {
   const [title, setTitle] = useState(editingTask?.title || "");
   const [description, setDescription] = useState(editingTask?.description || "");
@@ -43,12 +45,13 @@ export function TaskForm({
   ];
 
   // Filter projects to show only active project and its subprojects
+  // If activeProjectId is set, find it in allProjects and show with its children
   const availableProjects = activeProjectId
     ? [
-        projects.find(p => p.id === activeProjectId),
+        allProjects.find(p => p.id === activeProjectId),
         ...childProjects
       ].filter(Boolean) as Project[]
-    : projects;
+    : allProjects.length > 0 ? allProjects : projects;
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
