@@ -15,6 +15,32 @@ import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { getPendingTaskCount } from "@/lib/utils";
 
+// Helper function to recursively find a project in the hierarchy
+function findProjectInTree(projects: Project[], projectId: string): Project | undefined {
+  for (const project of projects) {
+    if (project.id === projectId) {
+      return project;
+    }
+    if ((project as any).children && (project as any).children.length > 0) {
+      const found = findProjectInTree((project as any).children, projectId);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+// Helper function to get all projects (root and nested) in a flat list
+function flattenProjectTree(projects: Project[]): Project[] {
+  const flat: Project[] = [];
+  for (const project of projects) {
+    flat.push(project);
+    if ((project as any).children && (project as any).children.length > 0) {
+      flat.push(...flattenProjectTree((project as any).children));
+    }
+  }
+  return flat;
+}
+
 export default function Home() {
   const api = useApi();
   const [hydrated, setHydrated] = useState(false);
@@ -109,6 +135,12 @@ export default function Home() {
           const tasksResponse = await api.getTasks();
           if (tasksResponse.success && tasksResponse.data) {
             setTasks(tasksResponse.data);
+          }
+
+          // Fetch user subscription plan
+          const userResponse = await api.getCurrentUser();
+          if (userResponse.success && userResponse.data?.subscription?.plan) {
+            setUserPlan(userResponse.data.subscription.plan);
           }
         } catch (error) {
           console.error("Failed to load data:", error);
@@ -223,16 +255,17 @@ export default function Home() {
     return projects.filter((p) => !p.parentProjectId);
   }, [projects]);
 
-  // Find active project
+  // Find active project (search recursively through hierarchy)
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
-    return projects.find((p) => p.id === activeProjectId);
+    return findProjectInTree(projects, activeProjectId);
   }, [activeProjectId, projects]);
 
   // Get child projects of active project
   const childProjects = useMemo(() => {
     if (!activeProjectId) return [];
-    return projects.filter((p) => p.parentProjectId === activeProjectId);
+    const active = findProjectInTree(projects, activeProjectId);
+    return active && (active as any).children ? (active as any).children : [];
   }, [activeProjectId, projects]);
 
   // Project operations (hierarchical)
@@ -264,7 +297,11 @@ export default function Home() {
 
       const result = await response.json();
       if (result.success) {
-        setProjects([...projects, result.data]);
+        // Reload projects to maintain proper hierarchy
+        const projectsResponse = await api.getProjects();
+        if (projectsResponse.success && projectsResponse.data) {
+          setProjects(projectsResponse.data);
+        }
         alert("Project created successfully!");
       } else {
         throw new Error(result.error?.message || "Failed to create project");
@@ -305,7 +342,11 @@ export default function Home() {
 
       const result = await response.json();
       if (result.success) {
-        setProjects(projects.map((p) => (p.id === editingProject.id ? result.data : p)));
+        // Reload projects to maintain proper hierarchy
+        const projectsResponse = await api.getProjects();
+        if (projectsResponse.success && projectsResponse.data) {
+          setProjects(projectsResponse.data);
+        }
         alert("Project updated successfully!");
       } else {
         throw new Error(result.error?.message || "Failed to update project");
@@ -335,18 +376,17 @@ export default function Home() {
 
         const result = await response.json();
         if (result.success) {
-          // Remove all projects in the deleted hierarchy and their tasks
-          const projectIdsToDelete = new Set<string>();
-          const collectProjectIds = (pId: string) => {
-            projectIdsToDelete.add(pId);
-            projects.filter((p) => p.parentProjectId === pId).forEach((p) => {
-              collectProjectIds(p.id);
-            });
-          };
-          collectProjectIds(projectId);
+          // Reload projects and tasks to reflect the deletion
+          const projectsResponse = await api.getProjects();
+          if (projectsResponse.success && projectsResponse.data) {
+            setProjects(projectsResponse.data);
+          }
 
-          setProjects(projects.filter((p) => !projectIdsToDelete.has(p.id)));
-          setTasks(tasks.filter((t) => !projectIdsToDelete.has(t.projectId)));
+          const tasksResponse = await api.getTasks();
+          if (tasksResponse.success && tasksResponse.data) {
+            setTasks(tasksResponse.data);
+          }
+
           setActiveProjectId("");
           alert("Project deleted successfully!");
         } else {
@@ -395,8 +435,9 @@ export default function Home() {
       <Navigation
         projects={projects}
         activeView={activeView}
+        activeProjectId={activeProjectId}
         onViewChange={setActiveView}
-        onProjectSelect={() => {}} // No-op callback - onViewChange handles the navigation
+        onProjectSelect={setActiveProjectId}
         pendingTaskCount={pendingTaskCount}
         userName={localStorage.getItem("userEmail") || "User"}
         userEmail={localStorage.getItem("userEmail") || ""}
@@ -421,17 +462,21 @@ export default function Home() {
             </button>
 
             {rootProjects.length > 0 ? (
-              <ProjectTree
-                projects={rootProjects}
-                activeProjectId={activeProjectId}
-                onSelectProject={setActiveProjectId}
+              <>
+                <ProjectTree
+                  projects={rootProjects}
+                  activeProjectId={activeProjectId}
+                  onSelectProject={(projectId) => {
+                    setActiveProjectId(projectId);
+                    setActiveView("projects");
+                  }}
                 onCreateSubproject={(parentId) => {
                   setEditingProject(undefined);
                   setParentProjectId(parentId);
                   setShowProjectModal(true);
                 }}
                 onEditProject={(projectId) => {
-                  const project = projects.find((p) => p.id === projectId);
+                  const project = findProjectInTree(projects, projectId);
                   if (project) {
                     setEditingProject(project);
                     setShowProjectModal(true);
@@ -439,6 +484,7 @@ export default function Home() {
                 }}
                 onDeleteProject={handleDeleteProject}
               />
+              </>
             ) : (
               <div className="text-center text-gray-500 py-8">
                 <p className="text-sm">No projects yet.</p>
@@ -520,20 +566,21 @@ export default function Home() {
           {activeProjectId && activeProject && (
             <div className="space-y-6">
               <ProjectBreadcrumb
-                project={activeProject}
-                allProjects={projects}
-                onProjectClick={setActiveProjectId}
-              />
+                    project={activeProject}
+                    allProjects={projects}
+                    onProjectClick={setActiveProjectId}
+                  />
 
-              <ProjectStats
-                project={activeProject}
-                tasks={tasks.filter((t) => t.projectId === activeProjectId)}
-                childProjects={childProjects}
-                onEditProject={() => {
-                  setEditingProject(activeProject);
-                  setShowProjectModal(true);
-                }}
-              />
+                  <ProjectStats
+                    project={activeProject}
+                    tasks={tasks.filter((t) => t.projectId === activeProjectId)}
+                    childProjects={childProjects}
+                    onEditProject={() => {
+                      setEditingProject(activeProject);
+                      setShowProjectModal(true);
+                    }}
+                    onSelectSubproject={setActiveProjectId}
+                  />
 
               {/* Tasks for this project */}
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -573,8 +620,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Default message when no project is selected */}
-          {!activeProjectId && activeView !== "dashboard" && activeView !== "all-tasks" && (
+          {/* Default message when no project is selected in projects view */}
+          {activeView === "projects" && !activeProjectId && (
             <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
               <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -594,6 +641,8 @@ export default function Home() {
               projects={projects}
               editingTask={editingTask}
               defaultProjectId={defaultProjectId}
+              activeProjectId={activeProjectId}
+              childProjects={childProjects}
               onClose={() => {
                 setShowTaskForm(false);
                 setEditingTask(undefined);

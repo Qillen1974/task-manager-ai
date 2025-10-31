@@ -12,9 +12,21 @@ interface TaskFormProps {
   onTaskUpdate?: (task: Task) => void;
   defaultProjectId?: string;
   onSubmit?: (task: Task) => void | Promise<void>;
+  activeProjectId?: string;
+  childProjects?: Project[];
 }
 
-export function TaskForm({ projects, onTaskAdd, onClose, editingTask, onTaskUpdate, defaultProjectId, onSubmit }: TaskFormProps) {
+export function TaskForm({
+  projects,
+  onTaskAdd,
+  onClose,
+  editingTask,
+  onTaskUpdate,
+  defaultProjectId,
+  onSubmit,
+  activeProjectId,
+  childProjects = []
+}: TaskFormProps) {
   const [title, setTitle] = useState(editingTask?.title || "");
   const [description, setDescription] = useState(editingTask?.description || "");
   const [projectId, setProjectId] = useState(editingTask?.projectId || defaultProjectId || projects[0]?.id || "");
@@ -30,32 +42,33 @@ export function TaskForm({ projects, onTaskAdd, onClose, editingTask, onTaskUpda
     "not-urgent-not-important",
   ];
 
+  // Filter projects to show only active project and its subprojects
+  const availableProjects = activeProjectId
+    ? [
+        projects.find(p => p.id === activeProjectId),
+        ...childProjects
+      ].filter(Boolean) as Project[]
+    : projects;
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    console.log("Validating form with:", { title, projectId, dueDate, dueTime });
-
     if (!title.trim()) {
       newErrors.title = "Task title is required";
-      console.log("Title validation failed");
     }
 
     if (!projectId) {
       newErrors.projectId = "Project is required";
-      console.log("ProjectId validation failed");
     }
 
     if (dueDate && !isValidDate(dueDate)) {
       newErrors.dueDate = "Invalid date format";
-      console.log("Date validation failed for:", dueDate);
     }
 
     if (dueDate && dueTime && !isValidTime(dueTime)) {
       newErrors.dueTime = "Invalid time format";
-      console.log("Time validation failed for:", dueTime);
     }
 
-    console.log("Validation errors:", newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -169,7 +182,7 @@ export function TaskForm({ projects, onTaskAdd, onClose, editingTask, onTaskUpda
               }`}
             >
               <option value="">Select a project</option>
-              {projects.map((project) => (
+              {availableProjects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>

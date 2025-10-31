@@ -208,7 +208,7 @@ export function useApi() {
 
   // Projects
   const getProjects = useCallback(
-    async () => call('GET', '/projects'),
+    async () => call('GET', '/projects?includeChildren=true'),
     [call]
   );
 

@@ -31,44 +31,62 @@ export async function GET(request: NextRequest) {
       where.parentProjectId = null;
     }
 
-    const projects = await db.project.findMany({
-      where,
-      include: {
-        tasks: {
-          select: {
-            id: true,
-            completed: true,
-          },
-        },
-        childProjects: includeChildren ? {
-          include: {
-            tasks: {
-              select: {
-                id: true,
-                completed: true,
-              },
+    // Build the recursive include structure for childProjects
+    const buildChildProjectsInclude = (depth: number = 3): any => {
+      if (depth <= 0) return false;
+      return {
+        include: {
+          tasks: {
+            select: {
+              id: true,
+              completed: true,
             },
           },
-        } : false,
+          childProjects: buildChildProjectsInclude(depth - 1),
+        },
+      };
+    };
+
+    const includeObj: any = {
+      tasks: {
+        select: {
+          id: true,
+          completed: true,
+        },
       },
+    };
+
+    if (includeChildren) {
+      includeObj.childProjects = buildChildProjectsInclude(3);
+    }
+
+    const projects = await db.project.findMany({
+      where,
+      include: includeObj,
       orderBy: { createdAt: "desc" },
     });
 
-    // Add task counts
-    const projectsWithCounts = projects.map((project) => {
+    // Recursive function to transform and add task counts
+    const transformProject = (project: any): any => {
       const allTasks = [
         ...project.tasks,
-        ...(includeChildren && project.childProjects
-          ? project.childProjects.flatMap((cp: any) => cp.tasks)
+        ...(project.childProjects
+          ? project.childProjects.flatMap((cp: any) => [
+              ...cp.tasks,
+              ...(cp.childProjects ? cp.childProjects.flatMap((cpp: any) => cpp.tasks) : []),
+            ])
           : []),
       ];
 
       return {
         ...project,
+        children: project.childProjects?.map(transformProject),
         taskCount: allTasks.length,
         completedCount: allTasks.filter((t) => t.completed).length,
       };
-    });
+    };
+
+    const projectsWithCounts = projects.map(transformProject);
 
     return success(projectsWithCounts);
   });

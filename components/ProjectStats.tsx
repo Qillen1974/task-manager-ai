@@ -7,6 +7,7 @@ interface ProjectStatsProps {
   tasks: any[]; // Task array
   childProjects?: Project[];
   onEditProject?: () => void;
+  onSelectSubproject?: (projectId: string) => void;
 }
 
 export function ProjectStats({
@@ -14,6 +15,7 @@ export function ProjectStats({
   tasks,
   childProjects = [],
   onEditProject,
+  onSelectSubproject,
 }: ProjectStatsProps) {
   // Calculate task statistics
   const taskStats = {
@@ -178,9 +180,10 @@ export function ProjectStats({
           <h3 className="font-semibold text-gray-900 mb-3">Subprojects</h3>
           <div className="space-y-2">
             {childProjects.map((child) => (
-              <div
+              <button
                 key={child.id}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50"
+                onClick={() => onSelectSubproject?.(child.id)}
+                className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 transition cursor-pointer border border-transparent hover:border-blue-200"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -192,7 +195,7 @@ export function ProjectStats({
                 <span className="text-xs text-gray-500">
                   {(child as any).taskCount || 0} tasks
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

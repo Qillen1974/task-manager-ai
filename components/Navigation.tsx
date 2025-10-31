@@ -7,6 +7,7 @@ import { useState } from "react";
 interface NavigationProps {
   projects: Project[];
   activeView: "dashboard" | "projects" | "all-tasks" | string;
+  activeProjectId?: string;
   onViewChange: (view: string) => void;
   onProjectSelect: (projectId: string) => void;
   pendingTaskCount: number;
@@ -36,6 +37,7 @@ function getProjectColors(color: string) {
 export function Navigation({
   projects,
   activeView,
+  activeProjectId,
   onViewChange,
   onProjectSelect,
   pendingTaskCount,
@@ -176,7 +178,7 @@ export function Navigation({
         {projects.length > 0 && (
           <div className="border-t border-gray-100 py-2 px-2 flex gap-2 overflow-x-auto">
             {projects.map((project) => {
-              const isActive = activeView === `project-${project.id}`;
+              const isActive = activeProjectId === project.id;
               const colors = getProjectColors(project.color);
 
               return (
@@ -184,7 +186,7 @@ export function Navigation({
                   key={project.id}
                   onClick={() => {
                     onProjectSelect(project.id);
-                    onViewChange(`project-${project.id}`);
+                    onViewChange("projects");
                   }}
                   style={
                     isActive
