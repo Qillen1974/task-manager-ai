@@ -71,7 +71,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">TaskMaster</h1>
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">TaskQuadrant</h1>
         <p className="text-center text-gray-600 mb-8">Professional Task Management</p>
 
         {/* Tabs */}

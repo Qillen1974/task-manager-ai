@@ -135,7 +135,7 @@ export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">TaskMaster Admin</h1>
+              <h1 className="text-2xl font-bold text-gray-900">TaskQuadrant Admin</h1>
               <p className="text-sm text-gray-600">System Administration</p>
             </div>
           </div>

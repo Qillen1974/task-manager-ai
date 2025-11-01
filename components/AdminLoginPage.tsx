@@ -52,7 +52,7 @@ export function AdminLoginPage({ onAuthSuccess }: AdminLoginPageProps) {
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Admin Panel</h1>
-        <p className="text-center text-gray-600 mb-8">TaskMaster Administration</p>
+        <p className="text-center text-gray-600 mb-8">TaskQuadrant Administration</p>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +66,7 @@ export function AdminLoginPage({ onAuthSuccess }: AdminLoginPageProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@taskmaster.com"
+              placeholder="admin@taskquadrant.io"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
               required
             />
@@ -111,7 +111,7 @@ export function AdminLoginPage({ onAuthSuccess }: AdminLoginPageProps) {
             Default Admin Credentials:
           </p>
           <ul className="text-xs text-gray-600 space-y-1">
-            <li>📧 Email: <code className="bg-white px-1 rounded">admin@taskmaster.com</code></li>
+            <li>📧 Email: <code className="bg-white px-1 rounded">admin@taskquadrant.io</code></li>
             <li>🔑 Password: <code className="bg-white px-1 rounded">admin123</code></li>
           </ul>
           <p className="text-xs text-red-600 mt-3">
@@ -123,7 +123,7 @@ export function AdminLoginPage({ onAuthSuccess }: AdminLoginPageProps) {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             <a href="/" className="text-blue-600 hover:text-blue-700 font-medium">
-              Back to TaskMaster App
+              Back to TaskQuadrant App
             </a>
           </p>
         </div>

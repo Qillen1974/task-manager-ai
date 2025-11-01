@@ -59,7 +59,7 @@ export function Navigation({
                 <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM15 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z" />
               </svg>
             </div>
-            <span className="font-bold text-xl text-gray-900">TaskMaster</span>
+            <span className="font-bold text-xl text-gray-900">TaskQuadrant</span>
           </div>
 
           {/* Main Navigation */}

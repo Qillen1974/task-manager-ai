@@ -18,8 +18,8 @@ export interface AuthSession {
 }
 
 // Store users in localStorage (in production, use a database)
-const USERS_KEY = "taskmaster_users";
-const SESSION_KEY = "taskmaster_session";
+const USERS_KEY = "taskquadrant_users";
+const SESSION_KEY = "taskquadrant_session";
 
 export function getAllUsers(): User[] {
   if (typeof window === "undefined") return [];

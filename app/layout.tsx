@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "TaskMaster - Professional Task Management",
+  title: "TaskQuadrant - Professional Task Management",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
 };
 

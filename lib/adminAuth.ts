@@ -22,9 +22,9 @@ export interface AdminSession {
   token: string;
 }
 
-const ADMINS_KEY = "taskmaster_admins";
-const ADMIN_SESSION_KEY = "taskmaster_admin_session";
-const ADMIN_TOKEN_KEY = "taskmaster_admin_token";
+const ADMINS_KEY = "taskquadrant_admins";
+const ADMIN_SESSION_KEY = "taskquadrant_admin_session";
+const ADMIN_TOKEN_KEY = "taskquadrant_admin_token";
 
 // Initialize default super admin on first load
 function initializeDefaultAdmin() {
@@ -32,7 +32,7 @@ function initializeDefaultAdmin() {
   if (admins.length === 0) {
     const defaultAdmin: Admin = {
       id: nanoid(),
-      email: "admin@taskmaster.com",
+      email: "admin@taskquadrant.io",
       password: "admin123", // In production, hash this!
       name: "Super Administrator",
       role: "super_admin",
