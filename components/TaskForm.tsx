@@ -33,10 +33,17 @@ export function TaskForm({
   const [title, setTitle] = useState(editingTask?.title || "");
   const [description, setDescription] = useState(editingTask?.description || "");
   const [projectId, setProjectId] = useState(editingTask?.projectId || defaultProjectId || projects[0]?.id || "");
-  const [priority, setPriority] = useState<Priority>(editingTask?.priority || "not-urgent-not-important");
+  const [priority, setPriority] = useState<Priority>(editingTask?.priority || "");
+  const [startDate, setStartDate] = useState(
+    editingTask?.startDate ? (editingTask.startDate.includes('T') ? editingTask.startDate.split('T')[0] : editingTask.startDate) : ""
+  );
+  const [startTime, setStartTime] = useState(editingTask?.startTime || "");
   const [dueDate, setDueDate] = useState(editingTask?.dueDate ? editingTask.dueDate.split('T')[0] : "");
   const [dueTime, setDueTime] = useState(editingTask?.dueTime || "");
   const [progress, setProgress] = useState(editingTask?.progress || 0);
+  const [resourceCount, setResourceCount] = useState<number | undefined>(editingTask?.resourceCount || undefined);
+  const [manhours, setManhours] = useState<number | undefined>(editingTask?.manhours || undefined);
+  const [dependsOnTaskId, setDependsOnTaskId] = useState<string | undefined>(editingTask?.dependsOnTaskId || undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const priorities: Priority[] = [
@@ -101,10 +108,15 @@ export function TaskForm({
       description,
       projectId,
       priority,
+      startDate: startDate || undefined,
+      startTime: startTime || undefined,
       dueDate: dueDate || undefined,
       dueTime: dueTime || undefined,
       completed: editingTask?.completed || false,
       progress: progress,
+      resourceCount: resourceCount,
+      manhours: manhours,
+      dependsOnTaskId: dependsOnTaskId || undefined,
       createdAt: editingTask?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -197,10 +209,10 @@ export function TaskForm({
             {errors.projectId && <p className="text-red-500 text-sm mt-1">{errors.projectId}</p>}
           </div>
 
-          {/* Priority */}
+          {/* Priority/Quadrant */}
           <div>
             <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-              Priority
+              Eisenhower Quadrant (Optional)
             </label>
             <select
               id="priority"
@@ -208,6 +220,7 @@ export function TaskForm({
               onChange={(e) => setPriority(e.target.value as Priority)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             >
+              <option value="">No Quadrant - Task will not appear in Eisenhower Matrix</option>
               {priorities.map((p) => (
                 <option key={p} value={p}>
                   {getPriorityLabel(p)}
@@ -216,7 +229,36 @@ export function TaskForm({
             </select>
           </div>
 
-          {/* Due Date and Progress */}
+          {/* Start Date and Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                Start Time
+              </label>
+              <input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+          </div>
+
+          {/* Due Date and Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -262,6 +304,58 @@ export function TaskForm({
               showLabel={true}
               size="medium"
             />
+          </div>
+
+          {/* Task Dependencies */}
+          <div>
+            <label htmlFor="dependsOnTaskId" className="block text-sm font-medium text-gray-700 mb-1">
+              Depends On Task (Optional)
+            </label>
+            <select
+              id="dependsOnTaskId"
+              value={dependsOnTaskId || ""}
+              onChange={(e) => setDependsOnTaskId(e.target.value || undefined)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            >
+              <option value="">No dependency - This task can be started immediately</option>
+              {availableProjects.map((project) => {
+                // This will be populated with tasks from the backend when full feature is implemented
+                return null;
+              })}
+            </select>
+          </div>
+
+          {/* Resource Allocation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="resourceCount" className="block text-sm font-medium text-gray-700 mb-1">
+                Resource Count (Optional)
+              </label>
+              <input
+                id="resourceCount"
+                type="number"
+                min="0"
+                value={resourceCount || ""}
+                onChange={(e) => setResourceCount(e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="Number of people assigned"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+            <div>
+              <label htmlFor="manhours" className="block text-sm font-medium text-gray-700 mb-1">
+                Manhours (Optional)
+              </label>
+              <input
+                id="manhours"
+                type="number"
+                min="0"
+                step="0.5"
+                value={manhours || ""}
+                onChange={(e) => setManhours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                placeholder="Total manhours allocated"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
           </div>
 
           {/* Buttons */}

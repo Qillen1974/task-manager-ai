@@ -144,14 +144,25 @@ model Task {
 
   title         String
   description   String?
-  priority      String   @default("not-urgent-not-important") // Eisenhower matrix priority
+  priority      String?  // Eisenhower matrix priority (optional - null means task doesn't appear in matrix)
 
   completed     Boolean  @default(false)
   completedAt   DateTime?
   progress      Int      @default(0)  // Task progress percentage (0-100)
 
+  startDate     DateTime?
+  startTime     String?
   dueDate       DateTime?
   dueTime       String?
+
+  // Resource allocation (optional)
+  resourceCount Int?                  // Number of people assigned to task
+  manhours      Float?                // Total manhours allocated to task
+
+  // Task dependencies (optional)
+  dependsOnTaskId String?
+  dependsOnTask    Task?   @relation("TaskDependencies", fields: [dependsOnTaskId], references: [id], onDelete: SetNull)
+  dependentTasks   Task[]  @relation("TaskDependencies")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -159,6 +170,7 @@ model Task {
   @@index([userId])
   @@index([projectId])
   @@index([completed])
+  @@index([dependsOnTaskId])
 }
 
 // AuditLog model - track all important actions for compliance

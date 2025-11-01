@@ -54,11 +54,18 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProj
             </p>
           )}
 
-          <div className="flex items-center flex-wrap gap-2">
+          <div className="flex items-center flex-wrap gap-2 mb-3">
             {/* Priority Badge */}
             <span className={`text-xs px-2 py-1 rounded font-medium ${getPriorityBadgeColor(task.priority)}`}>
               {task.priority.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
             </span>
+
+            {/* Start Date */}
+            {task.startDate && (
+              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 font-medium">
+                Starts: {formatDateTime(task.startDate, task.startTime)}
+              </span>
+            )}
 
             {/* Deadline */}
             {task.deadline && (
@@ -75,6 +82,60 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProj
                 {isTaskOverdue && " (Overdue)"}
                 {isTaskSoon && !isTaskOverdue && " (Soon)"}
               </span>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full mb-3">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-gray-600">Progress:</span>
+              <span className="text-xs font-semibold text-gray-700">{task.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all ${
+                  task.progress === 0 ? "bg-gray-300" :
+                  task.progress < 33 ? "bg-red-500" :
+                  task.progress < 100 ? "bg-yellow-500" :
+                  "bg-green-500"
+                }`}
+                style={{ width: `${task.progress || 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Dependencies and Resources */}
+          <div className="flex flex-wrap gap-3 text-xs">
+            {/* Task Dependencies */}
+            {task.dependsOnTask && (
+              <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded">
+                <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                <span className="text-gray-700 font-medium">
+                  Depends on: <strong>{task.dependsOnTask.title}</strong>
+                  {task.dependsOnTask.completed && <span className="text-green-600 ml-1">✓</span>}
+                </span>
+              </div>
+            )}
+
+            {/* Resource Allocation */}
+            {task.resourceCount && task.resourceCount > 0 && (
+              <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+                <span className="text-gray-700 font-medium">{task.resourceCount} resource{task.resourceCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+            {task.manhours && task.manhours > 0 && (
+              <div className="flex items-center gap-1 bg-purple-50 px-2 py-1 rounded">
+                <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                </svg>
+                <span className="text-gray-700 font-medium">{task.manhours} hour{task.manhours !== 1 ? 's' : ''}</span>
+              </div>
             )}
           </div>
         </div>

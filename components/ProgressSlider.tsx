@@ -19,7 +19,6 @@ export function ProgressSlider({
   size = "medium",
   disabled = false,
 }: ProgressSliderProps) {
-  const [isFocused, setIsFocused] = useState(false);
   const [localValue, setLocalValue] = useState(value);
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export function ProgressSlider({
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
     onCommit?.(localValue);
   };
 
@@ -62,7 +60,6 @@ export function ProgressSlider({
         max="100"
         value={localValue}
         onChange={(e) => handleChange(Number(e.target.value))}
-        onFocus={() => setIsFocused(true)}
         onBlur={handleBlur}
         disabled={disabled}
         className={`flex-1 appearance-none bg-gray-200 rounded-full cursor-pointer accent-blue-600 ${

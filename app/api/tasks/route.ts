@@ -28,7 +28,32 @@ export async function GET(request: NextRequest) {
 
     const tasks = await db.task.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        title: true,
+        description: true,
+        priority: true,
+        completed: true,
+        completedAt: true,
+        progress: true,
+        startDate: true,
+        startTime: true,
+        dueDate: true,
+        dueTime: true,
+        resourceCount: true,
+        manhours: true,
+        dependsOnTaskId: true,
+        dependsOnTask: {
+          select: {
+            id: true,
+            title: true,
+            completed: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: {
             id: true,
@@ -40,7 +65,31 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return success(tasks);
+    // Format tasks to match frontend expectations
+    const formattedTasks = tasks.map((task: any) => ({
+      id: task.id,
+      userId: task.userId,
+      projectId: task.projectId,
+      title: task.title,
+      description: task.description,
+      priority: task.priority || "", // Convert null to empty string
+      completed: task.completed,
+      completedAt: task.completedAt,
+      dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
+      dueTime: task.dueTime,
+      progress: task.progress,
+      startDate: task.startDate ? task.startDate.toISOString().split('T')[0] : undefined,
+      startTime: task.startTime,
+      resourceCount: task.resourceCount,
+      manhours: task.manhours,
+      dependsOnTaskId: task.dependsOnTaskId,
+      dependsOnTask: task.dependsOnTask,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      project: task.project,
+    }));
+
+    return success(formattedTasks);
   });
 }
 
@@ -55,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, dueDate, dueTime } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, resourceCount, manhours, dependsOnTaskId } = body;
 
     // Validation
     if (!title || title.trim().length === 0) {
@@ -99,11 +148,41 @@ export async function POST(request: NextRequest) {
         projectId,
         title: title.trim(),
         description: description?.trim(),
-        priority: priority || "not-urgent-not-important",
+        priority: priority || null, // Allow null for tasks without a quadrant
+        startDate: startDate ? new Date(startDate) : null,
+        startTime: startTime || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         dueTime: dueTime || null,
+        resourceCount: resourceCount || null,
+        manhours: manhours || null,
+        dependsOnTaskId: dependsOnTaskId || null,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        title: true,
+        description: true,
+        priority: true,
+        completed: true,
+        completedAt: true,
+        progress: true,
+        startDate: true,
+        startTime: true,
+        dueDate: true,
+        dueTime: true,
+        resourceCount: true,
+        manhours: true,
+        dependsOnTaskId: true,
+        dependsOnTask: {
+          select: {
+            id: true,
+            title: true,
+            completed: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: {
             id: true,
@@ -114,6 +193,30 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return success(task, 201);
+    // Format response
+    const formattedTask = {
+      id: task.id,
+      userId: task.userId,
+      projectId: task.projectId,
+      title: task.title,
+      description: task.description,
+      priority: task.priority || "", // Convert null to empty string
+      completed: task.completed,
+      completedAt: task.completedAt,
+      dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
+      dueTime: task.dueTime,
+      progress: task.progress,
+      startDate: task.startDate ? task.startDate.toISOString().split('T')[0] : undefined,
+      startTime: task.startTime,
+      resourceCount: task.resourceCount,
+      manhours: task.manhours,
+      dependsOnTaskId: task.dependsOnTaskId,
+      dependsOnTask: task.dependsOnTask,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      project: task.project,
+    };
+
+    return success(formattedTask, 201);
   });
 }

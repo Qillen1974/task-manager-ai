@@ -248,8 +248,13 @@ export function useApi() {
       projectId: string;
       description?: string;
       priority?: string;
+      startDate?: string;
+      startTime?: string;
       dueDate?: string;
       dueTime?: string;
+      resourceCount?: number;
+      manhours?: number;
+      dependsOnTaskId?: string;
     }) => call('POST', '/tasks', data),
     [call]
   );
@@ -262,9 +267,15 @@ export function useApi() {
         description?: string;
         projectId?: string;
         priority?: string;
+        startDate?: string | null;
+        startTime?: string;
         dueDate?: string | null;
         dueTime?: string;
+        progress?: number;
         completed?: boolean;
+        resourceCount?: number;
+        manhours?: number;
+        dependsOnTaskId?: string | null;
       }
     ) => call('PATCH', `/tasks/${id}`, data),
     [call]

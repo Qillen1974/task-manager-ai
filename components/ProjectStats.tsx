@@ -8,6 +8,7 @@ interface ProjectStatsProps {
   childProjects?: Project[];
   onEditProject?: () => void;
   onSelectSubproject?: (projectId: string) => void;
+  onCreateSubproject?: () => void;
 }
 
 export function ProjectStats({
@@ -16,6 +17,7 @@ export function ProjectStats({
   childProjects = [],
   onEditProject,
   onSelectSubproject,
+  onCreateSubproject,
 }: ProjectStatsProps) {
   // Calculate task statistics
   const taskStats = {
@@ -177,7 +179,17 @@ export function ProjectStats({
       {/* Child Projects */}
       {childProjects.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Subprojects</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900">Subprojects</h3>
+            {onCreateSubproject && (
+              <button
+                onClick={onCreateSubproject}
+                className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+              >
+                + New
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
             {childProjects.map((child) => (
               <button
@@ -198,6 +210,22 @@ export function ProjectStats({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Empty state for Subprojects section when no child projects exist */}
+      {childProjects.length === 0 && onCreateSubproject && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900">Subprojects</h3>
+            <button
+              onClick={onCreateSubproject}
+              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+            >
+              + New
+            </button>
+          </div>
+          <p className="text-gray-500 text-center py-4">No subprojects yet. Create one to organize your project structure.</p>
         </div>
       )}
     </div>

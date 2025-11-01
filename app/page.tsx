@@ -13,6 +13,7 @@ import { ProjectTree } from "@/components/ProjectTree";
 import { ProjectHierarchyModal, ProjectFormData } from "@/components/ProjectHierarchyModal";
 import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
+import { GanttChart } from "@/components/GanttChart";
 import { getPendingTaskCount } from "@/lib/utils";
 
 // Helper function to recursively find a project in the hierarchy
@@ -56,6 +57,7 @@ export default function Home() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showUserSettings, setShowUserSettings] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Editing state
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -172,8 +174,13 @@ export default function Home() {
         projectId: task.projectId,
         description: task.description,
         priority: task.priority,
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : undefined,
+        startDate: task.startDate,
+        startTime: task.startTime,
+        dueDate: task.dueDate,
         dueTime: task.dueTime,
+        resourceCount: task.resourceCount,
+        manhours: task.manhours,
+        dependsOnTaskId: task.dependsOnTaskId,
       });
 
       if (response.success && response.data) {
@@ -191,9 +198,15 @@ export default function Home() {
         description: updatedTask.description,
         projectId: updatedTask.projectId,
         priority: updatedTask.priority,
+        startDate: updatedTask.startDate,
+        startTime: updatedTask.startTime,
         dueDate: updatedTask.dueDate,
         dueTime: updatedTask.dueTime,
+        progress: updatedTask.progress,
         completed: updatedTask.completed,
+        resourceCount: updatedTask.resourceCount,
+        manhours: updatedTask.manhours,
+        dependsOnTaskId: updatedTask.dependsOnTaskId,
       });
 
       if (response.success && response.data) {
@@ -214,16 +227,18 @@ export default function Home() {
     if (!task) return;
 
     try {
+      const isBeingCompleted = !task.completed;
       const response = await api.updateTask(taskId, {
-        completed: !task.completed,
+        completed: isBeingCompleted,
+        // When completing a task, automatically set progress to 100
+        ...(isBeingCompleted && { progress: 100 }),
       });
 
       if (response.success && response.data) {
+        // Use the server response data which has the updated progress from the backend
         setTasks(
           tasks.map((t) =>
-            t.id === taskId
-              ? { ...t, completed: !t.completed, updatedAt: new Date().toISOString() }
-              : t
+            t.id === taskId ? response.data : t
           )
         );
       }
@@ -451,9 +466,24 @@ export default function Home() {
         onSettingsClick={() => setShowUserSettings(true)}
       />
 
-      <div className="flex gap-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex gap-6 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="fixed top-20 left-4 z-40 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition lg:hidden"
+          title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {sidebarOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+
         {/* Left Sidebar - Project Tree Navigation */}
-        <aside className="w-64 flex-shrink-0">
+        <aside className={`transition-all duration-300 ease-in-out ${sidebarOpen ? "w-64" : "w-0"} flex-shrink-0 overflow-hidden`}>
           <div className="bg-white rounded-lg border border-gray-200 p-4 sticky top-8">
             <button
               onClick={() => {
@@ -568,7 +598,7 @@ export default function Home() {
           )}
 
           {/* Active Project View with Hierarchical Details */}
-          {activeProjectId && activeProject && (
+          {activeView === "projects" && activeProjectId && activeProject && (
             <div className="space-y-6">
               <ProjectBreadcrumb
                     project={activeProject}
@@ -585,6 +615,18 @@ export default function Home() {
                       setShowProjectModal(true);
                     }}
                     onSelectSubproject={setActiveProjectId}
+                    onCreateSubproject={() => {
+                      setEditingProject(undefined);
+                      setParentProjectId(activeProjectId);
+                      setShowProjectModal(true);
+                    }}
+                  />
+
+                  {/* Gantt Chart */}
+                  <GanttChart
+                    project={activeProject}
+                    tasks={tasks.filter((t) => t.projectId === activeProjectId)}
+                    onTaskClick={handleEditTask}
                   />
 
               {/* Tasks for this project */}

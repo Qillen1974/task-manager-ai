@@ -12,8 +12,10 @@ interface EisenhowerMatrixProps {
   onTaskDelete: (taskId: string) => void;
 }
 
+type QuadrantPriority = Exclude<Priority, "">;
+
 const quadrants: Array<{
-  priority: Priority;
+  priority: QuadrantPriority;
   title: string;
   subtitle: string;
   bgColor: string;

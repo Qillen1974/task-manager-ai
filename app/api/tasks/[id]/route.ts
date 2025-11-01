@@ -18,7 +18,32 @@ export async function GET(
 
     const task = await db.task.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        title: true,
+        description: true,
+        priority: true,
+        completed: true,
+        completedAt: true,
+        progress: true,
+        startDate: true,
+        startTime: true,
+        dueDate: true,
+        dueTime: true,
+        resourceCount: true,
+        manhours: true,
+        dependsOnTaskId: true,
+        dependsOnTask: {
+          select: {
+            id: true,
+            title: true,
+            completed: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: {
             id: true,
@@ -37,7 +62,31 @@ export async function GET(
       return ApiErrors.FORBIDDEN();
     }
 
-    return success(task);
+    // Format response
+    const formattedTask = {
+      id: task.id,
+      userId: task.userId,
+      projectId: task.projectId,
+      title: task.title,
+      description: task.description,
+      priority: task.priority || "", // Convert null to empty string
+      completed: task.completed,
+      completedAt: task.completedAt,
+      startDate: task.startDate ? task.startDate.toISOString().split('T')[0] : undefined,
+      startTime: task.startTime,
+      dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
+      dueTime: task.dueTime,
+      progress: task.progress,
+      resourceCount: task.resourceCount,
+      manhours: task.manhours,
+      dependsOnTaskId: task.dependsOnTaskId,
+      dependsOnTask: task.dependsOnTask,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      project: task.project,
+    };
+
+    return success(formattedTask);
   });
 }
 
@@ -55,7 +104,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, dueDate, dueTime, completed } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, completed, progress, resourceCount, manhours, dependsOnTaskId } = body;
 
     // Find task
     const task = await db.task.findUnique({
@@ -89,14 +138,47 @@ export async function PATCH(
         ...(description !== undefined && { description: description?.trim() }),
         ...(projectId !== undefined && { projectId }),
         ...(priority !== undefined && { priority }),
+        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+        ...(startTime !== undefined && { startTime }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
         ...(dueTime !== undefined && { dueTime }),
+        ...(progress !== undefined && { progress }),
+        ...(resourceCount !== undefined && { resourceCount }),
+        ...(manhours !== undefined && { manhours }),
+        ...(dependsOnTaskId !== undefined && { dependsOnTaskId: dependsOnTaskId || null }),
         ...(completed !== undefined && {
           completed,
           completedAt: completed ? new Date() : null,
+          // Automatically set progress to 100 when task is completed
+          ...(completed && { progress: 100 }),
         }),
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        projectId: true,
+        title: true,
+        description: true,
+        priority: true,
+        completed: true,
+        completedAt: true,
+        progress: true,
+        startDate: true,
+        startTime: true,
+        dueDate: true,
+        dueTime: true,
+        resourceCount: true,
+        manhours: true,
+        dependsOnTaskId: true,
+        dependsOnTask: {
+          select: {
+            id: true,
+            title: true,
+            completed: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: {
             id: true,
@@ -107,7 +189,31 @@ export async function PATCH(
       },
     });
 
-    return success(updated);
+    // Format response
+    const formattedTask = {
+      id: updated.id,
+      userId: updated.userId,
+      projectId: updated.projectId,
+      title: updated.title,
+      description: updated.description,
+      priority: updated.priority || "", // Convert null to empty string
+      completed: updated.completed,
+      completedAt: updated.completedAt,
+      startDate: updated.startDate ? updated.startDate.toISOString().split('T')[0] : undefined,
+      startTime: updated.startTime,
+      dueDate: updated.dueDate ? updated.dueDate.toISOString().split('T')[0] : undefined,
+      dueTime: updated.dueTime,
+      progress: updated.progress,
+      resourceCount: updated.resourceCount,
+      manhours: updated.manhours,
+      dependsOnTaskId: updated.dependsOnTaskId,
+      dependsOnTask: updated.dependsOnTask,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      project: updated.project,
+    };
+
+    return success(formattedTask);
   });
 }
 
