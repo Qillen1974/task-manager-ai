@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://taskmaster:taskmaster123@localhost:5432/taskmaster_dev"
+  url      = env("DATABASE_URL")
 }
 
 // User model - represents a registered user
