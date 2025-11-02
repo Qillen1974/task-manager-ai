@@ -1,0 +1,6 @@
+{
+  "buildCommand": "prisma generate && prisma db push --skip-generate && next build",
+  "env": {
+    "DATABASE_URL": "@database_url"
+  }
+}
