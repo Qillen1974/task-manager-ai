@@ -35,7 +35,7 @@ body {
   }
 
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white;
   }
 
   .input-error {
@@ -58,4 +58,28 @@ html {
 :focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Ensure input fields have visible text in all browsers (especially Safari) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="url"],
+input[type="search"],
+input[type="tel"],
+textarea,
+select {
+  color: #111827 !important; /* text-gray-900 */
+  background-color: #ffffff !important; /* bg-white */
+  -webkit-text-fill-color: #111827 !important; /* For Safari autofill */
+}
+
+/* Maintain placeholder visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af; /* text-gray-400 */
+  opacity: 1;
 }
