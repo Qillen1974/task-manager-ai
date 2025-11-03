@@ -134,17 +134,17 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
       // Table headers
       const columnWidths = {
-        taskName: 45,
-        dates: 30,
-        progress: 15,
-        resources: 15,
-        manpower: 20,
-        description: pageWidth - 15 - 45 - 30 - 15 - 15 - 20 - 15,
+        taskName: 40,
+        dates: 42,
+        progress: 18,
+        resources: 18,
+        manpower: 22,
+        description: pageWidth - 15 - 40 - 42 - 18 - 18 - 22 - 15,
       };
 
       pdf.setFontSize(9);
       pdf.setFont(undefined, "bold");
-      pdf.setFillColor(200);
+      pdf.setFillColor(60, 100, 150);
       pdf.rect(15, yPosition - 4, pageWidth - 30, 5, "F");
       pdf.setTextColor(255);
       pdf.text("Task", 16, yPosition);
@@ -156,7 +156,7 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
       yPosition += 5;
       pdf.setFont(undefined, "normal");
-      pdf.setTextColor(0);
+      pdf.setTextColor(20, 20, 20);
 
       // Task rows using ganttData.items (pre-sorted by start date and dependencies)
       ganttData.items.forEach((item, idx) => {
