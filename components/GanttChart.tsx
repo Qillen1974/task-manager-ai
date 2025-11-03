@@ -118,8 +118,8 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       pdf.setFontSize(10);
       pdf.setFont(undefined, "normal");
 
-      const totalResources = tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0);
-      const totalManpower = tasks.reduce((sum, t) => sum + (t.manhours || 0), 0);
+      const totalResources = ganttData.items.reduce((sum, item) => sum + (item.task.resourceCount || 0), 0);
+      const totalManpower = ganttData.items.reduce((sum, item) => sum + (item.task.manhours || 0), 0);
 
       pdf.text(`Total Resources Allocated: ${totalResources} people`, 15, yPosition);
       yPosition += 5;
@@ -158,10 +158,11 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       pdf.setFont(undefined, "normal");
       pdf.setTextColor(0);
 
-      // Task rows
-      tasks.forEach((task, idx) => {
-        const startDate = task.startDate ? new Date(task.startDate).toLocaleDateString() : "N/A";
-        const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A";
+      // Task rows using ganttData.items (pre-sorted by start date and dependencies)
+      ganttData.items.forEach((item, idx) => {
+        const task = item.task;
+        const startDate = item.startDate ? item.startDate.toLocaleDateString() : "N/A";
+        const dueDate = item.endDate ? item.endDate.toLocaleDateString() : "N/A";
         const dateRange = `${startDate} - ${dueDate}`;
         const progress = `${task.progress || 0}%`;
         const description = task.description || "";
@@ -505,12 +506,14 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
             onClick={() => onTaskClick?.(item.task)}
           >
             {/* Task Name Column */}
-            <div className="w-64 flex-shrink-0 pr-4 pt-2">
+            <div className="w-80 flex-shrink-0 pr-4 pt-2">
               <div className="text-sm font-medium text-gray-900 break-words leading-tight">
                 {item.task.title}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {item.percentComplete}% complete
+              <div className="text-xs text-gray-500 mt-1 flex gap-4">
+                <span>{item.percentComplete}% complete</span>
+                <span className="text-blue-600">👥 {item.task.resourceCount || 0}</span>
+                <span className="text-purple-600">⏱️ {item.task.manhours || 0}hrs</span>
               </div>
             </div>
 
@@ -601,57 +604,22 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
         {/* Resources & Manpower Summary */}
         <div className="mt-8 pt-6 border-t border-gray-300">
-          <h4 className="text-md font-semibold text-gray-900 mb-4">📊 Resources & Manpower</h4>
+          <h4 className="text-md font-semibold text-gray-900 mb-4">📊 Resources & Manpower Summary</h4>
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <p className="text-sm text-gray-600 mb-1">Total Resources Allocated</p>
               <p className="text-2xl font-bold text-blue-600">
-                {tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0)}
+                {ganttData.items.reduce((sum, item) => sum + (item.task.resourceCount || 0), 0)}
               </p>
               <p className="text-xs text-gray-500 mt-2">people</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <p className="text-sm text-gray-600 mb-1">Total Manpower (Manhours)</p>
               <p className="text-2xl font-bold text-purple-600">
-                {tasks.reduce((sum, t) => sum + (t.manhours || 0), 0).toLocaleString()}
+                {ganttData.items.reduce((sum, item) => sum + (item.task.manhours || 0), 0).toLocaleString()}
               </p>
               <p className="text-xs text-gray-500 mt-2">hours</p>
             </div>
-          </div>
-
-          {/* Detailed Resources Table */}
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Task</th>
-                  <th className="border border-gray-300 px-3 py-2 text-center font-semibold">Resources</th>
-                  <th className="border border-gray-300 px-3 py-2 text-center font-semibold">Manpower (hrs)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, idx) => (
-                  <tr key={task.id} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td className="border border-gray-300 px-3 py-2">{task.title}</td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-900">
-                      {task.resourceCount || 0}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-900">
-                      {task.manhours || 0}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-100 font-semibold">
-                  <td className="border border-gray-300 px-3 py-2">TOTAL</td>
-                  <td className="border border-gray-300 px-3 py-2 text-center">
-                    {tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0)}
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 text-center">
-                    {tasks.reduce((sum, t) => sum + (t.manhours || 0), 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
