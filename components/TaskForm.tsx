@@ -83,6 +83,16 @@ export function TaskForm({
       newErrors.dueTime = "Invalid time format";
     }
 
+    // Validate that due date is not before start date
+    if (startDate && dueDate) {
+      const start = new Date(startDate + (startTime ? `T${startTime}` : 'T00:00'));
+      const due = new Date(dueDate + (dueTime ? `T${dueTime}` : 'T23:59'));
+
+      if (due < start) {
+        newErrors.dueDate = "Due date cannot be earlier than start date";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

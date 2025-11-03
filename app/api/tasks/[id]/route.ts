@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
-import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
+import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 
 /**
  * GET /api/tasks/[id] - Get a specific task
@@ -127,6 +127,22 @@ export async function PATCH(
 
       if (!project || project.userId !== auth.userId) {
         return ApiErrors.FORBIDDEN();
+      }
+    }
+
+    // Validate date logic: due date cannot be before start date
+    // Use existing task dates if not provided in update
+    const finalStartDate = startDate !== undefined ? startDate : (task.startDate ? task.startDate.toISOString().split('T')[0] : null);
+    const finalStartTime = startTime !== undefined ? startTime : task.startTime;
+    const finalDueDate = dueDate !== undefined ? dueDate : (task.dueDate ? task.dueDate.toISOString().split('T')[0] : null);
+    const finalDueTime = dueTime !== undefined ? dueTime : task.dueTime;
+
+    if (finalStartDate && finalDueDate) {
+      const start = new Date(finalStartDate + (finalStartTime ? `T${finalStartTime}` : 'T00:00'));
+      const due = new Date(finalDueDate + (finalDueTime ? `T${finalDueTime}` : 'T23:59'));
+
+      if (due < start) {
+        return error("Due date cannot be earlier than start date", 400, "INVALID_DATE_RANGE");
       }
     }
 
