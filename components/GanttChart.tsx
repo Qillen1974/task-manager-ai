@@ -34,12 +34,22 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
 
+      // Parse start date - handle both ISO format and simple date strings
       if (task.startDate) {
-        startDate = new Date(task.startDate);
+        const parsed = new Date(task.startDate);
+        // Check if date is valid
+        if (!isNaN(parsed.getTime())) {
+          startDate = parsed;
+        }
       }
 
+      // Parse due date - handle both ISO format and simple date strings
       if (task.dueDate) {
-        endDate = new Date(task.dueDate);
+        const parsed = new Date(task.dueDate);
+        // Check if date is valid
+        if (!isNaN(parsed.getTime())) {
+          endDate = parsed;
+        }
       }
 
       // If we have both dates, calculate duration
@@ -60,6 +70,16 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         startDate = new Date(endDate);
         startDate.setDate(startDate.getDate() - 7);
         durationDays = 7;
+      }
+
+      // Debug logging - remove after fixing
+      if (task.startDate || task.dueDate) {
+        console.log(`Task: ${task.title}`);
+        console.log(`  Raw startDate: ${task.startDate}`);
+        console.log(`  Raw dueDate: ${task.dueDate}`);
+        console.log(`  Parsed startDate:`, startDate);
+        console.log(`  Parsed endDate:`, endDate);
+        console.log(`  Duration: ${durationDays} days`);
       }
 
       return {
