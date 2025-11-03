@@ -54,6 +54,7 @@ export default function Home() {
   // Navigation and UI state
   const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>("dashboard");
   const [activeProjectId, setActiveProjectId] = useState<string>("");
+  const [dashboardProjectFilter, setDashboardProjectFilter] = useState<string>(""); // "" means all projects
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showUserSettings, setShowUserSettings] = useState(false);
@@ -165,6 +166,14 @@ export default function Home() {
   }, [projects]);
 
   const pendingTaskCount = useMemo(() => getPendingTaskCount(tasks), [tasks]);
+
+  // Filter tasks based on dashboard project filter
+  const filteredTasksForDashboard = useMemo(() => {
+    if (!dashboardProjectFilter) {
+      return tasks; // Show all tasks
+    }
+    return tasks.filter((t) => t.projectId === dashboardProjectFilter);
+  }, [tasks, dashboardProjectFilter]);
 
   // Task operations
   const handleAddTask = async (task: Task) => {
@@ -551,8 +560,25 @@ export default function Home() {
                 </button>
               </div>
 
+              {/* Project Filter */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Filter by Project:</label>
+                <select
+                  value={dashboardProjectFilter}
+                  onChange={(e) => setDashboardProjectFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="">All Projects</option>
+                  {allProjectsFlattened.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <EisenhowerMatrix
-                tasks={tasks}
+                tasks={filteredTasksForDashboard}
                 projects={projectsMap}
                 onTaskComplete={handleCompleteTask}
                 onTaskEdit={handleEditTask}
