@@ -72,8 +72,8 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       // Export date
       pdf.setFontSize(10);
       pdf.setTextColor(100);
-      const timestamp = new Date().toLocaleDateString();
-      pdf.text(`Generated: ${timestamp}`, 15, yPosition);
+      const generatedDate = new Date().toLocaleDateString();
+      pdf.text(`Generated: ${generatedDate}`, 15, yPosition);
       yPosition += 8;
 
       // Add horizontal line
