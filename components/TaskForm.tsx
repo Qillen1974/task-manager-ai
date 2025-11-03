@@ -7,6 +7,7 @@ import { ProgressSlider } from "./ProgressSlider";
 
 interface TaskFormProps {
   projects: Project[];
+  tasks?: Task[]; // All tasks for dependency selection
   onTaskAdd?: (task: Task) => void;
   onClose: () => void;
   editingTask?: Task;
@@ -20,6 +21,7 @@ interface TaskFormProps {
 
 export function TaskForm({
   projects,
+  tasks = [],
   onTaskAdd,
   onClose,
   editingTask,
@@ -79,6 +81,16 @@ export function TaskForm({
 
     if (dueDate && dueTime && !isValidTime(dueTime)) {
       newErrors.dueTime = "Invalid time format";
+    }
+
+    // Validate that due date is not before start date
+    if (startDate && dueDate) {
+      const start = new Date(startDate + (startTime ? `T${startTime}` : 'T00:00'));
+      const due = new Date(dueDate + (dueTime ? `T${dueTime}` : 'T23:59'));
+
+      if (due < start) {
+        newErrors.dueDate = "Due date cannot be earlier than start date";
+      }
     }
 
     setErrors(newErrors);
@@ -318,11 +330,27 @@ export function TaskForm({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             >
               <option value="">No dependency - This task can be started immediately</option>
-              {availableProjects.map((project) => {
-                // This will be populated with tasks from the backend when full feature is implemented
-                return null;
-              })}
+              {tasks
+                .filter((task) => {
+                  // Only show tasks from the same project
+                  if (task.projectId !== projectId) return false;
+                  // Don't show the current task being edited
+                  if (editingTask && task.id === editingTask.id) return false;
+                  // Don't show completed tasks (optional - you can remove this line if you want to allow dependencies on completed tasks)
+                  if (task.completed) return false;
+                  return true;
+                })
+                .map((task) => (
+                  <option key={task.id} value={task.id}>
+                    {task.title}
+                  </option>
+                ))}
             </select>
+            {projectId && tasks.filter((t) => t.projectId === projectId && !t.completed && (!editingTask || t.id !== editingTask.id)).length === 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                No other tasks in this project yet. Create more tasks to set dependencies.
+              </p>
+            )}
           </div>
 
           {/* Resource Allocation */}
