@@ -64,7 +64,7 @@ export function AdminUserManagement({ users, onUsersChange }: AdminUserManagemen
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("taskmaster_admin_token")}`,
+          "Authorization": `Bearer ${localStorage.getItem("taskquadrant_admin_token")}`,
         },
         body: JSON.stringify({
           email: userEmail,
@@ -115,7 +115,7 @@ export function AdminUserManagement({ users, onUsersChange }: AdminUserManagemen
         const response = await fetch(`/api/admin/users?id=${userId}`, {
           method: "DELETE",
           headers: {
-            "Authorization": `Bearer ${localStorage.getItem("taskmaster_admin_token")}`,
+            "Authorization": `Bearer ${localStorage.getItem("taskquadrant_admin_token")}`,
           },
         });
 
@@ -177,7 +177,7 @@ export function AdminUserManagement({ users, onUsersChange }: AdminUserManagemen
             const response = await fetch(`/api/admin/users?id=${userId}`, {
               method: "DELETE",
               headers: {
-                "Authorization": `Bearer ${localStorage.getItem("taskmaster_admin_token")}`,
+                "Authorization": `Bearer ${localStorage.getItem("taskquadrant_admin_token")}`,
               },
             });
 
