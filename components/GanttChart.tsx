@@ -107,8 +107,65 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       (maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    // Sort items by task dependencies and start date
+    // Create a map for quick lookup of tasks by ID
+    const taskMap = new Map<string, GanttTask>();
+    items.forEach((item) => taskMap.set(item.task.id, item));
+
+    // Create a dependency graph to ensure dependent tasks come after their dependencies
+    const sorted: GanttTask[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    // Topological sort with depth-first search to respect dependencies
+    const visit = (taskId: string) => {
+      if (visited.has(taskId)) return;
+      if (visiting.has(taskId)) return; // Cycle detection
+
+      visiting.add(taskId);
+
+      const item = taskMap.get(taskId);
+      if (!item) return;
+
+      // Visit dependency first (so it appears before this task)
+      if (item.task.dependsOnTaskId) {
+        visit(item.task.dependsOnTaskId);
+      }
+
+      visiting.delete(taskId);
+      visited.add(taskId);
+      sorted.push(item);
+    };
+
+    // Sort by start date first, then apply topological sort
+    const itemsSortedByDate = [...items].sort((a, b) => {
+      if (!a.startDate && !b.startDate) return a.task.title.localeCompare(b.task.title);
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return a.startDate.getTime() - b.startDate.getTime();
+    });
+
+    // Apply topological sort while preserving date order where possible
+    const sortedItems: GanttTask[] = [];
+    const addedIds = new Set<string>();
+
+    for (const item of itemsSortedByDate) {
+      if (!addedIds.has(item.task.id)) {
+        // Add all dependencies first
+        if (item.task.dependsOnTaskId && !addedIds.has(item.task.dependsOnTaskId)) {
+          const depItem = taskMap.get(item.task.dependsOnTaskId);
+          if (depItem && !addedIds.has(depItem.task.id)) {
+            sortedItems.push(depItem);
+            addedIds.add(depItem.task.id);
+          }
+        }
+        sortedItems.push(item);
+        addedIds.add(item.task.id);
+      }
+    }
+
     return {
-      items,
+      items: sortedItems,
       minDate,
       maxDate,
       totalDays,
