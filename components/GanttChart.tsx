@@ -1,7 +1,8 @@
 "use client";
 
 import { Task, Project } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
 
 interface GanttChartProps {
   project: Project;
@@ -18,6 +19,36 @@ interface GanttTask {
 }
 
 export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
+  const ganttChartRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPNG = async () => {
+    if (!ganttChartRef.current) return;
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(ganttChartRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().split("T")[0];
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${project.name}-gantt-${timestamp}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export Gantt chart:", error);
+      alert("Failed to export Gantt chart. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const ganttData = useMemo(() => {
     if (!tasks || tasks.length === 0) {
       return {
@@ -224,9 +255,33 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-x-auto">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Timeline - {project.name}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Project Timeline - {project.name}</h3>
+        <button
+          onClick={handleExportPNG}
+          disabled={isExporting}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium text-sm"
+          title="Export Gantt Chart as PNG"
+        >
+          {isExporting ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Exporting...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8l-6-4m6 4l6-4" />
+              </svg>
+              <span>Export as PNG</span>
+            </>
+          )}
+        </button>
+      </div>
 
-      <div className="inline-block min-w-full">
+      <div ref={ganttChartRef} className="inline-block min-w-full bg-white p-4 rounded">
         {/* Timeline Header */}
         <div className="flex mb-4">
           <div className="w-64 flex-shrink-0 pr-4">
