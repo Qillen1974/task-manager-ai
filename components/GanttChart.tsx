@@ -3,6 +3,7 @@
 import { Task, Project } from "@/lib/types";
 import { useMemo, useRef, useState } from "react";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface GanttChartProps {
   project: Project;
@@ -32,6 +33,7 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        allowTaint: true,
       });
 
       const link = document.createElement("a");
@@ -44,6 +46,122 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
     } catch (error) {
       console.error("Failed to export Gantt chart:", error);
       alert("Failed to export Gantt chart. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 15;
+
+      // Title
+      pdf.setFontSize(16);
+      pdf.text(`Project: ${project.name}`, 15, yPosition);
+      yPosition += 8;
+
+      // Export date
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      const timestamp = new Date().toLocaleDateString();
+      pdf.text(`Generated: ${timestamp}`, 15, yPosition);
+      yPosition += 8;
+
+      // Add horizontal line
+      pdf.setDrawColor(200);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      yPosition += 5;
+
+      // Task details table
+      pdf.setFontSize(11);
+      pdf.setTextColor(0);
+
+      // Table headers
+      const columnWidths = {
+        taskName: 40,
+        dates: 35,
+        progress: 20,
+        description: pageWidth - 15 - 40 - 35 - 20 - 15,
+      };
+
+      pdf.setFont(undefined, "bold");
+      pdf.text("Task Name", 15, yPosition);
+      pdf.text("Start - Due Date", 15 + columnWidths.taskName, yPosition);
+      pdf.text("Progress", 15 + columnWidths.taskName + columnWidths.dates, yPosition);
+      pdf.text("Description", 15 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
+
+      // Add header line
+      yPosition += 2;
+      pdf.setDrawColor(150);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      yPosition += 5;
+
+      // Task rows
+      pdf.setFont(undefined, "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(0);
+
+      tasks.forEach((task) => {
+        const startDate = task.startDate ? new Date(task.startDate).toLocaleDateString() : "N/A";
+        const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A";
+        const dateRange = `${startDate} - ${dueDate}`;
+        const progress = `${task.progress || 0}%`;
+        const description = task.description || "";
+
+        // Calculate text height with word wrapping
+        const taskNameSplit = pdf.splitTextToSize(task.title, columnWidths.taskName - 2);
+        const descriptionSplit = pdf.splitTextToSize(description, columnWidths.description - 2);
+        const rowHeight = Math.max(
+          taskNameSplit.length * 3,
+          2 * 3,
+          descriptionSplit.length * 3,
+          5
+        );
+
+        // Check if we need a new page
+        if (yPosition + rowHeight > pageHeight - 10) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        // Draw row background alternating
+        pdf.setFillColor(yPosition % 10 === 0 ? 245 : 255);
+        pdf.rect(15, yPosition - 3, pageWidth - 30, rowHeight, "F");
+
+        // Task name
+        pdf.text(taskNameSplit, 15, yPosition);
+
+        // Date range
+        pdf.text(dateRange, 15 + columnWidths.taskName, yPosition);
+
+        // Progress
+        pdf.text(progress, 15 + columnWidths.taskName + columnWidths.dates, yPosition);
+
+        // Description
+        pdf.text(
+          descriptionSplit,
+          15 + columnWidths.taskName + columnWidths.dates + columnWidths.progress,
+          yPosition
+        );
+
+        yPosition += rowHeight + 2;
+      });
+
+      // Save PDF
+      const timestamp = new Date().toISOString().split("T")[0];
+      pdf.save(`${project.name}-gantt-${timestamp}.pdf`);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+      alert("Failed to export PDF. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -257,28 +375,53 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
     <div className="bg-white rounded-lg border border-gray-200 p-6 overflow-x-auto">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Project Timeline - {project.name}</h3>
-        <button
-          onClick={handleExportPNG}
-          disabled={isExporting}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium text-sm"
-          title="Export Gantt Chart as PNG"
-        >
-          {isExporting ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>Exporting...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8l-6-4m6 4l6-4" />
-              </svg>
-              <span>Export as PNG</span>
-            </>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportPNG}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium text-sm"
+            title="Export Gantt Chart as PNG"
+          >
+            {isExporting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8l-6-4m6 4l6-4" />
+                </svg>
+                <span>PNG</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition font-medium text-sm"
+            title="Export as PDF with task descriptions"
+          >
+            {isExporting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8.5 13.5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                  <path fillRule="evenodd" d="M3 4a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm11 0H5v12h10V4z" />
+                </svg>
+                <span>PDF</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <div ref={ganttChartRef} className="inline-block min-w-full bg-white p-4 rounded">
@@ -307,21 +450,21 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         {ganttData.items.map((item) => (
           <div
             key={item.task.id}
-            className="flex mb-3 cursor-pointer hover:bg-gray-50 rounded transition"
+            className="flex mb-3 cursor-pointer hover:bg-gray-50 rounded transition items-start"
             onClick={() => onTaskClick?.(item.task)}
           >
             {/* Task Name Column */}
-            <div className="w-64 flex-shrink-0 pr-4">
-              <div className="text-sm font-medium text-gray-900 truncate">
+            <div className="w-64 flex-shrink-0 pr-4 pt-2">
+              <div className="text-sm font-medium text-gray-900 break-words leading-tight">
                 {item.task.title}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 mt-1">
                 {item.percentComplete}% complete
               </div>
             </div>
 
             {/* Gantt Bar Area */}
-            <div className="flex-1 relative h-12 bg-gray-50 rounded border border-gray-200">
+            <div className="flex-1 relative h-14 bg-gray-50 rounded border border-gray-200">
               {/* Progress Bar */}
               {item.startDate && (
                 <div

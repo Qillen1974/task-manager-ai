@@ -20,6 +20,7 @@
     "dotenv": "^17.2.3",
     "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.3",
     "nanoid": "^4.0.2",
     "next": "14.2.33",
     "react": "^18",
