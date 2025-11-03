@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
-import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
+import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 
 /**
  * GET /api/tasks - List all tasks for the user
@@ -126,6 +126,16 @@ export async function POST(request: NextRequest) {
 
     if (project.userId !== auth.userId) {
       return ApiErrors.FORBIDDEN();
+    }
+
+    // Validate date logic: due date cannot be before start date
+    if (startDate && dueDate) {
+      const start = new Date(startDate + (startTime ? `T${startTime}` : 'T00:00'));
+      const due = new Date(dueDate + (dueTime ? `T${dueTime}` : 'T23:59'));
+
+      if (due < start) {
+        return error("Due date cannot be earlier than start date", 400, "INVALID_DATE_RANGE");
+      }
     }
 
     // Check task limit
