@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import axios from "axios";
 
 interface UserSettingsProps {
   userName: string;
@@ -9,8 +10,41 @@ interface UserSettingsProps {
   onClose: () => void;
 }
 
+interface Subscription {
+  plan: "FREE" | "PRO" | "ENTERPRISE";
+  projectLimit: number;
+  taskLimit: number;
+}
+
 export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps) {
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const token = localStorage.getItem("taskquadrant_token");
+        if (!token) return;
+
+        const response = await axios.get("/api/subscriptions/current", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.data.success) {
+          setSubscription(response.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch subscription:", err);
+      } finally {
+        setLoadingSubscription(false);
+      }
+    };
+
+    fetchSubscription();
+  }, []);
 
   if (showChangePassword) {
     return (
@@ -49,6 +83,48 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
                 <p className="text-gray-900 font-medium">{userEmail}</p>
               </div>
             </div>
+          </div>
+
+          {/* Subscription/Membership Section */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Membership</h3>
+            {loadingSubscription ? (
+              <p className="text-gray-600 text-sm">Loading subscription...</p>
+            ) : subscription ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-600">Current Plan</label>
+                  <p className="text-gray-900 font-medium">{subscription.plan}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Projects</label>
+                  <p className="text-gray-900 font-medium">
+                    {subscription.projectLimit === 999999
+                      ? "Unlimited"
+                      : subscription.projectLimit}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Tasks</label>
+                  <p className="text-gray-900 font-medium">
+                    {subscription.taskLimit === 999999
+                      ? "Unlimited"
+                      : subscription.taskLimit}
+                  </p>
+                </div>
+                <button
+                  onClick={() => window.location.href = "/upgrade"}
+                  className="w-full bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg transition font-medium text-left flex items-center justify-between mt-4"
+                >
+                  <span>Upgrade Plan</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <p className="text-gray-600 text-sm">Unable to load subscription</p>
+            )}
           </div>
 
           {/* Security Section */}

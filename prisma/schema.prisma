@@ -68,6 +68,11 @@ model Subscription {
   maxProjectNestingLevel Int @default(0)   // FREE: 0 (no subprojects), PRO: 1 (one level), ENTERPRISE: unlimited
   maxSubprojectsPerProject Int @default(0) // FREE: 0, PRO: unlimited, ENTERPRISE: unlimited
 
+  // Payment tracking
+  paymentMethod     String?              // "stripe" or "paypal"
+  lastPaymentId     String?              // Stripe PaymentIntent ID or PayPal transaction ID
+  lastPaymentDate   DateTime?            // Date of last successful payment
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
