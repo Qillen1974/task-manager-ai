@@ -30,16 +30,43 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
     // Process tasks to get dates
     const items: GanttTask[] = tasks.map((task) => {
-      const startDate = task.dueDate ? new Date(task.dueDate) : null;
-      const endDate = startDate ? new Date(startDate) : null;
-      const durationDays = 7; // Default task duration of 1 week
-      if (endDate) endDate.setDate(endDate.getDate() + durationDays);
+      // Use task.startDate if available, otherwise use dueDate minus 7 days as fallback
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      if (task.startDate) {
+        startDate = new Date(task.startDate);
+      }
+
+      if (task.dueDate) {
+        endDate = new Date(task.dueDate);
+      }
+
+      // If we have both dates, calculate duration
+      let durationDays = 0;
+      if (startDate && endDate) {
+        durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      // If we only have start date, default end to 7 days later
+      if (startDate && !endDate) {
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 7);
+        durationDays = 7;
+      }
+
+      // If we only have due date, default start to 7 days before
+      if (!startDate && endDate) {
+        startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 7);
+        durationDays = 7;
+      }
 
       return {
         task,
         startDate,
         endDate,
-        durationDays,
+        durationDays: Math.max(1, durationDays), // Ensure at least 1 day
         percentComplete: task.progress || 0,
       };
     });
@@ -88,7 +115,8 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
   if (ganttData.items.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-        <p className="text-gray-500">No tasks with due dates to display in Gantt chart</p>
+        <p className="text-gray-500">No tasks with start or due dates to display in Gantt chart</p>
+        <p className="text-gray-400 text-sm mt-2">Add start dates or due dates to your tasks to see them on the timeline</p>
       </div>
     );
   }
