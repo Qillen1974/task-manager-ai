@@ -686,6 +686,7 @@ export default function Home() {
           <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-96 overflow-y-auto">
             <TaskForm
               projects={projects}
+              tasks={tasks}
               allProjects={allProjectsFlattened}
               editingTask={editingTask}
               defaultProjectId={defaultProjectId}
