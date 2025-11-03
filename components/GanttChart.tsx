@@ -30,16 +30,19 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
     // Process tasks to get dates
     const items: GanttTask[] = tasks.map((task) => {
-      // Use task.startDate if available, otherwise use dueDate minus 7 days as fallback
       let startDate: Date | null = null;
       let endDate: Date | null = null;
 
+      // Parse start date - ensure we handle date-only strings correctly
       if (task.startDate) {
-        startDate = new Date(task.startDate);
+        const dateStr = task.startDate.split('T')[0]; // Get just the date part, ignore time
+        startDate = new Date(dateStr + 'T00:00:00'); // Add midnight time to avoid timezone issues
       }
 
+      // Parse due date - ensure we handle date-only strings correctly
       if (task.dueDate) {
-        endDate = new Date(task.dueDate);
+        const dateStr = task.dueDate.split('T')[0]; // Get just the date part, ignore time
+        endDate = new Date(dateStr + 'T23:59:59'); // Add end of day time
       }
 
       // If we have both dates, calculate duration
@@ -66,7 +69,7 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         task,
         startDate,
         endDate,
-        durationDays: Math.max(1, durationDays), // Ensure at least 1 day
+        durationDays: Math.max(1, durationDays),
         percentComplete: task.progress || 0,
       };
     });
