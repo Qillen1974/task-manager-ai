@@ -30,26 +30,19 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
     // Process tasks to get dates
     const items: GanttTask[] = tasks.map((task) => {
-      // Use task.startDate if available, otherwise use dueDate minus 7 days as fallback
       let startDate: Date | null = null;
       let endDate: Date | null = null;
 
-      // Parse start date - handle both ISO format and simple date strings
+      // Parse start date - ensure we handle date-only strings correctly
       if (task.startDate) {
-        const parsed = new Date(task.startDate);
-        // Check if date is valid
-        if (!isNaN(parsed.getTime())) {
-          startDate = parsed;
-        }
+        const dateStr = task.startDate.split('T')[0]; // Get just the date part, ignore time
+        startDate = new Date(dateStr + 'T00:00:00'); // Add midnight time to avoid timezone issues
       }
 
-      // Parse due date - handle both ISO format and simple date strings
+      // Parse due date - ensure we handle date-only strings correctly
       if (task.dueDate) {
-        const parsed = new Date(task.dueDate);
-        // Check if date is valid
-        if (!isNaN(parsed.getTime())) {
-          endDate = parsed;
-        }
+        const dateStr = task.dueDate.split('T')[0]; // Get just the date part, ignore time
+        endDate = new Date(dateStr + 'T23:59:59'); // Add end of day time
       }
 
       // If we have both dates, calculate duration
@@ -72,21 +65,11 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         durationDays = 7;
       }
 
-      // Debug logging - remove after fixing
-      if (task.startDate || task.dueDate) {
-        console.log(`Task: ${task.title}`);
-        console.log(`  Raw startDate: ${task.startDate}`);
-        console.log(`  Raw dueDate: ${task.dueDate}`);
-        console.log(`  Parsed startDate:`, startDate);
-        console.log(`  Parsed endDate:`, endDate);
-        console.log(`  Duration: ${durationDays} days`);
-      }
-
       return {
         task,
         startDate,
         endDate,
-        durationDays: Math.max(1, durationDays), // Ensure at least 1 day
+        durationDays: Math.max(1, durationDays),
         percentComplete: task.progress || 0,
       };
     });
