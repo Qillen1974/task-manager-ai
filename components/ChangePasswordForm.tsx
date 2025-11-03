@@ -151,7 +151,7 @@ export function ChangePasswordForm({ onClose, onSuccess }: ChangePasswordFormPro
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter your current password"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white ${
                 errors.currentPassword ? "border-red-500" : "border-gray-300"
               }`}
             />
@@ -171,7 +171,7 @@ export function ChangePasswordForm({ onClose, onSuccess }: ChangePasswordFormPro
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter your new password"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white ${
                 errors.newPassword ? "border-red-500" : "border-gray-300"
               }`}
             />
@@ -194,7 +194,7 @@ export function ChangePasswordForm({ onClose, onSuccess }: ChangePasswordFormPro
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your new password"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white ${
                 errors.confirmPassword ? "border-red-500" : "border-gray-300"
               }`}
             />
