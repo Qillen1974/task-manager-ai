@@ -62,15 +62,41 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // PAGE 1: Gantt Chart
+      if (ganttChartRef.current) {
+        const canvas = await html2canvas(ganttChartRef.current, {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = pageWidth - 20;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        pdf.addImage(imgData, "PNG", 10, 10, imgWidth, Math.min(imgHeight, pageHeight - 20));
+      }
+
+      // PAGE 2: Project Details and Resources
+      pdf.addPage();
       let yPosition = 15;
 
       // Title
       pdf.setFontSize(16);
-      pdf.text(`Project: ${project.name}`, 15, yPosition);
+      pdf.text(`Project Details & Resources`, 15, yPosition);
       yPosition += 8;
+
+      // Project Name
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, "bold");
+      pdf.text(`Project: ${project.name}`, 15, yPosition);
+      yPosition += 6;
 
       // Export date
       pdf.setFontSize(10);
+      pdf.setFont(undefined, "normal");
       pdf.setTextColor(100);
       const generatedDate = new Date().toLocaleDateString();
       pdf.text(`Generated: ${generatedDate}`, 15, yPosition);
@@ -79,53 +105,72 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
       // Add horizontal line
       pdf.setDrawColor(200);
       pdf.line(15, yPosition, pageWidth - 15, yPosition);
-      yPosition += 5;
+      yPosition += 8;
 
-      // Task details table
-      pdf.setFontSize(11);
       pdf.setTextColor(0);
+
+      // Resources Summary Section
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Resources & Manpower Summary", 15, yPosition);
+      yPosition += 6;
+
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, "normal");
+
+      const totalResources = tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0);
+      const totalManpower = tasks.reduce((sum, t) => sum + (t.manhours || 0), 0);
+
+      pdf.text(`Total Resources Allocated: ${totalResources} people`, 15, yPosition);
+      yPosition += 5;
+      pdf.text(`Total Manpower (Manhours): ${totalManpower.toLocaleString()} hours`, 15, yPosition);
+      yPosition += 8;
+
+      // Task Details with Resources Table
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, "bold");
+      pdf.text("Task Details", 15, yPosition);
+      yPosition += 6;
 
       // Table headers
       const columnWidths = {
-        taskName: 40,
-        dates: 35,
-        progress: 20,
-        description: pageWidth - 15 - 40 - 35 - 20 - 15,
+        taskName: 45,
+        dates: 30,
+        progress: 15,
+        resources: 15,
+        manpower: 20,
+        description: pageWidth - 15 - 45 - 30 - 15 - 15 - 20 - 15,
       };
 
-      pdf.setFont(undefined, "bold");
-      pdf.text("Task Name", 15, yPosition);
-      pdf.text("Start - Due Date", 15 + columnWidths.taskName, yPosition);
-      pdf.text("Progress", 15 + columnWidths.taskName + columnWidths.dates, yPosition);
-      pdf.text("Description", 15 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
-
-      // Add header line
-      yPosition += 2;
-      pdf.setDrawColor(150);
-      pdf.line(15, yPosition, pageWidth - 15, yPosition);
-      yPosition += 5;
-
-      // Task rows
-      pdf.setFont(undefined, "normal");
       pdf.setFontSize(9);
+      pdf.setFont(undefined, "bold");
+      pdf.setFillColor(200);
+      pdf.rect(15, yPosition - 4, pageWidth - 30, 5, "F");
+      pdf.setTextColor(255);
+      pdf.text("Task", 16, yPosition);
+      pdf.text("Dates", 16 + columnWidths.taskName, yPosition);
+      pdf.text("Progress", 16 + columnWidths.taskName + columnWidths.dates, yPosition);
+      pdf.text("Resources", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
+      pdf.text("Manpower", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources, yPosition);
+      pdf.text("Description", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources + columnWidths.manpower, yPosition);
+
+      yPosition += 5;
+      pdf.setFont(undefined, "normal");
       pdf.setTextColor(0);
 
-      tasks.forEach((task) => {
+      // Task rows
+      tasks.forEach((task, idx) => {
         const startDate = task.startDate ? new Date(task.startDate).toLocaleDateString() : "N/A";
         const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A";
         const dateRange = `${startDate} - ${dueDate}`;
         const progress = `${task.progress || 0}%`;
         const description = task.description || "";
+        const resources = `${task.resourceCount || 0}`;
+        const manpower = `${task.manhours || 0}`;
 
-        // Calculate text height with word wrapping
         const taskNameSplit = pdf.splitTextToSize(task.title, columnWidths.taskName - 2);
         const descriptionSplit = pdf.splitTextToSize(description, columnWidths.description - 2);
-        const rowHeight = Math.max(
-          taskNameSplit.length * 3,
-          2 * 3,
-          descriptionSplit.length * 3,
-          5
-        );
+        const rowHeight = Math.max(taskNameSplit.length * 3, 2 * 3, descriptionSplit.length * 3, 5);
 
         // Check if we need a new page
         if (yPosition + rowHeight > pageHeight - 10) {
@@ -133,23 +178,29 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
           yPosition = 15;
         }
 
-        // Draw row background alternating
-        pdf.setFillColor(yPosition % 10 === 0 ? 245 : 255);
+        // Draw row background
+        pdf.setFillColor(idx % 2 === 0 ? 240 : 255);
         pdf.rect(15, yPosition - 3, pageWidth - 30, rowHeight, "F");
 
         // Task name
-        pdf.text(taskNameSplit, 15, yPosition);
+        pdf.text(taskNameSplit, 16, yPosition);
 
-        // Date range
-        pdf.text(dateRange, 15 + columnWidths.taskName, yPosition);
+        // Dates
+        pdf.text(dateRange, 16 + columnWidths.taskName, yPosition);
 
         // Progress
-        pdf.text(progress, 15 + columnWidths.taskName + columnWidths.dates, yPosition);
+        pdf.text(progress, 16 + columnWidths.taskName + columnWidths.dates, yPosition);
+
+        // Resources
+        pdf.text(resources, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
+
+        // Manpower
+        pdf.text(manpower, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources, yPosition);
 
         // Description
         pdf.text(
           descriptionSplit,
-          15 + columnWidths.taskName + columnWidths.dates + columnWidths.progress,
+          16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources + columnWidths.manpower,
           yPosition
         );
 
@@ -545,6 +596,62 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
           <div className="flex items-center gap-2">
             <div className="w-1 h-4 bg-blue-600"></div>
             <span className="text-gray-600">Due Date</span>
+          </div>
+        </div>
+
+        {/* Resources & Manpower Summary */}
+        <div className="mt-8 pt-6 border-t border-gray-300">
+          <h4 className="text-md font-semibold text-gray-900 mb-4">📊 Resources & Manpower</h4>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <p className="text-sm text-gray-600 mb-1">Total Resources Allocated</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">people</p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <p className="text-sm text-gray-600 mb-1">Total Manpower (Manhours)</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {tasks.reduce((sum, t) => sum + (t.manhours || 0), 0).toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">hours</p>
+            </div>
+          </div>
+
+          {/* Detailed Resources Table */}
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 px-3 py-2 text-left font-semibold">Task</th>
+                  <th className="border border-gray-300 px-3 py-2 text-center font-semibold">Resources</th>
+                  <th className="border border-gray-300 px-3 py-2 text-center font-semibold">Manpower (hrs)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks.map((task, idx) => (
+                  <tr key={task.id} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="border border-gray-300 px-3 py-2">{task.title}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-900">
+                      {task.resourceCount || 0}
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-900">
+                      {task.manhours || 0}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-100 font-semibold">
+                  <td className="border border-gray-300 px-3 py-2">TOTAL</td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {tasks.reduce((sum, t) => sum + (t.resourceCount || 0), 0)}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {tasks.reduce((sum, t) => sum + (t.manhours || 0), 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
