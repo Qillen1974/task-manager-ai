@@ -3,12 +3,22 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
-import { success, handleApiError } from "@/lib/apiResponse";
+import { success, error, handleApiError } from "@/lib/apiResponse";
 import { validateDowngrade } from "@/lib/subscriptionValidation";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-04-10",
-});
+// Lazy initialize Stripe client
+let stripe: Stripe | null = null;
+function getStripeClient() {
+  if (!stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+    }
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-04-10",
+    });
+  }
+  return stripe;
+}
 
 interface UpgradeRequest {
   plan: "FREE" | "PRO" | "ENTERPRISE";
@@ -26,28 +36,19 @@ export async function POST(request: NextRequest) {
     const token = getTokenFromHeader(authHeader);
 
     if (!token) {
-      return {
-        success: false,
-        error: { message: "Unauthorized", code: "UNAUTHORIZED" }
-      };
+      return error("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const decoded = verifyToken(token, "access");
     if (!decoded) {
-      return {
-        success: false,
-        error: { message: "Invalid token", code: "INVALID_TOKEN" }
-      };
+      return error("Invalid token", 401, "INVALID_TOKEN");
     }
 
     const userId = decoded.userId;
     const { plan, amount } = (await request.json()) as UpgradeRequest;
 
     if (!plan || !amount || amount <= 0) {
-      return {
-        success: false,
-        error: { message: "Invalid plan or amount", code: "INVALID_INPUT" }
-      };
+      return error("Invalid plan or amount", 400, "INVALID_INPUT");
     }
 
     // Get user details
@@ -57,10 +58,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return {
-        success: false,
-        error: { message: "User not found", code: "USER_NOT_FOUND" }
-      };
+      return error("User not found", 404, "USER_NOT_FOUND");
     }
 
     // Check if this is a downgrade and validate
@@ -83,18 +81,17 @@ export async function POST(request: NextRequest) {
       const downgradeValidation = validateDowngrade(newPlan, rootProjectCount, taskCount);
 
       if (!downgradeValidation.allowed) {
-        return {
-          success: false,
-          error: {
-            message: downgradeValidation.message || "Cannot downgrade plan due to item limits",
-            code: "DOWNGRADE_VALIDATION_FAILED"
-          }
-        };
+        return error(
+          downgradeValidation.message || "Cannot downgrade plan due to item limits",
+          400,
+          "DOWNGRADE_VALIDATION_FAILED"
+        );
       }
     }
 
     // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
+    const stripeClient = getStripeClient();
+    const paymentIntent = await stripeClient.paymentIntents.create({
       amount, // Amount in cents
       currency: "usd",
       payment_method_types: ["card"],
