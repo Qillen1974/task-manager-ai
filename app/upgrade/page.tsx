@@ -20,6 +20,7 @@ export default function UpgradePage() {
   const [loading, setLoading] = useState(true);
   const [paypalPending, setPaypalPending] = useState(false);
   const [paypalError, setPaypalError] = useState<string | null>(null);
+  const [paypalCountdown, setPaypalCountdown] = useState(0);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -52,7 +53,21 @@ export default function UpgradePage() {
           setPaypalError(null);
 
           // Delay confirmation attempt to ensure PayPal has completed the approval flow
+          const delayMs = 10000; // 10 seconds
+          setPaypalCountdown(delayMs / 1000);
+
+          const countdownInterval = setInterval(() => {
+            setPaypalCountdown((prev) => {
+              if (prev <= 1) {
+                clearInterval(countdownInterval);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+
           const confirmTimeout = setTimeout(async () => {
+            clearInterval(countdownInterval);
             try {
               console.log("Attempting to confirm PayPal payment...");
               const confirmResponse = await axios.post(
@@ -105,7 +120,7 @@ export default function UpgradePage() {
               setPaypalError(err.response?.data?.error?.message || "Failed to confirm payment");
               setPaypalPending(false);
             }
-          }, 5000); // Wait 5 seconds before attempting confirmation
+          }, delayMs);
 
           return () => clearTimeout(confirmTimeout);
         } else {
@@ -195,6 +210,11 @@ export default function UpgradePage() {
           <p className="text-gray-600 mb-4">
             Confirming your payment with PayPal...
           </p>
+          {paypalCountdown > 0 && (
+            <p className="text-sm text-gray-500 mb-4">
+              Retrying in {paypalCountdown} second{paypalCountdown !== 1 ? 's' : ''}...
+            </p>
+          )}
           {paypalError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-4">
               <p className="mb-3">{paypalError}</p>

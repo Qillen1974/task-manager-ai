@@ -114,20 +114,19 @@ export async function POST(request: NextRequest) {
 
     // Check if order is approved
     console.log("PayPal order status:", orderData.status);
-    if (orderData.status === "CREATED") {
-      console.log("Order still in CREATED status - user may not have approved on PayPal yet");
-      return NextResponse.json(
-        { success: false, error: { message: "Payment not yet approved. Please approve the payment on PayPal.", code: "PAYMENT_PENDING_APPROVAL" } },
-        { status: 400 }
-      );
-    }
 
-    if (orderData.status !== "APPROVED") {
+    // If order is CREATED, it means the approval might not have been processed yet
+    // Try to capture anyway - PayPal will update the status if it's actually been approved
+    if (orderData.status !== "APPROVED" && orderData.status !== "CREATED") {
       console.error("PayPal order not in valid status. Status:", orderData.status);
       return NextResponse.json(
         { success: false, error: { message: `Payment status invalid. Status: ${orderData.status}`, code: "PAYMENT_INVALID_STATUS" } },
         { status: 400 }
       );
+    }
+
+    if (orderData.status === "CREATED") {
+      console.log("Order in CREATED status, attempting capture anyway (PayPal may auto-approve on capture)");
     }
 
     // Capture the order (complete the payment)
