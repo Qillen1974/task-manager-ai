@@ -84,6 +84,7 @@ export default function UpgradeMembership({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [validatingDowngrade, setValidatingDowngrade] = useState(false);
 
   // Calculate price based on billing cycle
   const getPrice = (basePriceMonthly: number) => {
@@ -97,11 +98,54 @@ export default function UpgradeMembership({
     return basePriceMonthly;
   };
 
-  const handleUpgradeClick = (plan: string) => {
+  const handleUpgradeClick = async (plan: string) => {
     if (plan === currentSubscription.plan) {
       setError("You are already on this plan");
       return;
     }
+
+    // Check if this is a downgrade (new plan has lower limits than current)
+    const currentLimits = PLAN_DETAILS[currentSubscription.plan];
+    const newLimits = PLAN_DETAILS[plan];
+    const isDowngrade = newLimits.projectLimit < currentLimits.projectLimit ||
+                        newLimits.taskLimit < currentLimits.taskLimit;
+
+    if (isDowngrade) {
+      // Validate downgrade by calling backend
+      setValidatingDowngrade(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          setError("Please log in to change your plan");
+          return;
+        }
+
+        const response = await axios.post(
+          "/api/subscriptions/validate-downgrade",
+          { plan },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.data.data.allowed) {
+          setError(response.data.data.message);
+          setShowPaymentForm(false);
+          return;
+        }
+      } catch (err: any) {
+        console.error("Downgrade validation error:", err);
+        setError(err.response?.data?.error?.message || "Failed to validate downgrade");
+        setShowPaymentForm(false);
+        return;
+      } finally {
+        setValidatingDowngrade(false);
+      }
+    }
+
     setSelectedPlan(plan);
     setShowPaymentForm(true);
     setError(null);
@@ -284,7 +328,7 @@ export default function UpgradeMembership({
                       ? "border-blue-400 bg-white shadow-lg"
                       : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
-                onClick={() => handleUpgradeClick(planKey)}
+                onClick={() => !validatingDowngrade && handleUpgradeClick(planKey)}
               >
                 <div className="p-8">
                   {isCurrentPlan && (
