@@ -1,106 +1,150 @@
-import { NextRequest } from "next/server";
-import { Client, Environment, LogLevel } from "@paypal/paypal-server-sdk";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
-import { success, handleApiError } from "@/lib/apiResponse";
+
+const PAYPAL_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://api.paypal.com"
+    : "https://api.sandbox.paypal.com";
 
 interface ConfirmRequest {
   orderId: string;
-  plan: "FREE" | "PRO" | "ENTERPRISE";
+  plan: string;
 }
-
-// Initialize PayPal client
-const paypalClient = new Client({
-  clientId: process.env.PAYPAL_CLIENT_ID || "",
-  clientSecret: process.env.PAYPAL_CLIENT_SECRET || "",
-  environment:
-    process.env.NODE_ENV === "production"
-      ? Environment.Production
-      : Environment.Sandbox,
-  logging: {
-    logLevel: LogLevel.Info,
-  },
-});
 
 /**
  * POST /api/subscriptions/confirm-paypal
  * Confirm PayPal payment and update subscription
  */
 export async function POST(request: NextRequest) {
-  return handleApiError(async () => {
+  try {
+    console.log("Confirm PayPal endpoint called");
     // Verify user is authenticated
     const authHeader = request.headers.get("authorization");
     const token = getTokenFromHeader(authHeader);
+    console.log("Token:", !!token);
 
     if (!token) {
-      return {
-        success: false,
-        error: { message: "Unauthorized", code: "UNAUTHORIZED" },
-      };
+      return NextResponse.json(
+        { success: false, error: { message: "Unauthorized", code: "UNAUTHORIZED" } },
+        { status: 401 }
+      );
     }
 
     const decoded = verifyToken(token, "access");
     if (!decoded) {
-      return {
-        success: false,
-        error: { message: "Invalid token", code: "INVALID_TOKEN" },
-      };
+      return NextResponse.json(
+        { success: false, error: { message: "Invalid token", code: "INVALID_TOKEN" } },
+        { status: 401 }
+      );
     }
 
     const userId = decoded.userId;
-    const { orderId, plan } = (await request.json()) as ConfirmRequest;
+    let parsedBody: ConfirmRequest;
+    try {
+      parsedBody = (await request.json()) as ConfirmRequest;
+    } catch (e: any) {
+      console.error("Error parsing request body:", e);
+      return NextResponse.json(
+        { success: false, error: { message: "Invalid request body", code: "INVALID_BODY" } },
+        { status: 400 }
+      );
+    }
+    const { orderId, plan } = parsedBody;
+
+    console.log("Received confirm-paypal request:", { orderId, plan, userId });
 
     if (!orderId || !plan) {
-      return {
-        success: false,
-        error: { message: "Missing required fields", code: "MISSING_FIELDS" },
-      };
+      console.error("Missing fields - orderId:", orderId, "plan:", plan);
+      return NextResponse.json(
+        { success: false, error: { message: "Missing required fields", code: "MISSING_FIELDS" } },
+        { status: 400 }
+      );
     }
 
-    // Capture the PayPal order
-    const ordersController = paypalClient.ordersController;
-    const { body: orderDetails, statusCode } =
-      await ordersController.ordersCapture({
-        id: orderId,
-      });
+    // Get PayPal access token
+    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+      return NextResponse.json(
+        { success: false, error: { message: "PayPal credentials not configured", code: "PAYPAL_CONFIG_ERROR" } },
+        { status: 500 }
+      );
+    }
 
-    if (statusCode !== 201) {
-      return {
-        success: false,
-        error: {
-          message: "Failed to capture PayPal order",
-          code: "PAYPAL_CAPTURE_FAILED",
+    const auth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString("base64");
+
+    const tokenResponse = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    const tokenData: any = await tokenResponse.json();
+    if (!tokenData.access_token) {
+      return NextResponse.json(
+        { success: false, error: { message: "Failed to get PayPal access token", code: "PAYPAL_TOKEN_ERROR" } },
+        { status: 500 }
+      );
+    }
+
+    // Get order details from PayPal
+    const orderResponse = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const orderData: any = await orderResponse.json();
+
+    if (!orderResponse.ok || !orderData.id) {
+      return NextResponse.json(
+        { success: false, error: { message: "Failed to retrieve PayPal order", code: "PAYPAL_ORDER_RETRIEVE_FAILED" } },
+        { status: 500 }
+      );
+    }
+
+    // Check if order is approved
+    console.log("PayPal order status:", orderData.status);
+    if (orderData.status !== "APPROVED") {
+      console.error("PayPal order not approved. Status:", orderData.status);
+      return NextResponse.json(
+        { success: false, error: { message: `Payment not approved. Status: ${orderData.status}`, code: "PAYMENT_NOT_APPROVED" } },
+        { status: 400 }
+      );
+    }
+
+    // Capture the order (complete the payment)
+    const captureResponse = await fetch(
+      `${PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          "Content-Type": "application/json",
         },
-      };
-    }
+        body: JSON.stringify({}),
+      }
+    );
 
-    // Verify order status is completed
-    if (
-      orderDetails?.result?.status !== "COMPLETED" &&
-      orderDetails?.result?.status !== "APPROVED"
-    ) {
-      return {
-        success: false,
-        error: {
-          message: `Payment not completed. Status: ${orderDetails?.result?.status}`,
-          code: "PAYMENT_NOT_COMPLETED",
-        },
-      };
-    }
+    const captureData: any = await captureResponse.json();
 
-    // Verify the order belongs to this user
-    if (orderDetails?.result?.purchase_units?.[0]?.custom_id !== userId) {
-      return {
-        success: false,
-        error: { message: "Order does not match user", code: "USER_MISMATCH" },
-      };
-    }
+    console.log("PayPal capture response status:", captureData.status);
+    console.log("Capture response OK:", captureResponse.ok);
 
-    // Get the transaction ID from the order
-    const transactionId =
-      orderDetails?.result?.purchase_units?.[0]?.payments?.captures?.[0]?.id ||
-      orderId;
+    if (!captureResponse.ok || captureData.status !== "COMPLETED") {
+      console.error("PayPal capture failed. Response:", captureData);
+      return NextResponse.json(
+        { success: false, error: { message: "Failed to capture PayPal payment", code: "PAYPAL_CAPTURE_FAILED" } },
+        { status: 500 }
+      );
+    }
 
     // Get user
     const user = await db.user.findUnique({
@@ -109,22 +153,29 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return {
-        success: false,
-        error: { message: "User not found", code: "USER_NOT_FOUND" },
-      };
+      return NextResponse.json(
+        { success: false, error: { message: "User not found", code: "USER_NOT_FOUND" } },
+        { status: 404 }
+      );
     }
 
     // Determine plan limits
-    const planLimits = {
-      FREE: { projectLimit: 3, taskLimit: 50 },
-      PRO: { projectLimit: 100, taskLimit: 500 },
+    const planLimits: Record<string, { projectLimit: number; taskLimit: number }> = {
+      FREE: { projectLimit: 10, taskLimit: 50 },
+      PRO: { projectLimit: 30, taskLimit: 200 },
       ENTERPRISE: { projectLimit: 999999, taskLimit: 999999 },
     };
 
     const limits = planLimits[plan];
+    if (!limits) {
+      return NextResponse.json(
+        { success: false, error: { message: "Invalid plan", code: "INVALID_PLAN" } },
+        { status: 400 }
+      );
+    }
 
     // Update or create subscription
+    console.log("Updating subscription for user:", userId, "to plan:", plan);
     const updatedSubscription = await db.subscription.upsert({
       where: { userId },
       create: {
@@ -133,7 +184,7 @@ export async function POST(request: NextRequest) {
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "paypal",
-        lastPaymentId: transactionId,
+        lastPaymentId: orderId,
         lastPaymentDate: new Date(),
       },
       update: {
@@ -141,19 +192,36 @@ export async function POST(request: NextRequest) {
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "paypal",
-        lastPaymentId: transactionId,
+        lastPaymentId: orderId,
         lastPaymentDate: new Date(),
       },
     });
 
-    return success({
-      message: `Successfully upgraded to ${plan} plan`,
-      subscription: updatedSubscription,
-      user: {
-        id: user.id,
-        email: user.email,
-        plan: updatedSubscription.plan,
+    console.log("Subscription updated successfully:", updatedSubscription);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          message: `Successfully upgraded to ${plan} plan`,
+          subscription: updatedSubscription,
+          user: {
+            id: user.id,
+            email: user.email,
+            plan: updatedSubscription.plan,
+          },
+        },
       },
-    });
-  });
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("Error in confirm-paypal endpoint:", err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: { message: err.message || "Failed to confirm PayPal payment", code: "INTERNAL_ERROR" },
+      },
+      { status: 500 }
+    );
+  }
 }

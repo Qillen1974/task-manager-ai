@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import axios from "axios";
-import { Check } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Subscription {
   id: string;
@@ -76,6 +77,7 @@ export default function UpgradeMembership({
   currentSubscription,
   onUpgradeSuccess,
 }: UpgradeMembershipProps) {
+  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal">(
@@ -246,10 +248,16 @@ export default function UpgradeMembership({
       );
 
       if (response.data.success) {
-        // Store the order ID for confirmation
-        sessionStorage.setItem("paypal_order_id", response.data.data.orderId);
-        sessionStorage.setItem("paypal_plan", selectedPlan);
-        sessionStorage.setItem("paypal_billing_cycle", billingCycle);
+        // Store in localStorage (persists across redirects) instead of sessionStorage
+        localStorage.setItem("paypal_order_id", response.data.data.orderId);
+        localStorage.setItem("paypal_plan", selectedPlan);
+        localStorage.setItem("paypal_billing_cycle", billingCycle);
+
+        console.log("Stored PayPal order in localStorage:", {
+          orderId: response.data.data.orderId,
+          plan: selectedPlan,
+          billingCycle: billingCycle
+        });
 
         // Redirect to PayPal approval URL
         if (response.data.data.approvalLink) {
@@ -272,6 +280,13 @@ export default function UpgradeMembership({
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
+        <button
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 font-semibold"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Choose Your Plan

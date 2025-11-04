@@ -85,9 +85,9 @@ function CheckoutForm({
 
         if (confirmResponse.data.success) {
           setSuccess(true);
-          // Redirect to settings after 2 seconds
+          // Redirect to home page after 2 seconds
           setTimeout(() => {
-            router.push("/settings?tab=membership&status=upgraded");
+            router.push("/");
           }, 2000);
         } else {
           setError(

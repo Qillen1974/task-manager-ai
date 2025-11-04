@@ -28,6 +28,74 @@ export default function UpgradePage() {
           return;
         }
 
+        // Check all localStorage contents for debugging
+        console.log("=== All localStorage contents ===");
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          const value = localStorage.getItem(key);
+          if (key?.includes("paypal")) {
+            console.log(`${key}:`, value);
+          }
+        }
+
+        // Check if this is a PayPal return (check localStorage instead of sessionStorage)
+        const paypalOrderId = localStorage.getItem("paypal_order_id");
+        const paypalPlan = localStorage.getItem("paypal_plan");
+
+        console.log("PayPal return detected - OrderID:", paypalOrderId, "Plan:", paypalPlan);
+
+        if (paypalOrderId && paypalPlan) {
+          // Confirm PayPal payment
+          try {
+            console.log("Calling confirm-paypal endpoint with:", { orderId: paypalOrderId, plan: paypalPlan });
+            const confirmResponse = await axios.post(
+              "/api/subscriptions/confirm-paypal",
+              {
+                orderId: paypalOrderId,
+                plan: paypalPlan,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            console.log("Confirm-PayPal response:", confirmResponse.data);
+
+            if (confirmResponse.data.success) {
+              // Clear localStorage after successful confirmation
+              localStorage.removeItem("paypal_order_id");
+              localStorage.removeItem("paypal_plan");
+              localStorage.removeItem("paypal_billing_cycle");
+
+              // Update subscription
+              setSubscription(confirmResponse.data.data.subscription);
+              setLoading(false);
+              console.log("PayPal payment confirmed successfully");
+              return;
+            } else {
+              console.error("Confirm-PayPal returned false success");
+              // Clear localStorage on failure too to prevent repeated attempts
+              localStorage.removeItem("paypal_order_id");
+              localStorage.removeItem("paypal_plan");
+              localStorage.removeItem("paypal_billing_cycle");
+            }
+          } catch (err: any) {
+            console.error("Failed to confirm PayPal payment:", err);
+            console.error("Error response data:", JSON.stringify(err.response?.data, null, 2));
+            console.error("Error status:", err.response?.status);
+            console.error("Full error:", JSON.stringify(err, null, 2));
+            // Clear localStorage on error to prevent repeated attempts
+            localStorage.removeItem("paypal_order_id");
+            localStorage.removeItem("paypal_plan");
+            localStorage.removeItem("paypal_billing_cycle");
+            // Continue to fetch current subscription on error
+          }
+        } else {
+          console.log("No PayPal localStorage found");
+        }
+
         const response = await axios.get("/api/subscriptions/current", {
           headers: {
             Authorization: `Bearer ${token}`,

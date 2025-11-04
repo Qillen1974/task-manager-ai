@@ -1,28 +1,20 @@
 import { NextRequest } from "next/server";
-import { Client, Environment, LogLevel } from "@paypal/paypal-server-sdk";
 import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 import { success, handleApiError } from "@/lib/apiResponse";
 import { validateDowngrade } from "@/lib/subscriptionValidation";
+import * as btoa from "btoa";
 
 interface UpgradeRequest {
   plan: "FREE" | "PRO" | "ENTERPRISE";
   amount: string; // Amount as a string (e.g., "29.99")
 }
 
-// Initialize PayPal client
-const paypalClient = new Client({
-  clientId: process.env.PAYPAL_CLIENT_ID || "",
-  clientSecret: process.env.PAYPAL_CLIENT_SECRET || "",
-  environment:
-    process.env.NODE_ENV === "production"
-      ? Environment.Production
-      : Environment.Sandbox,
-  logging: {
-    logLevel: LogLevel.Info,
-  },
-});
+const PAYPAL_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://api.paypal.com"
+    : "https://api.sandbox.paypal.com";
 
 /**
  * POST /api/subscriptions/upgrade-paypal
@@ -102,70 +94,88 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create PayPal order
-    const ordersController = paypalClient.ordersController;
-    const request_body = {
+    // Create PayPal order using REST API
+    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+      return {
+        success: false,
+        error: { message: "PayPal credentials not configured", code: "PAYPAL_CONFIG_ERROR" },
+      };
+    }
+
+    // Get PayPal access token
+    const auth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString("base64");
+
+    const tokenResponse = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    const tokenData: any = await tokenResponse.json();
+    if (!tokenData.access_token) {
+      return {
+        success: false,
+        error: { message: "Failed to get PayPal access token", code: "PAYPAL_TOKEN_ERROR" },
+      };
+    }
+
+    // Create order
+    const orderPayload = {
       intent: "CAPTURE",
       purchase_units: [
         {
           amount: {
             currency_code: "USD",
             value: amount,
-            breakdown: {
-              item_total: {
-                currency_code: "USD",
-                value: amount,
-              },
-            },
           },
           description: `TaskQuadrant subscription upgrade to ${plan} plan`,
-          items: [
-            {
-              name: `${plan} Plan Subscription`,
-              description: `Upgrade to ${plan} plan for TaskQuadrant`,
-              unit_amount: {
-                currency_code: "USD",
-                value: amount,
-              },
-              quantity: "1",
-            },
-          ],
           custom_id: userId,
-          metadata: {
-            plan,
-            userId,
-            userEmail: user.email,
-          },
         },
       ],
       application_context: {
         brand_name: "TaskQuadrant",
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=membership&status=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=membership&status=cancelled`,
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
         user_action: "PAY_NOW",
       },
     };
 
-    const { body: order, statusCode } =
-      await ordersController.ordersCreate(request_body);
+    const orderResponse = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderPayload),
+    });
 
-    if (statusCode !== 201) {
+    const orderData: any = await orderResponse.json();
+
+    if (!orderResponse.ok || !orderData.id) {
       return {
         success: false,
         error: {
-          message: "Failed to create PayPal order",
+          message: orderData.message || "Failed to create PayPal order",
           code: "PAYPAL_ORDER_CREATION_FAILED",
         },
       };
     }
 
+    // Find the approval link
+    const approvalLink = orderData.links?.find(
+      (link: any) => link.rel === "approve"
+    )?.href;
+
     return success({
-      orderId: order?.result?.id,
+      orderId: orderData.id,
       plan,
       amount,
-      approvalLink: order?.result?.links?.find(
-        (link: any) => link?.rel === "approve"
-      )?.href,
+      approvalLink,
     });
   });
 }
