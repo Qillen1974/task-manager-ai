@@ -21,7 +21,7 @@ const PAYPAL_BASE_URL =
  * Create a PayPal order for subscription upgrade
  */
 export async function POST(request: NextRequest) {
-  return handleApiError(async () => {
+  try {
     console.log("=== upgrade-paypal endpoint called ===");
     // Verify user is authenticated
     const authHeader = request.headers.get("authorization");
@@ -38,13 +38,16 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId;
+    console.log("User ID:", userId);
     const { plan, amount } = (await request.json()) as UpgradeRequest;
+    console.log("Request body parsed:", { plan, amount });
 
     if (!plan || !amount || parseFloat(amount) <= 0) {
       return error("Invalid plan or amount", 400, "INVALID_INPUT");
     }
 
     // Get user details
+    console.log("Fetching user details...");
     const user = await db.user.findUnique({
       where: { id: userId },
       include: { subscription: true },
@@ -60,6 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Only validate if plan is different and it's a downgrade
     if (plan !== currentPlan) {
+      console.log("Validating downgrade...");
       const rootProjectCount = await db.project.count({
         where: {
           userId,
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Create PayPal order using REST API
     if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+      console.error("PayPal credentials missing");
       return error("PayPal credentials not configured", 500, "PAYPAL_CONFIG_ERROR");
     }
 
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    console.log("Creating PayPal order...");
     const orderResponse = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
       method: "POST",
       headers: {
@@ -142,6 +148,7 @@ export async function POST(request: NextRequest) {
     const orderData: any = await orderResponse.json();
 
     if (!orderResponse.ok || !orderData.id) {
+      console.error("PayPal order creation failed:", orderData);
       return error(
         orderData.message || "Failed to create PayPal order",
         500,
@@ -154,11 +161,20 @@ export async function POST(request: NextRequest) {
       (link: any) => link.rel === "approve"
     )?.href;
 
+    console.log("PayPal order created successfully:", orderData.id);
     return success({
       orderId: orderData.id,
       plan,
       amount,
       approvalLink,
     });
-  });
+  } catch (err: any) {
+    console.error("ERROR in upgrade-paypal endpoint:", err);
+    console.error("Error stack:", err.stack);
+    return error(
+      err.message || "Failed to create PayPal order",
+      500,
+      "INTERNAL_ERROR"
+    );
+  }
 }
