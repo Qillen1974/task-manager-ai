@@ -126,6 +126,10 @@ model Project {
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Team association (optional - for ENTERPRISE team collaboration)
+  teamId            String?
+  team              Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
   name              String
   color             String   @default("blue")
   description       String?
@@ -154,6 +158,7 @@ model Project {
   tasks             Task[]
 
   @@index([userId])
+  @@index([teamId])
   @@index([parentProjectId])
   @@index([status])
 }
@@ -226,6 +231,80 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+}
+
+// Team model - for team collaboration (ENTERPRISE feature)
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique          // URL-friendly team identifier
+  ownerId   String                     // ID of the user who created the team
+
+  description String?
+
+  // Team settings
+  isPublic  Boolean  @default(false)  // Whether team is publicly visible
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  members   TeamMember[]
+  projects  Project[]                  // Projects owned by this team
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+enum TeamRole {
+  ADMIN      // Full access, can manage team and members
+  EDITOR     // Can edit projects and tasks
+  VIEWER     // Read-only access
+}
+
+// TeamMember model - tracks users in a team and their roles
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  userId    String
+  // We don't create a relation to User here to maintain flexibility
+  // but in production, you'd add: user User @relation(fields: [userId], references: [id])
+
+  role      TeamRole @default(VIEWER)   // Role within the team
+
+  // Invitation tracking
+  invitedAt DateTime @default(now())
+  acceptedAt DateTime?                  // Null if invitation pending
+  invitedBy String?                     // ID of user who sent the invitation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, userId])            // Each user can only be in a team once
+  @@index([teamId])
+  @@index([userId])
+  @@index([acceptedAt])                 // For finding pending invitations
+}
+
+// TeamInvitation model - tracks pending invitations
+model TeamInvitation {
+  id        String   @id @default(cuid())
+  teamId    String
+
+  email     String                      // Email address being invited
+  role      TeamRole @default(VIEWER)   // Role being offered
+
+  token     String   @unique            // Unique token for invitation link
+  expiresAt DateTime                    // When invitation expires
+
+  createdBy String                      // ID of user who created invitation
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, email])             // Can't invite same email twice to same team
+  @@index([token])
+  @@index([teamId])
 }
 
 // ApiKey model - for third-party integrations
