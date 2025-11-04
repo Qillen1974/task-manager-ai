@@ -3,6 +3,7 @@
 import { Project } from "@/lib/types";
 import Link from "next/link";
 import { useState } from "react";
+import { ProjectTabs } from "./ProjectTabs";
 
 interface NavigationProps {
   projects: Project[];
@@ -16,6 +17,10 @@ interface NavigationProps {
   isAdmin?: boolean;
   onLogout?: () => void;
   onSettingsClick?: () => void;
+  onCreateProject?: () => void;
+  onEditProject?: (projectId: string) => void;
+  onDeleteProject?: (projectId: string) => void;
+  onCreateSubproject?: (parentId: string) => void;
 }
 
 // Helper function to get color values for projects
@@ -46,6 +51,10 @@ export function Navigation({
   isAdmin,
   onLogout,
   onSettingsClick,
+  onCreateProject,
+  onEditProject,
+  onDeleteProject,
+  onCreateSubproject,
 }: NavigationProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   return (
@@ -174,40 +183,20 @@ export function Navigation({
           </div>
         </div>
 
-        {/* Projects Dropdown */}
+        {/* Project Tabs Navigation */}
         {projects.length > 0 && (
-          <div className="border-t border-gray-100 py-2 px-2 flex gap-2 overflow-x-auto">
-            {projects.map((project) => {
-              const isActive = activeProjectId === project.id;
-              const colors = getProjectColors(project.color);
-
-              return (
-                <button
-                  key={project.id}
-                  onClick={() => {
-                    onProjectSelect(project.id);
-                    onViewChange("projects");
-                  }}
-                  style={
-                    isActive
-                      ? {
-                          backgroundColor: colors.bg,
-                          color: colors.text,
-                          borderColor: colors.border,
-                        }
-                      : {}
-                  }
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition whitespace-nowrap ${
-                    isActive
-                      ? "border"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {project.name}
-                </button>
-              );
-            })}
-          </div>
+          <ProjectTabs
+            projects={projects}
+            activeProjectId={activeProjectId}
+            onSelectProject={(projectId) => {
+              onProjectSelect(projectId);
+              onViewChange("projects");
+            }}
+            onCreateProject={onCreateProject || (() => {})}
+            onEditProject={onEditProject || (() => {})}
+            onDeleteProject={onDeleteProject || (() => {})}
+            onCreateSubproject={onCreateSubproject || (() => {})}
+          />
         )}
       </div>
     </nav>

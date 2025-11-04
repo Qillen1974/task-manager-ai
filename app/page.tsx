@@ -73,7 +73,6 @@ export default function Home() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showUserSettings, setShowUserSettings] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Editing state
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -574,73 +573,29 @@ export default function Home() {
         isAdmin={localStorage.getItem("isAdmin") === "true"}
         onLogout={handleLogout}
         onSettingsClick={() => setShowUserSettings(true)}
+        onCreateProject={() => {
+          setEditingProject(undefined);
+          setParentProjectId(undefined);
+          setShowProjectModal(true);
+        }}
+        onEditProject={(projectId) => {
+          const project = findProjectInTree(projects, projectId);
+          if (project) {
+            setEditingProject(project);
+            setShowProjectModal(true);
+          }
+        }}
+        onDeleteProject={handleDeleteProject}
+        onCreateSubproject={(parentId) => {
+          setEditingProject(undefined);
+          setParentProjectId(parentId);
+          setShowProjectModal(true);
+        }}
       />
 
-      <div className="flex gap-3 sm:gap-6 w-full mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
-        {/* Sidebar Toggle Button */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-20 left-4 z-40 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition lg:hidden"
-          title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {sidebarOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
-
-        {/* Left Sidebar - Project Tree Navigation */}
-        <aside className={`transition-all duration-300 ease-in-out ${sidebarOpen ? "w-56 sm:w-64" : "w-0"} flex-shrink-0 overflow-hidden`}>
-          <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 sticky top-4 sm:top-8 max-h-[calc(100vh-5rem)] overflow-y-auto">
-            <button
-              onClick={() => {
-                setEditingProject(undefined);
-                setParentProjectId(undefined);
-                setShowProjectModal(true);
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-medium mb-4"
-            >
-              + New Project
-            </button>
-
-            {rootProjects.length > 0 ? (
-              <>
-                <ProjectTree
-                  projects={rootProjects}
-                  activeProjectId={activeProjectId}
-                  onSelectProject={(projectId) => {
-                    setActiveProjectId(projectId);
-                    setActiveView("projects");
-                  }}
-                onCreateSubproject={(parentId) => {
-                  setEditingProject(undefined);
-                  setParentProjectId(parentId);
-                  setShowProjectModal(true);
-                }}
-                onEditProject={(projectId) => {
-                  const project = findProjectInTree(projects, projectId);
-                  if (project) {
-                    setEditingProject(project);
-                    setShowProjectModal(true);
-                  }
-                }}
-                onDeleteProject={handleDeleteProject}
-              />
-              </>
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                <p className="text-sm">No projects yet.</p>
-                <p className="text-xs mt-2">Create your first project to get started!</p>
-              </div>
-            )}
-          </div>
-        </aside>
-
+      <div className="w-full mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Main Content Area */}
-        <main className="flex-1">
+        <main>
           {/* Dashboard View */}
           {activeView === "dashboard" && (
             <div className="space-y-4 sm:space-y-8">
