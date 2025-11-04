@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { startRecurringTaskScheduler } from "@/lib/scheduler";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -17,6 +18,11 @@ export const metadata: Metadata = {
   title: "TaskQuadrant - Professional Task Management",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
 };
+
+// Initialize recurring task scheduler on server startup
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULER === 'true') {
+  startRecurringTaskScheduler();
+}
 
 export default function RootLayout({
   children,
