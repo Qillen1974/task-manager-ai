@@ -22,7 +22,7 @@ export default function UpgradePage() {
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
-        const token = localStorage.getItem("taskquadrant_token");
+        const token = localStorage.getItem("accessToken");
         if (!token) {
           router.push("/login");
           return;

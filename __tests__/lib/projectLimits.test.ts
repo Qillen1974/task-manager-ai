@@ -1,10 +1,13 @@
 import {
   PROJECT_LIMITS,
   TASK_LIMITS,
+  RECURRING_TASK_LIMITS,
   getPlanLimits,
   getTaskLimitForPlan,
+  getRecurringTaskLimit,
   canCreateRootProject,
   canCreateSubproject,
+  canCreateRecurringTask,
   getProjectPath,
   calculateChildNestingLevel,
   getUpgradeMessage,
@@ -180,6 +183,61 @@ describe('ProjectLimits - Project Path Functions', () => {
   })
 })
 
+describe('ProjectLimits - Recurring Task Limits', () => {
+  describe('getRecurringTaskLimit', () => {
+    it('should return FREE plan recurring task limits (disabled)', () => {
+      const limits = getRecurringTaskLimit(SubscriptionPlan.FREE)
+
+      expect(limits.maxRecurringTasks).toBe(0)
+      expect(limits.description).toContain('not available')
+    })
+
+    it('should return PRO plan recurring task limits', () => {
+      const limits = getRecurringTaskLimit(SubscriptionPlan.PRO)
+
+      expect(limits.maxRecurringTasks).toBe(5)
+      expect(limits.description).toContain('5')
+    })
+
+    it('should return ENTERPRISE plan recurring task limits (unlimited)', () => {
+      const limits = getRecurringTaskLimit(SubscriptionPlan.ENTERPRISE)
+
+      expect(limits.maxRecurringTasks).toBe(-1)
+      expect(limits.description).toContain('Unlimited')
+    })
+  })
+
+  describe('canCreateRecurringTask', () => {
+    it('should reject creating recurring task on FREE plan', () => {
+      const result = canCreateRecurringTask(SubscriptionPlan.FREE, 0)
+
+      expect(result.allowed).toBe(false)
+      expect(result.message).toContain('not available')
+      expect(result.message).toContain('Upgrade to PRO')
+    })
+
+    it('should allow creating recurring task on PRO plan within limit', () => {
+      const result = canCreateRecurringTask(SubscriptionPlan.PRO, 4)
+
+      expect(result.allowed).toBe(true)
+    })
+
+    it('should reject creating recurring task on PRO plan at limit', () => {
+      const result = canCreateRecurringTask(SubscriptionPlan.PRO, 5)
+
+      expect(result.allowed).toBe(false)
+      expect(result.message).toContain('reached your recurring task limit')
+      expect(result.message).toContain('5')
+    })
+
+    it('should allow creating recurring task on ENTERPRISE plan', () => {
+      const result = canCreateRecurringTask(SubscriptionPlan.ENTERPRISE, 100)
+
+      expect(result.allowed).toBe(true)
+    })
+  })
+})
+
 describe('ProjectLimits - Upgrade Messages', () => {
   describe('getUpgradeMessage', () => {
     it('should return message for subprojects upgrade', () => {
@@ -201,6 +259,13 @@ describe('ProjectLimits - Upgrade Messages', () => {
       const message = getUpgradeMessage(SubscriptionPlan.PRO, 'more_projects')
 
       expect(message).toContain('ENTERPRISE')
+    })
+
+    it('should return message for recurring tasks upgrade', () => {
+      const message = getUpgradeMessage(SubscriptionPlan.FREE, 'recurring_tasks')
+
+      expect(message).toContain('Upgrade to PRO')
+      expect(message).toContain('recurring tasks')
     })
   })
 })

@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
+import { canCreateRecurringTask } from "@/lib/projectLimits";
+import { calculateNextOccurrenceDate } from "@/lib/utils";
 
 /**
  * GET /api/tasks - List all tasks for the user
@@ -52,6 +54,15 @@ export async function GET(request: NextRequest) {
             completed: true,
           },
         },
+        // Recurring task fields
+        isRecurring: true,
+        recurringPattern: true,
+        recurringConfig: true,
+        recurringStartDate: true,
+        recurringEndDate: true,
+        nextGenerationDate: true,
+        lastGeneratedDate: true,
+        parentTaskId: true,
         createdAt: true,
         updatedAt: true,
         project: {
@@ -84,6 +95,15 @@ export async function GET(request: NextRequest) {
       manhours: task.manhours,
       dependsOnTaskId: task.dependsOnTaskId,
       dependsOnTask: task.dependsOnTask,
+      // Recurring task fields
+      isRecurring: task.isRecurring,
+      recurringPattern: task.recurringPattern,
+      recurringConfig: task.recurringConfig,
+      recurringStartDate: task.recurringStartDate ? task.recurringStartDate.toISOString().split('T')[0] : undefined,
+      recurringEndDate: task.recurringEndDate ? task.recurringEndDate.toISOString().split('T')[0] : undefined,
+      nextGenerationDate: task.nextGenerationDate,
+      lastGeneratedDate: task.lastGeneratedDate,
+      parentTaskId: task.parentTaskId,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
@@ -104,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, resourceCount, manhours, dependsOnTaskId } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, resourceCount, manhours, dependsOnTaskId, isRecurring, recurringPattern, recurringConfig, recurringStartDate, recurringEndDate } = body;
 
     // Validation
     if (!title || title.trim().length === 0) {
@@ -138,17 +158,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get subscription
+    const subscription = await db.subscription.findUnique({
+      where: { userId: auth.userId },
+    });
+
     // Check task limit
     const taskCount = await db.task.count({
       where: { userId: auth.userId },
     });
 
-    const subscription = await db.subscription.findUnique({
-      where: { userId: auth.userId },
-    });
-
     if (taskCount >= (subscription?.taskLimit || 50)) {
       return ApiErrors.RESOURCE_LIMIT_EXCEEDED("task");
+    }
+
+    // Check recurring task limits if applicable
+    let processedIsRecurring = false;
+    let calculatedNextGenerationDate: Date | null = null;
+
+    if (isRecurring) {
+      const recurringTaskCount = await db.task.count({
+        where: { userId: auth.userId, isRecurring: true, parentTaskId: null },
+      });
+
+      const canCreate = canCreateRecurringTask(subscription?.plan || "FREE", recurringTaskCount);
+      if (!canCreate.allowed) {
+        return error(canCreate.message || "Cannot create recurring task", 403, "SUBSCRIPTION_LIMIT");
+      }
+
+      // Calculate next generation date
+      if (recurringStartDate && recurringConfig) {
+        const nextDate = calculateNextOccurrenceDate(recurringStartDate, recurringConfig);
+        calculatedNextGenerationDate = nextDate;
+      }
+
+      processedIsRecurring = true;
     }
 
     // Create task
@@ -166,6 +210,13 @@ export async function POST(request: NextRequest) {
         resourceCount: resourceCount || null,
         manhours: manhours || null,
         dependsOnTaskId: dependsOnTaskId || null,
+        // Recurring task fields
+        isRecurring: processedIsRecurring,
+        recurringPattern: processedIsRecurring ? recurringPattern : null,
+        recurringConfig: processedIsRecurring ? (typeof recurringConfig === 'string' ? recurringConfig : JSON.stringify(recurringConfig)) : null,
+        recurringStartDate: processedIsRecurring && recurringStartDate ? new Date(recurringStartDate) : null,
+        recurringEndDate: processedIsRecurring && recurringEndDate ? new Date(recurringEndDate) : null,
+        nextGenerationDate: calculatedNextGenerationDate,
       },
       select: {
         id: true,
@@ -191,6 +242,15 @@ export async function POST(request: NextRequest) {
             completed: true,
           },
         },
+        // Recurring task fields
+        isRecurring: true,
+        recurringPattern: true,
+        recurringConfig: true,
+        recurringStartDate: true,
+        recurringEndDate: true,
+        nextGenerationDate: true,
+        lastGeneratedDate: true,
+        parentTaskId: true,
         createdAt: true,
         updatedAt: true,
         project: {
@@ -222,6 +282,15 @@ export async function POST(request: NextRequest) {
       manhours: task.manhours,
       dependsOnTaskId: task.dependsOnTaskId,
       dependsOnTask: task.dependsOnTask,
+      // Recurring task fields
+      isRecurring: task.isRecurring,
+      recurringPattern: task.recurringPattern,
+      recurringConfig: task.recurringConfig,
+      recurringStartDate: task.recurringStartDate ? task.recurringStartDate.toISOString().split('T')[0] : undefined,
+      recurringEndDate: task.recurringEndDate ? task.recurringEndDate.toISOString().split('T')[0] : undefined,
+      nextGenerationDate: task.nextGenerationDate,
+      lastGeneratedDate: task.lastGeneratedDate,
+      parentTaskId: task.parentTaskId,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,

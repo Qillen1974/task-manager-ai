@@ -1,4 +1,4 @@
-import { Task, Priority } from "./types";
+import { Task, Priority, RecurringPattern, RecurringConfig } from "./types";
 
 export function getPriorityLabel(priority: Priority): string {
   const labels: Record<Exclude<Priority, "">, string> = {
@@ -91,4 +91,169 @@ export function getCompletedTaskCount(tasks: Task[]): number {
 
 export function getPendingTaskCount(tasks: Task[]): number {
   return tasks.filter((task) => !task.completed).length;
+}
+
+/**
+ * Recurring task utility functions
+ */
+
+export function getRecurringPatternLabel(pattern: RecurringPattern): string {
+  const labels: Record<RecurringPattern, string> = {
+    DAILY: "Daily",
+    WEEKLY: "Weekly",
+    MONTHLY: "Monthly",
+    CUSTOM: "Custom",
+  };
+  return labels[pattern];
+}
+
+/**
+ * Parse recurring config from JSON string or object
+ */
+export function parseRecurringConfig(config: RecurringConfig | string | null): RecurringConfig | null {
+  if (!config) return null;
+  if (typeof config === "object") return config;
+  try {
+    return JSON.parse(config);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Format recurring config as readable string
+ * Example: "Every 2 weeks on Monday, Wednesday"
+ */
+export function formatRecurringDescription(pattern: RecurringPattern, config: RecurringConfig | string | null): string {
+  const parsedConfig = parseRecurringConfig(config);
+  if (!parsedConfig) return getRecurringPatternLabel(pattern);
+
+  const { pattern: cfgPattern, interval } = parsedConfig;
+
+  if (cfgPattern === "DAILY") {
+    return interval === 1 ? "Every day" : `Every ${interval} days`;
+  }
+
+  if (cfgPattern === "WEEKLY") {
+    const days = parsedConfig.daysOfWeek || [];
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = days.map((d) => dayLabels[d] || "").filter(Boolean);
+    const daysStr = dayNames.length > 0 ? ` on ${dayNames.join(", ")}` : "";
+    return interval === 1 ? `Every week${daysStr}` : `Every ${interval} weeks${daysStr}`;
+  }
+
+  if (cfgPattern === "MONTHLY") {
+    const dayOfMonth = parsedConfig.dayOfMonth || 1;
+    const dayStr = getDayOfMonthSuffix(dayOfMonth);
+    return interval === 1 ? `Every month on the ${dayStr}` : `Every ${interval} months on the ${dayStr}`;
+  }
+
+  if (cfgPattern === "CUSTOM") {
+    const customType = parsedConfig.customType || "DAILY";
+    const typeLabel = getRecurringPatternLabel(customType as RecurringPattern);
+    return `Every ${interval} ${customType.toLowerCase()}${interval !== 1 ? "s" : ""}`;
+  }
+
+  return getRecurringPatternLabel(pattern);
+}
+
+/**
+ * Get day of month suffix (1st, 2nd, 3rd, 4th, etc.)
+ */
+function getDayOfMonthSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return `${day}th`;
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
+}
+
+/**
+ * Calculate the next occurrence date based on recurring config
+ * @param lastOccurrenceDate - The date of the last occurrence (or start date for first occurrence)
+ * @param config - The recurring configuration
+ * @returns The next occurrence date
+ */
+export function calculateNextOccurrenceDate(
+  lastOccurrenceDate: string | Date,
+  config: RecurringConfig | string | null
+): Date | null {
+  const parsedConfig = parseRecurringConfig(config);
+  if (!parsedConfig) return null;
+
+  const lastDate = typeof lastOccurrenceDate === "string" ? new Date(lastOccurrenceDate) : lastOccurrenceDate;
+  const nextDate = new Date(lastDate);
+
+  const { pattern, interval } = parsedConfig;
+
+  if (pattern === "DAILY") {
+    nextDate.setDate(nextDate.getDate() + interval);
+  } else if (pattern === "WEEKLY") {
+    nextDate.setDate(nextDate.getDate() + interval * 7);
+    // If specific days of week are set, find the next matching day
+    if (parsedConfig.daysOfWeek && parsedConfig.daysOfWeek.length > 0) {
+      const daysOfWeek = parsedConfig.daysOfWeek.sort();
+      const currentDayOfWeek = nextDate.getDay();
+      const nextMatchingDay = daysOfWeek.find((d) => d >= currentDayOfWeek) || daysOfWeek[0];
+      const daysToAdd =
+        nextMatchingDay >= currentDayOfWeek ? nextMatchingDay - currentDayOfWeek : 7 - currentDayOfWeek + nextMatchingDay;
+      nextDate.setDate(nextDate.getDate() + daysToAdd);
+    }
+  } else if (pattern === "MONTHLY") {
+    nextDate.setMonth(nextDate.getMonth() + interval);
+    if (parsedConfig.dayOfMonth) {
+      nextDate.setDate(Math.min(parsedConfig.dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
+    }
+  } else if (pattern === "CUSTOM") {
+    const customType = parsedConfig.customType || "DAILY";
+    if (customType === "DAILY") {
+      nextDate.setDate(nextDate.getDate() + interval);
+    } else if (customType === "WEEKLY") {
+      nextDate.setDate(nextDate.getDate() + interval * 7);
+    } else if (customType === "MONTHLY") {
+      nextDate.setMonth(nextDate.getMonth() + interval);
+    } else if (customType === "YEARLY") {
+      nextDate.setFullYear(nextDate.getFullYear() + interval);
+    }
+  }
+
+  return nextDate;
+}
+
+/**
+ * Check if we should generate a new instance of a recurring task
+ * @param lastGeneratedDate - When the last instance was generated
+ * @param nextGenerationDate - When the next instance should be generated
+ * @returns true if we should generate now
+ */
+export function shouldGenerateRecurringTask(lastGeneratedDate: Date | null, nextGenerationDate: Date | null): boolean {
+  if (!nextGenerationDate) return false;
+  return new Date() >= nextGenerationDate;
+}
+
+/**
+ * Check if a recurring task has reached its end condition
+ */
+export function isRecurringTaskEnded(
+  lastGeneratedDate: Date | null,
+  config: RecurringConfig | string | null,
+  recurringEndDate: Date | null
+): boolean {
+  const parsedConfig = parseRecurringConfig(config);
+  if (!parsedConfig) return false;
+
+  // Check end date
+  if (recurringEndDate && new Date() > recurringEndDate) {
+    return true;
+  }
+
+  // Check end after occurrences (would need to count generated tasks)
+  // This would be handled separately in the API
+  return false;
 }

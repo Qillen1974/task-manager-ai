@@ -99,7 +99,7 @@ export default function UpgradeMembership({
     setError(null);
 
     try {
-      const token = localStorage.getItem("taskquadrant_token");
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         setError("Please log in to upgrade");
         return;
@@ -152,7 +152,7 @@ export default function UpgradeMembership({
     setError(null);
 
     try {
-      const token = localStorage.getItem("taskquadrant_token");
+      const token = localStorage.getItem("accessToken");
       if (!token) {
         setError("Please log in to upgrade");
         return;

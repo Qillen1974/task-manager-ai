@@ -39,6 +39,21 @@ export const TASK_LIMITS = {
   },
 };
 
+export const RECURRING_TASK_LIMITS = {
+  FREE: {
+    maxRecurringTasks: 0, // Disabled
+    description: "Recurring tasks not available",
+  },
+  PRO: {
+    maxRecurringTasks: 5,
+    description: "Up to 5 recurring task templates",
+  },
+  ENTERPRISE: {
+    maxRecurringTasks: -1, // Unlimited
+    description: "Unlimited recurring task templates",
+  },
+};
+
 /**
  * Get limits for a subscription plan
  */
@@ -140,17 +155,63 @@ export function calculateChildNestingLevel(parentNestingLevel: number): number {
 }
 
 /**
+ * Get recurring task limits for a subscription plan
+ */
+export function getRecurringTaskLimit(plan: SubscriptionPlan) {
+  return RECURRING_TASK_LIMITS[plan];
+}
+
+/**
+ * Check if user can create a recurring task
+ * @param plan - User's subscription plan
+ * @param currentRecurringTaskCount - Current number of recurring tasks user has
+ * @returns Object with allowed boolean and message
+ */
+export function canCreateRecurringTask(
+  plan: SubscriptionPlan,
+  currentRecurringTaskCount: number
+): { allowed: boolean; message?: string } {
+  const limits = getRecurringTaskLimit(plan);
+
+  // Check if plan supports recurring tasks at all
+  if (limits.maxRecurringTasks === 0) {
+    return {
+      allowed: false,
+      message: "Recurring tasks are not available on your current plan. Upgrade to PRO to create recurring tasks.",
+    };
+  }
+
+  // Check if unlimited
+  if (limits.maxRecurringTasks === -1) {
+    return { allowed: true };
+  }
+
+  // Check if user has reached limit
+  if (currentRecurringTaskCount >= limits.maxRecurringTasks) {
+    return {
+      allowed: false,
+      message: `You have reached your recurring task limit (${limits.maxRecurringTasks}) on the ${plan} plan. Upgrade to ENTERPRISE for unlimited recurring tasks.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Get upgrade message based on what user is trying to do
  */
 export function getUpgradeMessage(
   currentPlan: SubscriptionPlan,
-  reason: "subprojects" | "more_projects"
+  reason: "subprojects" | "more_projects" | "recurring_tasks"
 ): string {
   if (reason === "subprojects") {
     return `Upgrade to PRO to unlock subprojects and advanced project management.`;
   }
   if (reason === "more_projects") {
     return `Upgrade to PRO to create up to 5 projects, or ENTERPRISE for unlimited projects.`;
+  }
+  if (reason === "recurring_tasks") {
+    return `Upgrade to PRO to unlock recurring tasks and automate your workflow.`;
   }
   return `Upgrade your plan to unlock this feature.`;
 }

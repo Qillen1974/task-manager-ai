@@ -1,7 +1,7 @@
 "use client";
 
 import { Task, Project } from "@/lib/types";
-import { formatDateTime, getPriorityBadgeColor, isOverdue, isDeadlineSoon } from "@/lib/utils";
+import { formatDateTime, getPriorityBadgeColor, isOverdue, isDeadlineSoon, formatRecurringDescription } from "@/lib/utils";
 
 interface TaskCardProps {
   task: Task;
@@ -59,6 +59,13 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProj
             <span className={`text-xs px-2 py-1 rounded font-medium ${getPriorityBadgeColor(task.priority)}`}>
               {task.priority.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
             </span>
+
+            {/* Recurring Task Badge */}
+            {task.isRecurring && (
+              <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800 font-medium flex items-center gap-1" title={formatRecurringDescription(task.recurringPattern || "DAILY", task.recurringConfig)}>
+                🔄 Recurring
+              </span>
+            )}
 
             {/* Start Date */}
             {task.startDate && (

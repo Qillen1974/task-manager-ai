@@ -68,6 +68,9 @@ model Subscription {
   maxProjectNestingLevel Int @default(0)   // FREE: 0 (no subprojects), PRO: 1 (one level), ENTERPRISE: unlimited
   maxSubprojectsPerProject Int @default(0) // FREE: 0, PRO: unlimited, ENTERPRISE: unlimited
 
+  // Recurring task limits
+  recurringTaskLimit Int @default(0)       // FREE: 0 (disabled), PRO: 5, ENTERPRISE: unlimited
+
   // Payment tracking
   paymentMethod     String?              // "stripe" or "paypal"
   lastPaymentId     String?              // Stripe PaymentIntent ID or PayPal transaction ID
@@ -169,6 +172,18 @@ model Task {
   dependsOnTask    Task?   @relation("TaskDependencies", fields: [dependsOnTaskId], references: [id], onDelete: SetNull)
   dependentTasks   Task[]  @relation("TaskDependencies")
 
+  // Recurring task fields
+  isRecurring     Boolean   @default(false)               // Whether this is a recurring task template
+  recurringPattern String?                               // Pattern type: DAILY, WEEKLY, MONTHLY, CUSTOM
+  recurringConfig String?                                // JSON string with pattern configuration
+  recurringStartDate DateTime?                           // When recurrence should start
+  recurringEndDate DateTime?                             // When recurrence should stop (optional)
+  nextGenerationDate DateTime?                           // When next instance should be generated
+  lastGeneratedDate DateTime?                            // When last instance was generated
+  parentTaskId    String?                                // Reference to parent recurring task (null for parent/one-off)
+  parentTask      Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  childTasks      Task[]    @relation("RecurringTasks")  // Generated instances of this recurring task
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -176,6 +191,9 @@ model Task {
   @@index([projectId])
   @@index([completed])
   @@index([dependsOnTaskId])
+  @@index([parentTaskId])
+  @@index([isRecurring])
+  @@index([nextGenerationDate])
 }
 
 // AuditLog model - track all important actions for compliance

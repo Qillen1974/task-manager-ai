@@ -24,7 +24,7 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
-        const token = localStorage.getItem("taskquadrant_token");
+        const token = localStorage.getItem("accessToken");
         if (!token) return;
 
         const response = await axios.get("/api/subscriptions/current", {

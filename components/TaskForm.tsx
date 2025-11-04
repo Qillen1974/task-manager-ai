@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Task, Project, Priority } from "@/lib/types";
-import { generateId, getPriorityLabel } from "@/lib/utils";
+import { Task, Project, Priority, RecurringPattern, RecurringConfig } from "@/lib/types";
+import { generateId, getPriorityLabel, formatRecurringDescription } from "@/lib/utils";
 import { ProgressSlider } from "./ProgressSlider";
 
 interface TaskFormProps {
@@ -17,6 +17,7 @@ interface TaskFormProps {
   activeProjectId?: string;
   childProjects?: Project[];
   allProjects?: Project[]; // Flattened list of all projects including nested ones
+  canCreateRecurringTasks?: boolean; // Whether user can create recurring tasks
 }
 
 export function TaskForm({
@@ -30,7 +31,8 @@ export function TaskForm({
   onSubmit,
   activeProjectId,
   childProjects = [],
-  allProjects = []
+  allProjects = [],
+  canCreateRecurringTasks = false
 }: TaskFormProps) {
   const [title, setTitle] = useState(editingTask?.title || "");
   const [description, setDescription] = useState(editingTask?.description || "");
@@ -46,6 +48,19 @@ export function TaskForm({
   const [resourceCount, setResourceCount] = useState<number | undefined>(editingTask?.resourceCount || undefined);
   const [manhours, setManhours] = useState<number | undefined>(editingTask?.manhours || undefined);
   const [dependsOnTaskId, setDependsOnTaskId] = useState<string | undefined>(editingTask?.dependsOnTaskId || undefined);
+
+  // Recurring task fields
+  const [isRecurring, setIsRecurring] = useState(editingTask?.isRecurring || false);
+  const [recurringPattern, setRecurringPattern] = useState<RecurringPattern>(
+    (editingTask?.recurringPattern as RecurringPattern) || "DAILY"
+  );
+  const [recurringInterval, setRecurringInterval] = useState<number>(1);
+  const [recurringDaysOfWeek, setRecurringDaysOfWeek] = useState<number[]>([]);
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState<number>(1);
+  const [recurringStartDate, setRecurringStartDate] = useState(startDate);
+  const [recurringEndDate, setRecurringEndDate] = useState("");
+  const [showRecurringEndDate, setShowRecurringEndDate] = useState(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const priorities: Priority[] = [
@@ -114,6 +129,17 @@ export function TaskForm({
       return;
     }
 
+    // Build recurring config if this is a recurring task
+    let recurringConfig: RecurringConfig | null = null;
+    if (isRecurring && canCreateRecurringTasks) {
+      recurringConfig = {
+        pattern: recurringPattern,
+        interval: recurringInterval,
+        daysOfWeek: recurringPattern === "WEEKLY" ? recurringDaysOfWeek : undefined,
+        dayOfMonth: recurringPattern === "MONTHLY" ? recurringDayOfMonth : undefined,
+      };
+    }
+
     const task: Task = {
       id: editingTask?.id || generateId(),
       title,
@@ -129,6 +155,12 @@ export function TaskForm({
       resourceCount: resourceCount,
       manhours: manhours,
       dependsOnTaskId: dependsOnTaskId || undefined,
+      // Recurring task fields
+      isRecurring: isRecurring && canCreateRecurringTasks,
+      recurringPattern: isRecurring && canCreateRecurringTasks ? recurringPattern : undefined,
+      recurringConfig: recurringConfig ? JSON.stringify(recurringConfig) : undefined,
+      recurringStartDate: isRecurring && canCreateRecurringTasks && recurringStartDate ? recurringStartDate : undefined,
+      recurringEndDate: isRecurring && canCreateRecurringTasks && recurringEndDate ? recurringEndDate : undefined,
       createdAt: editingTask?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -385,6 +417,164 @@ export function TaskForm({
               />
             </div>
           </div>
+
+          {/* Recurring Task Section */}
+          {canCreateRecurringTasks && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  id="isRecurring"
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
+                  Make this a recurring task
+                </label>
+              </div>
+
+              {isRecurring && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                  {/* Recurrence Pattern */}
+                  <div>
+                    <label htmlFor="recurringPattern" className="block text-sm font-medium text-gray-700 mb-1">
+                      Recurrence Pattern
+                    </label>
+                    <select
+                      id="recurringPattern"
+                      value={recurringPattern}
+                      onChange={(e) => setRecurringPattern(e.target.value as RecurringPattern)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    >
+                      <option value="DAILY">Daily</option>
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="MONTHLY">Monthly</option>
+                      <option value="CUSTOM">Custom</option>
+                    </select>
+                  </div>
+
+                  {/* Interval */}
+                  <div>
+                    <label htmlFor="recurringInterval" className="block text-sm font-medium text-gray-700 mb-1">
+                      Repeat Every
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        id="recurringInterval"
+                        type="number"
+                        min="1"
+                        value={recurringInterval}
+                        onChange={(e) => setRecurringInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                      <span className="text-sm text-gray-600">{recurringPattern.toLowerCase()}</span>
+                    </div>
+                  </div>
+
+                  {/* Weekly Days Selection */}
+                  {recurringPattern === "WEEKLY" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Days of Week
+                      </label>
+                      <div className="grid grid-cols-7 gap-2">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              if (recurringDaysOfWeek.includes(index)) {
+                                setRecurringDaysOfWeek(recurringDaysOfWeek.filter(d => d !== index));
+                              } else {
+                                setRecurringDaysOfWeek([...recurringDaysOfWeek, index].sort());
+                              }
+                            }}
+                            className={`py-2 px-1 text-xs font-medium rounded ${
+                              recurringDaysOfWeek.includes(index)
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Monthly Day Selection */}
+                  {recurringPattern === "MONTHLY" && (
+                    <div>
+                      <label htmlFor="recurringDayOfMonth" className="block text-sm font-medium text-gray-700 mb-1">
+                        Day of Month
+                      </label>
+                      <input
+                        id="recurringDayOfMonth"
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={recurringDayOfMonth}
+                        onChange={(e) => setRecurringDayOfMonth(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                    </div>
+                  )}
+
+                  {/* Start Date */}
+                  <div>
+                    <label htmlFor="recurringStartDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      id="recurringStartDate"
+                      type="date"
+                      value={recurringStartDate}
+                      onChange={(e) => setRecurringStartDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    />
+                  </div>
+
+                  {/* End Date Toggle and Input */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="showRecurringEndDate"
+                        type="checkbox"
+                        checked={showRecurringEndDate}
+                        onChange={(e) => setShowRecurringEndDate(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <label htmlFor="showRecurringEndDate" className="text-sm font-medium text-gray-700">
+                        Set an end date (optional)
+                      </label>
+                    </div>
+                    {showRecurringEndDate && (
+                      <input
+                        type="date"
+                        value={recurringEndDate}
+                        onChange={(e) => setRecurringEndDate(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                    )}
+                  </div>
+
+                  {/* Preview */}
+                  {recurringPattern && recurringInterval > 0 && (
+                    <div className="bg-white p-3 rounded border border-blue-100 text-sm text-gray-700">
+                      <p className="font-medium mb-1">Preview:</p>
+                      <p>{formatRecurringDescription(recurringPattern, {
+                        pattern: recurringPattern,
+                        interval: recurringInterval,
+                        daysOfWeek: recurringPattern === "WEEKLY" ? recurringDaysOfWeek : undefined,
+                        dayOfMonth: recurringPattern === "MONTHLY" ? recurringDayOfMonth : undefined,
+                      })}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-4 pt-4">

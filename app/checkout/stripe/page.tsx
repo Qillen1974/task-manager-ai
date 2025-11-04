@@ -63,7 +63,7 @@ function CheckoutForm({
 
       if (paymentIntent?.status === "succeeded") {
         // Payment successful, confirm with backend
-        const token = localStorage.getItem("taskquadrant_token");
+        const token = localStorage.getItem("accessToken");
         if (!token) {
           setError("Authentication token not found");
           setLoading(false);
