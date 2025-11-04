@@ -22,9 +22,11 @@ const PAYPAL_BASE_URL =
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
+    console.log("=== upgrade-paypal endpoint called ===");
     // Verify user is authenticated
     const authHeader = request.headers.get("authorization");
     const token = getTokenFromHeader(authHeader);
+    console.log("Token exists:", !!token);
 
     if (!token) {
       return {
@@ -107,6 +109,7 @@ export async function POST(request: NextRequest) {
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString("base64");
 
+    console.log("Getting PayPal access token...");
     const tokenResponse = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
       method: "POST",
       headers: {
@@ -117,7 +120,9 @@ export async function POST(request: NextRequest) {
     });
 
     const tokenData: any = await tokenResponse.json();
+    console.log("Token response:", { status: tokenResponse.status, hasAccessToken: !!tokenData.access_token });
     if (!tokenData.access_token) {
+      console.error("PayPal token error:", tokenData);
       return {
         success: false,
         error: { message: "Failed to get PayPal access token", code: "PAYPAL_TOKEN_ERROR" },
