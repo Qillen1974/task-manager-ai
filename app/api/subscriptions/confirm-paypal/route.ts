@@ -138,7 +138,12 @@ export async function POST(request: NextRequest) {
     console.log("PayPal capture response status:", captureData.status);
     console.log("Capture response OK:", captureResponse.ok);
 
-    if (!captureResponse.ok || captureData.status !== "COMPLETED") {
+    // Handle case where order was already captured
+    if (captureData.issue === "ORDER_ALREADY_CAPTURED" ||
+        captureData.message?.includes("ORDER_ALREADY_CAPTURED")) {
+      console.log("Order already captured in a previous request, proceeding with subscription update");
+      // Order was already captured in a previous request, treat as success
+    } else if (!captureResponse.ok || captureData.status !== "COMPLETED") {
       console.error("PayPal capture failed. Response:", captureData);
       return NextResponse.json(
         { success: false, error: { message: "Failed to capture PayPal payment", code: "PAYPAL_CAPTURE_FAILED" } },
