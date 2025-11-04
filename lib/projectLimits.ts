@@ -11,10 +11,10 @@ export const PROJECT_LIMITS = {
     description: "Single-level projects only",
   },
   PRO: {
-    maxProjects: 5,
+    maxProjects: 30,
     maxProjectNestingLevel: 1, // One level of nesting (projects + subprojects)
     maxSubprojectsPerProject: -1, // Unlimited subprojects per project
-    description: "Up to 5 root projects with unlimited subprojects",
+    description: "Up to 30 root projects with unlimited subprojects",
   },
   ENTERPRISE: {
     maxProjects: -1, // Unlimited
@@ -30,8 +30,8 @@ export const TASK_LIMITS = {
     description: "50 tasks per user",
   },
   PRO: {
-    maxTasks: -1, // Unlimited
-    description: "Unlimited tasks",
+    maxTasks: 200,
+    description: "Up to 200 tasks",
   },
   ENTERPRISE: {
     maxTasks: -1, // Unlimited
