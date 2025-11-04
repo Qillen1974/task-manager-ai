@@ -18,6 +18,8 @@ export default function UpgradePage() {
   const router = useRouter();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paypalPending, setPaypalPending] = useState(false);
+  const [paypalError, setPaypalError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -39,71 +41,73 @@ export default function UpgradePage() {
         console.log("PayPal return detected - Token:", paypalToken, "OrderID:", paypalOrderId, "Plan:", paypalPlan);
 
         if (paypalToken && paypalOrderId && paypalPlan) {
-          // User has returned from PayPal - try to confirm payment
-          try {
-            console.log("=== PayPal Return Detected ===");
-            console.log("PayPal Token:", paypalToken);
-            console.log("Calling confirm-paypal endpoint with:", { orderId: paypalOrderId, plan: paypalPlan });
-            const confirmResponse = await axios.post(
-              "/api/subscriptions/confirm-paypal",
-              {
-                orderId: paypalOrderId,
-                plan: paypalPlan,
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
+          // User has returned from PayPal
+          console.log("=== PayPal Return Detected ===");
+          console.log("PayPal Token:", paypalToken);
+          console.log("Order ID:", paypalOrderId);
+
+          // Mark that we're waiting for payment confirmation
+          // Don't auto-confirm yet - wait a moment in case PayPal is still redirecting
+          setPaypalPending(true);
+          setPaypalError(null);
+
+          // Delay confirmation attempt to ensure PayPal has completed the approval flow
+          const confirmTimeout = setTimeout(async () => {
+            try {
+              console.log("Attempting to confirm PayPal payment...");
+              const confirmResponse = await axios.post(
+                "/api/subscriptions/confirm-paypal",
+                {
+                  orderId: paypalOrderId,
+                  plan: paypalPlan,
                 },
-              }
-            );
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
 
-            console.log("Confirm-PayPal response:", confirmResponse.data);
+              console.log("Confirm-PayPal response:", confirmResponse.data);
 
-            if (confirmResponse.data.success) {
-              // Clear localStorage after successful confirmation
-              localStorage.removeItem("paypal_order_id");
-              localStorage.removeItem("paypal_plan");
-              localStorage.removeItem("paypal_billing_cycle");
-
-              // Clear URL query parameter
-              window.history.replaceState({}, document.title, "/upgrade");
-
-              // Update subscription
-              setSubscription(confirmResponse.data.data.subscription);
-              setLoading(false);
-              console.log("PayPal payment confirmed successfully");
-              // Redirect to settings with success message
-              router.push("/settings?tab=membership&status=upgraded");
-              return;
-            } else {
-              console.error("Confirm-PayPal response not successful:", confirmResponse.data.error);
-              // Payment not yet approved or other issue - clear query param and show current state
-              window.history.replaceState({}, document.title, "/upgrade");
-
-              // Only clear localStorage if explicitly failed, not if pending
-              if (confirmResponse.data.error?.code !== "PAYMENT_PENDING_APPROVAL") {
+              if (confirmResponse.data.success) {
+                // Clear localStorage after successful confirmation
                 localStorage.removeItem("paypal_order_id");
                 localStorage.removeItem("paypal_plan");
                 localStorage.removeItem("paypal_billing_cycle");
+
+                // Clear URL query parameter
+                window.history.replaceState({}, document.title, "/upgrade");
+
+                // Update subscription
+                setSubscription(confirmResponse.data.data.subscription);
+                setPaypalPending(false);
+                console.log("PayPal payment confirmed successfully");
+                // Redirect to settings with success message
+                router.push("/settings?tab=membership&status=upgraded");
+                return;
+              } else {
+                const errorMessage = confirmResponse.data.error?.message || "Payment confirmation failed";
+                console.error("Confirm-PayPal response not successful:", confirmResponse.data.error);
+                setPaypalError(errorMessage);
+                setPaypalPending(false);
+
+                // Only clear localStorage if explicitly failed, not if pending
+                if (confirmResponse.data.error?.code !== "PAYMENT_PENDING_APPROVAL") {
+                  localStorage.removeItem("paypal_order_id");
+                  localStorage.removeItem("paypal_plan");
+                  localStorage.removeItem("paypal_billing_cycle");
+                  window.history.replaceState({}, document.title, "/upgrade");
+                }
               }
+            } catch (err: any) {
+              console.error("Failed to confirm PayPal payment:", err);
+              setPaypalError(err.response?.data?.error?.message || "Failed to confirm payment");
+              setPaypalPending(false);
             }
-          } catch (err: any) {
-            console.error("Failed to confirm PayPal payment:", err);
-            console.error("Error response data:", JSON.stringify(err.response?.data, null, 2));
-            console.error("Error status:", err.response?.status);
+          }, 2000); // Wait 2 seconds before attempting confirmation
 
-            // Clear URL query parameter
-            window.history.replaceState({}, document.title, "/upgrade");
-
-            // Only clear localStorage on network/other errors, not on validation errors
-            const errorCode = err.response?.data?.error?.code;
-            if (errorCode !== "PAYMENT_PENDING_APPROVAL") {
-              localStorage.removeItem("paypal_order_id");
-              localStorage.removeItem("paypal_plan");
-              localStorage.removeItem("paypal_billing_cycle");
-            }
-            // Continue to fetch current subscription on error
-          }
+          return () => clearTimeout(confirmTimeout);
         } else {
           console.log("=== No PayPal Return ===");
           console.log("paypalToken:", paypalToken, "paypalOrderId:", paypalOrderId, "paypalPlan:", paypalPlan);
@@ -128,6 +132,31 @@ export default function UpgradePage() {
 
     fetchSubscription();
   }, [router]);
+
+  if (paypalPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <h1 className="text-xl font-semibold text-gray-900 mb-4">
+            Processing PayPal Payment
+          </h1>
+          <div className="mb-6">
+            <div className="inline-block">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Confirming your payment with PayPal...
+          </p>
+          {paypalError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-4">
+              {paypalError}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
