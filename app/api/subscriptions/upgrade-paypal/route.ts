@@ -165,6 +165,15 @@ export async function POST(request: NextRequest) {
     )?.href;
 
     console.log("PayPal order created successfully:", orderData.id);
+    console.log("PayPal order status:", orderData.status);
+    console.log("PayPal order links:", JSON.stringify(orderData.links, null, 2));
+    console.log("Approval link:", approvalLink);
+
+    if (!approvalLink) {
+      console.error("No approval link found in PayPal response");
+      console.error("Full order data:", JSON.stringify(orderData, null, 2));
+    }
+
     return success({
       orderId: orderData.id,
       plan,
