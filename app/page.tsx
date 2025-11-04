@@ -14,7 +14,7 @@ import { ProjectHierarchyModal, ProjectFormData } from "@/components/ProjectHier
 import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
-import { getPendingTaskCount } from "@/lib/utils";
+import { getPendingTaskCount, getAutoPriority } from "@/lib/utils";
 import { canCreateRecurringTask } from "@/lib/projectLimits";
 
 // Helper function to recursively find a project in the hierarchy
@@ -81,6 +81,15 @@ export default function Home() {
   const [parentProjectId, setParentProjectId] = useState<string | undefined>();
   const [defaultProjectId, setDefaultProjectId] = useState<string>("");
 
+  // User preferences state
+  const [userPreferences, setUserPreferences] = useState<{
+    enableAutoPrioritization: boolean;
+    autoPrioritizationThresholdHours: number;
+  }>({
+    enableAutoPrioritization: true,
+    autoPrioritizationThresholdHours: 48,
+  });
+
   // Load initial data on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -117,6 +126,27 @@ export default function Home() {
           }
         } catch (err) {
           console.warn("Could not fetch user subscription:", err);
+        }
+
+        // Get user preferences for auto-prioritization
+        try {
+          const token = localStorage.getItem('accessToken');
+          if (token) {
+            const preferencesResponse = await fetch('/api/settings/preferences', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (preferencesResponse.ok) {
+              const prefs = await preferencesResponse.json();
+              if (prefs.success && prefs.data) {
+                setUserPreferences({
+                  enableAutoPrioritization: prefs.data.enableAutoPrioritization ?? true,
+                  autoPrioritizationThresholdHours: prefs.data.autoPrioritizationThresholdHours ?? 48,
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Could not fetch user preferences:", err);
         }
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -202,6 +232,23 @@ export default function Home() {
     // Filter tasks that belong to the selected project or any of its subprojects
     return tasks.filter((t) => projectIds.includes(t.projectId));
   }, [tasks, dashboardProjectFilter, projects]);
+
+  // Apply auto-prioritization to tasks if enabled
+  const tasksWithAutoPriority = useMemo(() => {
+    if (!userPreferences.enableAutoPrioritization) {
+      return filteredTasksForDashboard;
+    }
+
+    return filteredTasksForDashboard.map((task) => ({
+      ...task,
+      priority: getAutoPriority(
+        task.priority || "",
+        task.dueDate,
+        task.dueTime,
+        userPreferences.autoPrioritizationThresholdHours
+      ),
+    }));
+  }, [filteredTasksForDashboard, userPreferences]);
 
   // Task operations
   const handleAddTask = async (task: Task) => {
@@ -616,7 +663,7 @@ export default function Home() {
               </div>
 
               <EisenhowerMatrix
-                tasks={filteredTasksForDashboard}
+                tasks={tasksWithAutoPriority}
                 projects={projectsMap}
                 onTaskComplete={handleCompleteTask}
                 onTaskEdit={handleEditTask}
