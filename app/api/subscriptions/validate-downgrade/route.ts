@@ -56,8 +56,12 @@ export async function POST(request: NextRequest) {
       where: { userId },
     });
 
+    console.log(`[Downgrade Validation] User ${userId} attempting to downgrade to ${plan}. Current: ${rootProjects} projects, ${taskCount} tasks`);
+
     // Validate downgrade
     const validation = validateDowngrade(plan, rootProjects, taskCount);
+
+    console.log(`[Downgrade Validation] Result:`, validation);
 
     return NextResponse.json({
       success: true,

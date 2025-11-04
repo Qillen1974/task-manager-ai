@@ -131,12 +131,17 @@ export default function UpgradeMembership({
           }
         );
 
+        console.log("Downgrade validation response:", response.data.data);
+
         if (!response.data.data.allowed) {
+          console.log("Downgrade blocked:", response.data.data.message);
           setError(response.data.data.message);
           setShowPaymentForm(false);
           setValidatingDowngrade(false);
           return;
         }
+
+        console.log("Downgrade validation passed");
 
         // Validation passed, proceed with upgrade
         setError(null);
