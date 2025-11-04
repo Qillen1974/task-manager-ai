@@ -105,7 +105,7 @@ export default function UpgradePage() {
               setPaypalError(err.response?.data?.error?.message || "Failed to confirm payment");
               setPaypalPending(false);
             }
-          }, 2000); // Wait 2 seconds before attempting confirmation
+          }, 5000); // Wait 5 seconds before attempting confirmation
 
           return () => clearTimeout(confirmTimeout);
         } else {
@@ -134,6 +134,53 @@ export default function UpgradePage() {
   }, [router]);
 
   if (paypalPending) {
+    const handleRetryConfirm = async () => {
+      const token = localStorage.getItem("accessToken");
+      const paypalOrderId = localStorage.getItem("paypal_order_id");
+      const paypalPlan = localStorage.getItem("paypal_plan");
+
+      if (!token || !paypalOrderId || !paypalPlan) {
+        setPaypalError("Missing payment information. Please try again.");
+        setPaypalPending(false);
+        return;
+      }
+
+      try {
+        console.log("Manual retry: Attempting to confirm PayPal payment...");
+        const confirmResponse = await axios.post(
+          "/api/subscriptions/confirm-paypal",
+          {
+            orderId: paypalOrderId,
+            plan: paypalPlan,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("Confirm-PayPal response:", confirmResponse.data);
+
+        if (confirmResponse.data.success) {
+          localStorage.removeItem("paypal_order_id");
+          localStorage.removeItem("paypal_plan");
+          localStorage.removeItem("paypal_billing_cycle");
+          window.history.replaceState({}, document.title, "/upgrade");
+          setSubscription(confirmResponse.data.data.subscription);
+          setPaypalPending(false);
+          console.log("PayPal payment confirmed successfully");
+          router.push("/settings?tab=membership&status=upgraded");
+          return;
+        } else {
+          setPaypalError(confirmResponse.data.error?.message || "Payment confirmation failed");
+        }
+      } catch (err: any) {
+        console.error("Retry failed:", err);
+        setPaypalError(err.response?.data?.error?.message || "Failed to confirm payment");
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
@@ -150,7 +197,13 @@ export default function UpgradePage() {
           </p>
           {paypalError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-4">
-              {paypalError}
+              <p className="mb-3">{paypalError}</p>
+              <button
+                onClick={handleRetryConfirm}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-semibold"
+              >
+                Retry Confirmation
+              </button>
             </div>
           )}
         </div>
