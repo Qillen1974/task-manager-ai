@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 import { success, handleApiError } from "@/lib/apiResponse";
+import { validateDowngrade } from "@/lib/subscriptionValidation";
 
 interface UpgradeRequest {
   plan: "FREE" | "PRO" | "ENTERPRISE";
@@ -69,6 +70,36 @@ export async function POST(request: NextRequest) {
         success: false,
         error: { message: "User not found", code: "USER_NOT_FOUND" },
       };
+    }
+
+    // Check if this is a downgrade and validate
+    const currentPlan = user.subscription?.plan || "FREE";
+    const newPlan = plan as "FREE" | "PRO" | "ENTERPRISE";
+
+    // Only validate if plan is different and it's a downgrade
+    if (plan !== currentPlan) {
+      const rootProjectCount = await db.project.count({
+        where: {
+          userId,
+          parentProjectId: null,
+        },
+      });
+
+      const taskCount = await db.task.count({
+        where: { userId },
+      });
+
+      const downgradeValidation = validateDowngrade(newPlan, rootProjectCount, taskCount);
+
+      if (!downgradeValidation.allowed) {
+        return {
+          success: false,
+          error: {
+            message: downgradeValidation.message || "Cannot downgrade plan due to item limits",
+            code: "DOWNGRADE_VALIDATION_FAILED"
+          }
+        };
+      }
     }
 
     // Create PayPal order
