@@ -11,10 +11,12 @@ interface UpgradeRequest {
   amount: string; // Amount as a string (e.g., "29.99")
 }
 
-const PAYPAL_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://api.paypal.com"
-    : "https://api.sandbox.paypal.com";
+// Use PAYPAL_SANDBOX env var to control PayPal environment
+// Set PAYPAL_SANDBOX=false in production to use live API
+const isPayPalSandbox = process.env.PAYPAL_SANDBOX !== "false";
+const PAYPAL_BASE_URL = isPayPalSandbox
+  ? "https://api.sandbox.paypal.com"
+  : "https://api.paypal.com";
 
 /**
  * POST /api/subscriptions/upgrade-paypal
