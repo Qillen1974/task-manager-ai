@@ -131,7 +131,12 @@ export default function UpgradeMembership({
           }
         );
 
-        console.log("Downgrade validation response:", response.data.data);
+        console.log("Full response:", response.data);
+        console.log("Data object:", response.data.data);
+        console.log("Allowed:", response.data.data.allowed);
+        console.log("Current projects:", response.data.data.currentProjects);
+        console.log("Current tasks:", response.data.data.currentTasks);
+        console.log("Message:", response.data.data.message);
 
         if (!response.data.data.allowed) {
           console.log("Downgrade blocked:", response.data.data.message);
@@ -141,7 +146,7 @@ export default function UpgradeMembership({
           return;
         }
 
-        console.log("Downgrade validation passed");
+        console.log("Downgrade validation passed - proceeding");
 
         // Validation passed, proceed with upgrade
         setError(null);
