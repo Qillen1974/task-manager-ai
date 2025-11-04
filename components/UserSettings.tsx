@@ -16,11 +16,24 @@ interface Subscription {
   taskLimit: number;
 }
 
+interface UserPreferences {
+  enableAutoPrioritization: boolean;
+  autoPrioritizationThresholdHours: number;
+}
+
 export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps) {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    enableAutoPrioritization: true,
+    autoPrioritizationThresholdHours: 48,
+  });
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Fetch subscription
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
@@ -45,6 +58,71 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
 
     fetchSubscription();
   }, []);
+
+  // Fetch user preferences
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) return;
+
+        const response = await axios.get("/api/settings/preferences", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.data.success && response.data.data) {
+          setPreferences({
+            enableAutoPrioritization: response.data.data.enableAutoPrioritization ?? true,
+            autoPrioritizationThresholdHours: response.data.data.autoPrioritizationThresholdHours ?? 48,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch preferences:", err);
+        // Use defaults if fetch fails
+      } finally {
+        setLoadingPreferences(false);
+      }
+    };
+
+    fetchPreferences();
+  }, []);
+
+  // Save preferences
+  const handleSavePreferences = async () => {
+    setSavingPreferences(true);
+    setSaveMessage(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const response = await axios.post(
+        "/api/settings/preferences",
+        {
+          enableAutoPrioritization: preferences.enableAutoPrioritization,
+          autoPrioritizationThresholdHours: preferences.autoPrioritizationThresholdHours,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setSaveMessage({ type: "success", text: "Settings saved successfully!" });
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        setSaveMessage({ type: "error", text: "Failed to save settings" });
+      }
+    } catch (err) {
+      console.error("Failed to save preferences:", err);
+      setSaveMessage({ type: "error", text: "Error saving settings" });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
 
   if (showChangePassword) {
     return (
@@ -124,6 +202,88 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
               </div>
             ) : (
               <p className="text-gray-600 text-sm">Unable to load subscription</p>
+            )}
+          </div>
+
+          {/* Preferences Section */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Preferences</h3>
+            {loadingPreferences ? (
+              <p className="text-gray-600 text-sm">Loading preferences...</p>
+            ) : (
+              <div className="space-y-4">
+                {/* Auto-Prioritization Toggle */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-900">Auto-Prioritization</label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Automatically move tasks to urgent quadrants when due date approaches
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={preferences.enableAutoPrioritization}
+                    onChange={(e) =>
+                      setPreferences({
+                        ...preferences,
+                        enableAutoPrioritization: e.target.checked,
+                      })
+                    }
+                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 mt-1"
+                  />
+                </div>
+
+                {/* Threshold Setting */}
+                {preferences.enableAutoPrioritization && (
+                  <div>
+                    <label htmlFor="threshold" className="text-sm font-medium text-gray-900">
+                      Hours Until Due Date (threshold)
+                    </label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        id="threshold"
+                        type="number"
+                        min="1"
+                        max="168"
+                        value={preferences.autoPrioritizationThresholdHours}
+                        onChange={(e) =>
+                          setPreferences({
+                            ...preferences,
+                            autoPrioritizationThresholdHours: parseInt(e.target.value) || 48,
+                          })
+                        }
+                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      />
+                      <span className="text-sm text-gray-600">hours</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Default: 48 hours (2 days)
+                    </p>
+                  </div>
+                )}
+
+                {/* Save Button */}
+                <div className="pt-4 border-t">
+                  <button
+                    onClick={handleSavePreferences}
+                    disabled={savingPreferences}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition font-medium"
+                  >
+                    {savingPreferences ? "Saving..." : "Save Preferences"}
+                  </button>
+                  {saveMessage && (
+                    <p
+                      className={`text-sm mt-2 ${
+                        saveMessage.type === "success"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {saveMessage.text}
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 

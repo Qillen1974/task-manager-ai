@@ -257,3 +257,67 @@ export function isRecurringTaskEnded(
   // This would be handled separately in the API
   return false;
 }
+
+/**
+ * Calculate hours remaining until due date
+ * Returns negative value if due date is in the past
+ */
+export function getHoursUntilDue(dueDate?: string, dueTime?: string): number | null {
+  if (!dueDate) return null;
+
+  const now = new Date();
+  let dueDatetime = new Date(dueDate);
+
+  // If a time is specified, parse it and set it on the date
+  if (dueTime) {
+    const [hours, minutes] = dueTime.split(":").map(Number);
+    dueDatetime.setHours(hours, minutes, 0, 0);
+  } else {
+    // If no time specified, assume end of day (23:59)
+    dueDatetime.setHours(23, 59, 59, 999);
+  }
+
+  const diffMs = dueDatetime.getTime() - now.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  return Math.round(diffHours * 100) / 100; // Round to 2 decimal places
+}
+
+/**
+ * Get auto-prioritized priority based on due date and current priority
+ * Rules:
+ * - Quadrant 2 (not-urgent-important) → Quadrant 1 (urgent-important) if due within threshold
+ * - Quadrant 4 (not-urgent-not-important) → Quadrant 3 (urgent-not-important) if due within threshold
+ * - Quadrants 1 and 3 remain unchanged (already urgent)
+ * - Returns the auto-prioritized priority or original if no change needed
+ */
+export function getAutoPriority(
+  originalPriority: Priority,
+  dueDate?: string,
+  dueTime?: string,
+  thresholdHours: number = 48
+): Priority {
+  // No priority set or already in urgent quadrant
+  if (!originalPriority || originalPriority === "urgent-important" || originalPriority === "urgent-not-important") {
+    return originalPriority;
+  }
+
+  const hoursUntilDue = getHoursUntilDue(dueDate, dueTime);
+
+  // No due date or invalid calculation
+  if (hoursUntilDue === null || hoursUntilDue < 0) {
+    return originalPriority;
+  }
+
+  // If due date is within threshold, auto-prioritize to urgent
+  if (hoursUntilDue <= thresholdHours) {
+    if (originalPriority === "not-urgent-important") {
+      return "urgent-important"; // Move from Q2 to Q1
+    }
+    if (originalPriority === "not-urgent-not-important") {
+      return "urgent-not-important"; // Move from Q4 to Q3
+    }
+  }
+
+  return originalPriority;
+}

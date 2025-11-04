@@ -26,8 +26,25 @@ model User {
   tasks         Task[]
   subscription  Subscription?
   sessions      Session[]
+  settings      UserSettings?
 
   @@index([email])
+}
+
+// UserSettings model - stores user preferences
+model UserSettings {
+  id                              String   @id @default(cuid())
+  userId                          String   @unique
+  user                            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Auto-prioritization settings
+  enableAutoPrioritization        Boolean  @default(true)  // Enable automatic priority adjustment based on due date
+  autoPrioritizationThresholdHours Int     @default(48)    // Hours until due date to trigger auto-prioritization
+
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // Session model - for tracking logged-in sessions
