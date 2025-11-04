@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Check, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import PayPalButton from "./PayPalButton";
 
 interface Subscription {
   id: string;
@@ -472,28 +473,52 @@ export default function UpgradeMembership({
               </div>
             </div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setShowPaymentForm(false);
-                  setSelectedPlan(null);
-                }}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={
-                  paymentMethod === "stripe"
-                    ? handleStripePayment
-                    : handlePayPalPayment
-                }
-                disabled={loading}
-                className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-400"
-              >
-                {loading ? "Processing..." : `Pay with ${paymentMethod === "stripe" ? "Stripe" : "PayPal"}`}
-              </button>
-            </div>
+            {paymentMethod === "paypal" ? (
+              <>
+                <div className="mb-4">
+                  <PayPalButton
+                    planName={selectedPlan}
+                    amount={getPrice(PLAN_DETAILS[selectedPlan].price)}
+                    onSuccess={() => {
+                      // Redirect to settings on success
+                      router.push("/settings?tab=membership&status=upgraded");
+                    }}
+                    onError={(errorMsg) => {
+                      setError(errorMsg);
+                    }}
+                    isLoading={loading}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaymentForm(false);
+                    setSelectedPlan(null);
+                  }}
+                  className="w-full px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowPaymentForm(false);
+                    setSelectedPlan(null);
+                  }}
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStripePayment}
+                  disabled={loading}
+                  className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-400"
+                >
+                  {loading ? "Processing..." : "Pay with Stripe"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
