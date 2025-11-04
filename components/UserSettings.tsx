@@ -32,6 +32,9 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancellationInfo, setCancellationInfo] = useState<any>(null);
 
   // Fetch subscription
   useEffect(() => {
@@ -124,6 +127,44 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
     }
   };
 
+  // Cancel subscription
+  const handleCancelSubscription = async () => {
+    setCancelingSubscription(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const response = await axios.post(
+        "/api/subscriptions/cancel",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setCancellationInfo(response.data.data);
+        setShowCancelConfirm(false);
+        // Refresh subscription
+        setSubscription({
+          plan: "FREE",
+          projectLimit: 10,
+          taskLimit: 50,
+        });
+        alert("Subscription cancelled successfully! You are now on the FREE plan.");
+      } else {
+        alert("Failed to cancel subscription: " + response.data.error?.message);
+      }
+    } catch (err: any) {
+      console.error("Failed to cancel subscription:", err);
+      alert("Error cancelling subscription: " + (err.response?.data?.error?.message || "Unknown error"));
+    } finally {
+      setCancelingSubscription(false);
+    }
+  };
+
   if (showChangePassword) {
     return (
       <ChangePasswordForm
@@ -193,15 +234,28 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
                       : subscription.taskLimit}
                   </p>
                 </div>
-                <button
-                  onClick={() => window.location.href = "/upgrade"}
-                  className="w-full bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg transition font-medium text-left flex items-center justify-between mt-4"
-                >
-                  <span>Upgrade Plan</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                <div className="space-y-3 mt-4">
+                  <button
+                    onClick={() => window.location.href = "/upgrade"}
+                    className="w-full bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg transition font-medium text-left flex items-center justify-between"
+                  >
+                    <span>Upgrade Plan</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  {subscription?.plan !== "FREE" && (
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg transition font-medium text-left flex items-center justify-between"
+                    >
+                      <span>Cancel Subscription</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <p className="text-gray-600 text-sm">Unable to load subscription</p>
@@ -316,6 +370,40 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
           </div>
         </div>
       </div>
+
+      {/* Cancel Subscription Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Subscription?</h3>
+            <div className="space-y-4 mb-6">
+              <p className="text-gray-700">
+                Are you sure you want to cancel your subscription? You will be downgraded to the FREE plan immediately.
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Important:</strong> If you have more than 10 projects or 50 tasks, the excess items will become read-only for 30 days. You'll have time to export or delete them.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+              >
+                Keep Subscription
+              </button>
+              <button
+                onClick={handleCancelSubscription}
+                disabled={cancelingSubscription}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg transition font-medium"
+              >
+                {cancelingSubscription ? "Cancelling..." : "Cancel Subscription"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
