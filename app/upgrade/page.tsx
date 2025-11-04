@@ -41,6 +41,8 @@ export default function UpgradePage() {
         if (paypalToken && paypalOrderId && paypalPlan) {
           // Confirm PayPal payment
           try {
+            console.log("=== PayPal Return Detected ===");
+            console.log("PayPal Token:", paypalToken);
             console.log("Calling confirm-paypal endpoint with:", { orderId: paypalOrderId, plan: paypalPlan });
             const confirmResponse = await axios.post(
               "/api/subscriptions/confirm-paypal",
@@ -67,6 +69,8 @@ export default function UpgradePage() {
               setSubscription(confirmResponse.data.data.subscription);
               setLoading(false);
               console.log("PayPal payment confirmed successfully");
+              // Redirect to settings with success message
+              router.push("/settings?tab=membership&status=upgraded");
               return;
             } else {
               console.error("Confirm-PayPal returned false success");
@@ -87,7 +91,8 @@ export default function UpgradePage() {
             // Continue to fetch current subscription on error
           }
         } else {
-          console.log("No PayPal localStorage found");
+          console.log("=== No PayPal Return ===");
+          console.log("paypalToken:", paypalToken, "paypalOrderId:", paypalOrderId, "paypalPlan:", paypalPlan);
         }
 
         const response = await axios.get("/api/subscriptions/current", {
