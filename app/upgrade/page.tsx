@@ -28,23 +28,17 @@ export default function UpgradePage() {
           return;
         }
 
-        // Check all localStorage contents for debugging
-        console.log("=== All localStorage contents ===");
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          const value = localStorage.getItem(key);
-          if (key?.includes("paypal")) {
-            console.log(`${key}:`, value);
-          }
-        }
+        // Check if this is a PayPal return from the URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const paypalToken = urlParams.get("token");
 
         // Check if this is a PayPal return (check localStorage instead of sessionStorage)
         const paypalOrderId = localStorage.getItem("paypal_order_id");
         const paypalPlan = localStorage.getItem("paypal_plan");
 
-        console.log("PayPal return detected - OrderID:", paypalOrderId, "Plan:", paypalPlan);
+        console.log("PayPal return detected - Token:", paypalToken, "OrderID:", paypalOrderId, "Plan:", paypalPlan);
 
-        if (paypalOrderId && paypalPlan) {
+        if (paypalToken && paypalOrderId && paypalPlan) {
           // Confirm PayPal payment
           try {
             console.log("Calling confirm-paypal endpoint with:", { orderId: paypalOrderId, plan: paypalPlan });
