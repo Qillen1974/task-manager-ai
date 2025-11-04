@@ -15,6 +15,7 @@ import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
 import { getPendingTaskCount } from "@/lib/utils";
+import { canCreateRecurringTask } from "@/lib/projectLimits";
 
 // Helper function to recursively find a project in the hierarchy
 function findProjectInTree(projects: Project[], projectId: string): Project | undefined {
@@ -167,6 +168,16 @@ export default function Home() {
 
   const pendingTaskCount = useMemo(() => getPendingTaskCount(tasks), [tasks]);
 
+  // Count recurring tasks and check if user can create more
+  const recurringTaskCount = useMemo(() => {
+    return tasks.filter(t => t.isRecurring && !t.parentTaskId).length;
+  }, [tasks]);
+
+  const canCreateRecurringTasks = useMemo(() => {
+    const result = canCreateRecurringTask(userPlan, recurringTaskCount);
+    return result.allowed;
+  }, [userPlan, recurringTaskCount]);
+
   // Filter tasks based on dashboard project filter
   const filteredTasksForDashboard = useMemo(() => {
     if (!dashboardProjectFilter) {
@@ -190,6 +201,11 @@ export default function Home() {
         resourceCount: task.resourceCount,
         manhours: task.manhours,
         dependsOnTaskId: task.dependsOnTaskId,
+        isRecurring: task.isRecurring,
+        recurringPattern: task.recurringPattern,
+        recurringConfig: task.recurringConfig,
+        recurringStartDate: task.recurringStartDate,
+        recurringEndDate: task.recurringEndDate,
       });
 
       if (response.success && response.data) {
@@ -216,6 +232,11 @@ export default function Home() {
         resourceCount: updatedTask.resourceCount,
         manhours: updatedTask.manhours,
         dependsOnTaskId: updatedTask.dependsOnTaskId,
+        isRecurring: updatedTask.isRecurring,
+        recurringPattern: updatedTask.recurringPattern,
+        recurringConfig: updatedTask.recurringConfig,
+        recurringStartDate: updatedTask.recurringStartDate,
+        recurringEndDate: updatedTask.recurringEndDate,
       });
 
       if (response.success && response.data) {
@@ -718,6 +739,7 @@ export default function Home() {
               defaultProjectId={defaultProjectId}
               activeProjectId={activeProjectId}
               childProjects={childProjects}
+              canCreateRecurringTasks={canCreateRecurringTasks}
               onClose={() => {
                 setShowTaskForm(false);
                 setEditingTask(undefined);
