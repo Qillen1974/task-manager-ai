@@ -248,12 +248,16 @@ export async function countPendingGenerations(): Promise<number> {
       nextGenerationDate: {
         lte: now,
       },
-      recurringEndDate: {
-        or: [
-          { gt: now }, // End date in future
-          { equals: null }, // No end date
-        ],
-      },
+      OR: [
+        {
+          recurringEndDate: {
+            gt: now, // End date in future
+          },
+        },
+        {
+          recurringEndDate: null, // No end date
+        },
+      ],
     },
   });
 
