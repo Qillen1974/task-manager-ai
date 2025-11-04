@@ -135,8 +135,9 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header - Sticky */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
           <button
             onClick={onClose}
@@ -146,8 +147,10 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
           </button>
         </div>
 
-        {/* User Profile Section */}
-        <div className="space-y-6">
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto flex-1 p-6">
+          {/* User Profile Section */}
+          <div className="space-y-6">
           {/* User Info */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
@@ -301,14 +304,15 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
             </button>
           </div>
 
-          {/* Close Button */}
-          <div className="pt-4 border-t">
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
-            >
-              Close
-            </button>
+            {/* Close Button */}
+            <div className="pt-4 border-t">
+              <button
+                onClick={onClose}
+                className="w-full bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition font-medium"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
