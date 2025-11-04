@@ -20,8 +20,10 @@ export const metadata: Metadata = {
   viewport: "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes",
 };
 
-// Initialize recurring task scheduler on server startup
-if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULER === 'true') {
+// Initialize recurring task scheduler on server startup (not during build)
+// Skip scheduler during Next.js build phase to avoid DATABASE_URL errors
+if ((process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULER === 'true') &&
+    process.env.NEXT_PHASE !== 'phase-production-build') {
   startRecurringTaskScheduler();
 }
 

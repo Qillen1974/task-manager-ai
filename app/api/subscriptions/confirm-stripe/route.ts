@@ -3,11 +3,21 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
-import { success, handleApiError } from "@/lib/apiResponse";
+import { success, error, handleApiError } from "@/lib/apiResponse";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-04-10",
-});
+// Lazy initialize Stripe client
+let stripe: Stripe | null = null;
+function getStripeClient() {
+  if (!stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+    }
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-04-10",
+    });
+  }
+  return stripe;
+}
 
 interface ConfirmRequest {
   paymentIntentId: string;
@@ -25,49 +35,36 @@ export async function POST(request: NextRequest) {
     const token = getTokenFromHeader(authHeader);
 
     if (!token) {
-      return {
-        success: false,
-        error: { message: "Unauthorized", code: "UNAUTHORIZED" }
-      };
+      return error("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const decoded = verifyToken(token, "access");
     if (!decoded) {
-      return {
-        success: false,
-        error: { message: "Invalid token", code: "INVALID_TOKEN" }
-      };
+      return error("Invalid token", 401, "INVALID_TOKEN");
     }
 
     const userId = decoded.userId;
     const { paymentIntentId, plan } = (await request.json()) as ConfirmRequest;
 
     if (!paymentIntentId || !plan) {
-      return {
-        success: false,
-        error: { message: "Missing required fields", code: "MISSING_FIELDS" }
-      };
+      return error("Missing required fields", 400, "MISSING_FIELDS");
     }
 
     // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const stripeClient = getStripeClient();
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status !== "succeeded") {
-      return {
-        success: false,
-        error: {
-          message: `Payment not completed. Status: ${paymentIntent.status}`,
-          code: "PAYMENT_NOT_COMPLETED"
-        }
-      };
+      return error(
+        `Payment not completed. Status: ${paymentIntent.status}`,
+        400,
+        "PAYMENT_NOT_COMPLETED"
+      );
     }
 
     // Verify the payment belongs to this user
     if (paymentIntent.metadata?.userId !== userId) {
-      return {
-        success: false,
-        error: { message: "Payment does not match user", code: "USER_MISMATCH" }
-      };
+      return error("Payment does not match user", 403, "USER_MISMATCH");
     }
 
     // Get user
@@ -77,10 +74,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return {
-        success: false,
-        error: { message: "User not found", code: "USER_NOT_FOUND" }
-      };
+      return error("User not found", 404, "USER_NOT_FOUND");
     }
 
     // Determine plan limits
