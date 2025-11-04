@@ -5,7 +5,7 @@ import { SubscriptionPlan } from "@prisma/client";
  */
 export const PROJECT_LIMITS = {
   FREE: {
-    maxProjects: 3,
+    maxProjects: 10,
     maxProjectNestingLevel: 0, // No subprojects
     maxSubprojectsPerProject: 0,
     description: "Single-level projects only",

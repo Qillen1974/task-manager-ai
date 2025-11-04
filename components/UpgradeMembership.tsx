@@ -31,12 +31,12 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
     price: 0,
     description: "Perfect for getting started",
     features: [
-      "3 Projects",
+      "10 Projects",
       "50 Tasks",
       "Auto-prioritization",
       "Email support",
     ],
-    projectLimit: 3,
+    projectLimit: 10,
     taskLimit: 50,
   },
   PRO: {
@@ -327,37 +327,19 @@ export default function UpgradeMembership({
 
                   <div className="space-y-4">
                     <div className="text-sm font-semibold text-gray-900 mb-3">
-                      Limits:
+                      What's Included:
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="font-semibold">{plan.projectLimit}</span>
-                      <span className="ml-2">
-                        Project{plan.projectLimit !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="font-semibold">{plan.taskLimit}</span>
-                      <span className="ml-2">
-                        Task{plan.taskLimit !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-200 mt-4">
-                      <div className="text-sm font-semibold text-gray-900 mb-3">
-                        Features:
-                      </div>
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, index) => (
-                          <li
-                            key={index}
-                            className="flex items-center text-gray-700 text-sm"
-                          >
-                            <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <ul className="space-y-2">
+                      {plan.features.map((feature, index) => (
+                        <li
+                          key={index}
+                          className="flex items-center text-gray-700 text-sm"
+                        >
+                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </div>
