@@ -113,11 +113,11 @@ export default function UpgradeMembership({
     if (isDowngrade) {
       // Validate downgrade by calling backend
       setValidatingDowngrade(true);
-      setError(null);
       try {
         const token = localStorage.getItem("accessToken");
         if (!token) {
           setError("Please log in to change your plan");
+          setValidatingDowngrade(false);
           return;
         }
 
@@ -134,21 +134,27 @@ export default function UpgradeMembership({
         if (!response.data.data.allowed) {
           setError(response.data.data.message);
           setShowPaymentForm(false);
+          setValidatingDowngrade(false);
           return;
         }
+
+        // Validation passed, proceed with upgrade
+        setError(null);
+        setSelectedPlan(plan);
+        setShowPaymentForm(true);
+        setValidatingDowngrade(false);
       } catch (err: any) {
         console.error("Downgrade validation error:", err);
         setError(err.response?.data?.error?.message || "Failed to validate downgrade");
         setShowPaymentForm(false);
-        return;
-      } finally {
         setValidatingDowngrade(false);
       }
+    } else {
+      // Upgrade (not downgrade) - proceed directly
+      setError(null);
+      setSelectedPlan(plan);
+      setShowPaymentForm(true);
     }
-
-    setSelectedPlan(plan);
-    setShowPaymentForm(true);
-    setError(null);
   };
 
   const handleStripePayment = async () => {
