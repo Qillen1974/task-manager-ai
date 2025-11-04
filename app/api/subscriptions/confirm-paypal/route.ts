@@ -110,9 +110,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if order is approved or created (CREATED means user approved on PayPal)
+    // Check if order is approved
     console.log("PayPal order status:", orderData.status);
-    if (orderData.status !== "APPROVED" && orderData.status !== "CREATED") {
+    if (orderData.status === "CREATED") {
+      console.log("Order still in CREATED status - user may not have approved on PayPal yet");
+      return NextResponse.json(
+        { success: false, error: { message: "Payment not yet approved. Please approve the payment on PayPal.", code: "PAYMENT_PENDING_APPROVAL" } },
+        { status: 400 }
+      );
+    }
+
+    if (orderData.status !== "APPROVED") {
       console.error("PayPal order not in valid status. Status:", orderData.status);
       return NextResponse.json(
         { success: false, error: { message: `Payment status invalid. Status: ${orderData.status}`, code: "PAYMENT_INVALID_STATUS" } },

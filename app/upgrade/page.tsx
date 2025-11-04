@@ -39,7 +39,7 @@ export default function UpgradePage() {
         console.log("PayPal return detected - Token:", paypalToken, "OrderID:", paypalOrderId, "Plan:", paypalPlan);
 
         if (paypalToken && paypalOrderId && paypalPlan) {
-          // Confirm PayPal payment
+          // User has returned from PayPal - try to confirm payment
           try {
             console.log("=== PayPal Return Detected ===");
             console.log("PayPal Token:", paypalToken);
@@ -65,6 +65,9 @@ export default function UpgradePage() {
               localStorage.removeItem("paypal_plan");
               localStorage.removeItem("paypal_billing_cycle");
 
+              // Clear URL query parameter
+              window.history.replaceState({}, document.title, "/upgrade");
+
               // Update subscription
               setSubscription(confirmResponse.data.data.subscription);
               setLoading(false);
@@ -73,21 +76,32 @@ export default function UpgradePage() {
               router.push("/settings?tab=membership&status=upgraded");
               return;
             } else {
-              console.error("Confirm-PayPal returned false success");
-              // Clear localStorage on failure too to prevent repeated attempts
-              localStorage.removeItem("paypal_order_id");
-              localStorage.removeItem("paypal_plan");
-              localStorage.removeItem("paypal_billing_cycle");
+              console.error("Confirm-PayPal response not successful:", confirmResponse.data.error);
+              // Payment not yet approved or other issue - clear query param and show current state
+              window.history.replaceState({}, document.title, "/upgrade");
+
+              // Only clear localStorage if explicitly failed, not if pending
+              if (confirmResponse.data.error?.code !== "PAYMENT_PENDING_APPROVAL") {
+                localStorage.removeItem("paypal_order_id");
+                localStorage.removeItem("paypal_plan");
+                localStorage.removeItem("paypal_billing_cycle");
+              }
             }
           } catch (err: any) {
             console.error("Failed to confirm PayPal payment:", err);
             console.error("Error response data:", JSON.stringify(err.response?.data, null, 2));
             console.error("Error status:", err.response?.status);
-            console.error("Full error:", JSON.stringify(err, null, 2));
-            // Clear localStorage on error to prevent repeated attempts
-            localStorage.removeItem("paypal_order_id");
-            localStorage.removeItem("paypal_plan");
-            localStorage.removeItem("paypal_billing_cycle");
+
+            // Clear URL query parameter
+            window.history.replaceState({}, document.title, "/upgrade");
+
+            // Only clear localStorage on network/other errors, not on validation errors
+            const errorCode = err.response?.data?.error?.code;
+            if (errorCode !== "PAYMENT_PENDING_APPROVAL") {
+              localStorage.removeItem("paypal_order_id");
+              localStorage.removeItem("paypal_plan");
+              localStorage.removeItem("paypal_billing_cycle");
+            }
             // Continue to fetch current subscription on error
           }
         } else {
