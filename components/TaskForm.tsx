@@ -49,17 +49,51 @@ export function TaskForm({
   const [manhours, setManhours] = useState<number | undefined>(editingTask?.manhours || undefined);
   const [dependsOnTaskId, setDependsOnTaskId] = useState<string | undefined>(editingTask?.dependsOnTaskId || undefined);
 
-  // Recurring task fields
+  // Recurring task fields - Initialize from editingTask recurringConfig if available
   const [isRecurring, setIsRecurring] = useState(editingTask?.isRecurring || false);
+
+  // Parse recurringConfig from editingTask if available
+  const parsedRecurringConfig = editingTask?.recurringConfig
+    ? (() => {
+        try {
+          return JSON.parse(editingTask.recurringConfig);
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
   const [recurringPattern, setRecurringPattern] = useState<RecurringPattern>(
-    (editingTask?.recurringPattern as RecurringPattern) || "DAILY"
+    (parsedRecurringConfig?.pattern as RecurringPattern) ||
+    (editingTask?.recurringPattern as RecurringPattern) ||
+    "DAILY"
   );
-  const [recurringInterval, setRecurringInterval] = useState<number>(1);
-  const [recurringDaysOfWeek, setRecurringDaysOfWeek] = useState<number[]>([]);
-  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState<number>(1);
-  const [recurringStartDate, setRecurringStartDate] = useState(startDate);
-  const [recurringEndDate, setRecurringEndDate] = useState("");
-  const [showRecurringEndDate, setShowRecurringEndDate] = useState(false);
+  const [recurringInterval, setRecurringInterval] = useState<number>(
+    parsedRecurringConfig?.interval || 1
+  );
+  const [recurringDaysOfWeek, setRecurringDaysOfWeek] = useState<number[]>(
+    parsedRecurringConfig?.daysOfWeek || []
+  );
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState<number>(
+    parsedRecurringConfig?.dayOfMonth || 1
+  );
+  const [recurringStartDate, setRecurringStartDate] = useState(
+    editingTask?.recurringStartDate
+      ? (editingTask.recurringStartDate.includes('T')
+          ? editingTask.recurringStartDate.split('T')[0]
+          : editingTask.recurringStartDate)
+      : startDate
+  );
+  const [recurringEndDate, setRecurringEndDate] = useState(
+    editingTask?.recurringEndDate
+      ? (editingTask.recurringEndDate.includes('T')
+          ? editingTask.recurringEndDate.split('T')[0]
+          : editingTask.recurringEndDate)
+      : ""
+  );
+  const [showRecurringEndDate, setShowRecurringEndDate] = useState(
+    !!editingTask?.recurringEndDate
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
