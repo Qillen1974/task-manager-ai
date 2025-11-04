@@ -15,7 +15,7 @@ import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
 import { getPendingTaskCount, getAutoPriority } from "@/lib/utils";
-import { canCreateRecurringTask } from "@/lib/projectLimits";
+import { canCreateRecurringTask, canCreateRootProject, TASK_LIMITS } from "@/lib/projectLimits";
 
 // Helper function to recursively find a project in the hierarchy
 function findProjectInTree(projects: Project[], projectId: string): Project | undefined {
@@ -253,6 +253,13 @@ export default function Home() {
   // Task operations
   const handleAddTask = async (task: Task) => {
     try {
+      // Check task limit for FREE users
+      const taskLimit = TASK_LIMITS[userPlan];
+      if (taskLimit.maxTasks !== -1 && tasks.length >= taskLimit.maxTasks) {
+        alert(`You have reached your task limit (${taskLimit.maxTasks}) on the ${userPlan} plan. Upgrade to PRO or ENTERPRISE to create more tasks.`);
+        return;
+      }
+
       const response = await api.createTask({
         title: task.title,
         projectId: task.projectId,
@@ -385,6 +392,15 @@ export default function Home() {
   // Project operations (hierarchical)
   const handleCreateProject = async (data: ProjectFormData) => {
     try {
+      // Check if user is trying to create a root project (no parentProjectId)
+      if (!data.parentProjectId) {
+        const canCreate = canCreateRootProject(userPlan, rootProjects.length);
+        if (!canCreate.allowed) {
+          alert(`${canCreate.message}`);
+          return;
+        }
+      }
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
@@ -738,6 +754,7 @@ export default function Home() {
                     project={activeProject}
                     tasks={tasks.filter((t) => t.projectId === activeProjectId)}
                     onTaskClick={handleEditTask}
+                    userPlan={userPlan}
                   />
 
               {/* Tasks for this project */}

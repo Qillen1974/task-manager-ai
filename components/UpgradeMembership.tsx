@@ -75,12 +75,25 @@ export default function UpgradeMembership({
   onUpgradeSuccess,
 }: UpgradeMembershipProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal">(
     "stripe"
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+
+  // Calculate price based on billing cycle
+  const getPrice = (basePriceMonthly: number) => {
+    if (billingCycle === "annual") {
+      // Apply discount: PRO gets 20% discount, ENTERPRISE gets 17% discount
+      const discountPercent = selectedPlan === "PRO" ? 20 : selectedPlan === "ENTERPRISE" ? 17 : 0;
+      const annualPrice = basePriceMonthly * 12;
+      const discount = annualPrice * (discountPercent / 100);
+      return annualPrice - discount;
+    }
+    return basePriceMonthly;
+  };
 
   const handleUpgradeClick = (plan: string) => {
     if (plan === currentSubscription.plan) {
@@ -106,7 +119,8 @@ export default function UpgradeMembership({
       }
 
       const planPrice = PLAN_DETAILS[selectedPlan].price;
-      const amountInCents = Math.round(planPrice * 100);
+      const finalPrice = getPrice(planPrice);
+      const amountInCents = Math.round(finalPrice * 100);
 
       // Create payment intent
       const response = await axios.post(
@@ -114,6 +128,7 @@ export default function UpgradeMembership({
         {
           plan: selectedPlan,
           amount: amountInCents,
+          billingCycle: billingCycle,
         },
         {
           headers: {
@@ -130,9 +145,10 @@ export default function UpgradeMembership({
         );
         sessionStorage.setItem("stripe_plan", selectedPlan);
         sessionStorage.setItem("stripe_client_secret", response.data.data.clientSecret);
+        sessionStorage.setItem("stripe_billing_cycle", billingCycle);
 
         // Redirect to Stripe payment form
-        window.location.href = `/checkout/stripe?clientSecret=${response.data.data.clientSecret}&plan=${selectedPlan}`;
+        window.location.href = `/checkout/stripe?clientSecret=${response.data.data.clientSecret}&plan=${selectedPlan}&billingCycle=${billingCycle}`;
       } else {
         setError(
           response.data.error?.message || "Failed to create payment intent"
@@ -159,7 +175,8 @@ export default function UpgradeMembership({
       }
 
       const planPrice = PLAN_DETAILS[selectedPlan].price;
-      const amountStr = planPrice.toFixed(2);
+      const finalPrice = getPrice(planPrice);
+      const amountStr = finalPrice.toFixed(2);
 
       // Create PayPal order
       const response = await axios.post(
@@ -167,6 +184,7 @@ export default function UpgradeMembership({
         {
           plan: selectedPlan,
           amount: amountStr,
+          billingCycle: billingCycle,
         },
         {
           headers: {
@@ -179,6 +197,7 @@ export default function UpgradeMembership({
         // Store the order ID for confirmation
         sessionStorage.setItem("paypal_order_id", response.data.data.orderId);
         sessionStorage.setItem("paypal_plan", selectedPlan);
+        sessionStorage.setItem("paypal_billing_cycle", billingCycle);
 
         // Redirect to PayPal approval URL
         if (response.data.data.approvalLink) {
@@ -205,9 +224,40 @@ export default function UpgradeMembership({
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Choose Your Plan
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-gray-600 mb-8">
             Upgrade to unlock more projects, tasks, and features
           </p>
+
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-6 py-3 rounded-lg font-semibold transition ${
+                billingCycle === "monthly"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              Monthly Billing
+            </button>
+            <button
+              onClick={() => setBillingCycle("annual")}
+              className={`px-6 py-3 rounded-lg font-semibold transition relative ${
+                billingCycle === "annual"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              Annual Billing
+              <span className={`ml-2 inline-block px-2 py-1 text-xs font-semibold rounded ${
+                billingCycle === "annual"
+                  ? "bg-blue-500 text-blue-100"
+                  : "bg-green-100 text-green-700"
+              }`}>
+                Save up to 20%
+              </span>
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -248,9 +298,17 @@ export default function UpgradeMembership({
 
                   <div className="mb-6">
                     <span className="text-4xl font-bold text-gray-900">
-                      ${plan.price}
+                      ${getPrice(plan.price).toFixed(2)}
                     </span>
-                    <span className="text-gray-600 ml-2">/month</span>
+                    <span className="text-gray-600 ml-2">
+                      {billingCycle === "annual" ? "/year" : "/month"}
+                    </span>
+                    {billingCycle === "annual" && plan.price > 0 && (
+                      <div className="text-sm text-green-600 mt-2">
+                        {planKey === "PRO" && "Save $14.40/year"}
+                        {planKey === "ENTERPRISE" && "Save $20.04/year"}
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -316,9 +374,18 @@ export default function UpgradeMembership({
                 Upgrading from <strong>{currentSubscription.plan}</strong> to{" "}
                 <strong>{selectedPlan}</strong>
               </p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
-                ${PLAN_DETAILS[selectedPlan].price.toFixed(2)}/month
+              <p className="text-gray-700 mt-1 text-sm">
+                Billing cycle: <strong>{billingCycle === "annual" ? "Annual" : "Monthly"}</strong>
               </p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                ${getPrice(PLAN_DETAILS[selectedPlan].price).toFixed(2)}/{billingCycle === "annual" ? "year" : "month"}
+              </p>
+              {billingCycle === "annual" && selectedPlan !== "FREE" && (
+                <p className="text-sm text-green-600 mt-2">
+                  {selectedPlan === "PRO" && "You save $14.40 per year!"}
+                  {selectedPlan === "ENTERPRISE" && "You save $20.04 per year!"}
+                </p>
+              )}
             </div>
 
             <div className="mb-6">

@@ -86,7 +86,7 @@ model Subscription {
   maxSubprojectsPerProject Int @default(0) // FREE: 0, PRO: unlimited, ENTERPRISE: unlimited
 
   // Recurring task limits
-  recurringTaskLimit Int @default(0)       // FREE: 0 (disabled), PRO: 5, ENTERPRISE: unlimited
+  recurringTaskLimit Int @default(0)       // FREE: 0 (disabled), PRO: 10, ENTERPRISE: unlimited
 
   // Payment tracking
   paymentMethod     String?              // "stripe" or "paypal"

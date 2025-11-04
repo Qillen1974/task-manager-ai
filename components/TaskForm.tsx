@@ -453,7 +453,7 @@ export function TaskForm({
           </div>
 
           {/* Recurring Task Section */}
-          {canCreateRecurringTasks && (
+          {canCreateRecurringTasks ? (
             <div className="border-t pt-4 mt-4">
               <div className="flex items-center gap-2 mb-4">
                 <input
@@ -607,6 +607,19 @@ export function TaskForm({
                   )}
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="border-t pt-4 mt-4 bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
+              <p className="text-sm text-amber-800">
+                <strong>Recurring tasks</strong> are only available on PRO and ENTERPRISE plans.{" "}
+                <button
+                  type="button"
+                  onClick={() => window.location.href = "/upgrade"}
+                  className="font-semibold text-amber-900 hover:text-amber-600 underline"
+                >
+                  Upgrade now
+                </button>
+              </p>
             </div>
           )}
 

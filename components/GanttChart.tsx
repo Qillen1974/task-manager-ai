@@ -9,6 +9,7 @@ interface GanttChartProps {
   project: Project;
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
+  userPlan?: "FREE" | "PRO" | "ENTERPRISE";
 }
 
 interface GanttTask {
@@ -19,11 +20,18 @@ interface GanttTask {
   percentComplete: number;
 }
 
-export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
+export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: GanttChartProps) {
   const ganttChartRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const canExport = userPlan !== "FREE";
+
   const handleExportPNG = async () => {
+    if (!canExport) {
+      alert("PDF and PNG exports are only available on PRO and ENTERPRISE plans. Upgrade to unlock this feature.");
+      return;
+    }
+
     if (!ganttChartRef.current) return;
 
     setIsExporting(true);
@@ -52,6 +60,11 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
   };
 
   const handleExportPDF = async () => {
+    if (!canExport) {
+      alert("PDF and PNG exports are only available on PRO and ENTERPRISE plans. Upgrade to unlock this feature.");
+      return;
+    }
+
     setIsExporting(true);
     try {
       const pdf = new jsPDF({
@@ -430,9 +443,13 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
         <div className="flex gap-2">
           <button
             onClick={handleExportPNG}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-medium text-sm"
-            title="Export Gantt Chart as PNG"
+            disabled={isExporting || !canExport}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
+              canExport
+                ? "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400"
+                : "bg-gray-200 text-gray-600 cursor-not-allowed"
+            }`}
+            title={canExport ? "Export Gantt Chart as PNG" : "Available on PRO and ENTERPRISE plans"}
           >
             {isExporting ? (
               <>
@@ -443,6 +460,11 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
               </>
             ) : (
               <>
+                {!canExport && (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 7 15.5 7 14 7.67 14 8.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 7 8.5 7 7 7.67 7 8.5 7.67 10 8.5 10zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                  </svg>
+                )}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8l-6-4m6 4l6-4" />
                 </svg>
@@ -452,9 +474,13 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
           </button>
           <button
             onClick={handleExportPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition font-medium text-sm"
-            title="Export as PDF with task descriptions"
+            disabled={isExporting || !canExport}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
+              canExport
+                ? "bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400"
+                : "bg-gray-200 text-gray-600 cursor-not-allowed"
+            }`}
+            title={canExport ? "Export as PDF with task descriptions" : "Available on PRO and ENTERPRISE plans"}
           >
             {isExporting ? (
               <>
@@ -465,6 +491,11 @@ export function GanttChart({ project, tasks, onTaskClick }: GanttChartProps) {
               </>
             ) : (
               <>
+                {!canExport && (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 7 15.5 7 14 7.67 14 8.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 7 8.5 7 7 7.67 7 8.5 7.67 10 8.5 10zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                  </svg>
+                )}
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8.5 13.5a.5.5 0 11-1 0 .5.5 0 011 0z" />
                   <path fillRule="evenodd" d="M3 4a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm11 0H5v12h10V4z" />

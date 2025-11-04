@@ -45,8 +45,8 @@ export const RECURRING_TASK_LIMITS = {
     description: "Recurring tasks not available",
   },
   PRO: {
-    maxRecurringTasks: 5,
-    description: "Up to 5 recurring task templates",
+    maxRecurringTasks: 10,
+    description: "Up to 10 recurring task templates",
   },
   ENTERPRISE: {
     maxRecurringTasks: -1, // Unlimited
