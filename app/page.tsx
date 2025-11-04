@@ -576,7 +576,7 @@ export default function Home() {
         onSettingsClick={() => setShowUserSettings(true)}
       />
 
-      <div className="flex gap-6 w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex gap-3 sm:gap-6 w-full mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -593,8 +593,8 @@ export default function Home() {
         </button>
 
         {/* Left Sidebar - Project Tree Navigation */}
-        <aside className={`transition-all duration-300 ease-in-out ${sidebarOpen ? "w-64" : "w-0"} flex-shrink-0 overflow-hidden`}>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sticky top-8">
+        <aside className={`transition-all duration-300 ease-in-out ${sidebarOpen ? "w-56 sm:w-64" : "w-0"} flex-shrink-0 overflow-hidden`}>
+          <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 sticky top-4 sm:top-8 max-h-[calc(100vh-5rem)] overflow-y-auto">
             <button
               onClick={() => {
                 setEditingProject(undefined);
@@ -643,11 +643,11 @@ export default function Home() {
         <main className="flex-1">
           {/* Dashboard View */}
           {activeView === "dashboard" && (
-            <div className="space-y-8">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 sm:space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Eisenhower Matrix</h1>
-                  <p className="text-gray-600 mt-2">Prioritize your tasks based on urgency and importance</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Eisenhower Matrix</h1>
+                  <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Prioritize your tasks based on urgency and importance</p>
                 </div>
                 <button
                   onClick={() => {
@@ -655,19 +655,19 @@ export default function Home() {
                     setDefaultProjectId(projects[0]?.id || "");
                     setShowTaskForm(true);
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2"
+                  className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 whitespace-nowrap text-sm sm:text-base"
                 >
                   ➕ New Task
                 </button>
               </div>
 
               {/* Project Filter */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700">Filter by Project:</label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Filter by Project:</label>
                 <select
                   value={dashboardProjectFilter}
                   onChange={(e) => setDashboardProjectFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  className="w-full sm:w-auto px-2 sm:px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 >
                   <option value="">All Projects</option>
                   {rootProjects.map((project) => (

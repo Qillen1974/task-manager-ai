@@ -17,6 +17,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "TaskQuadrant - Professional Task Management",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
+  viewport: "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes",
 };
 
 // Initialize recurring task scheduler on server startup
