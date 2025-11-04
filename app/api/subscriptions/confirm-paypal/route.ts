@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Subscription updated successfully:", updatedSubscription);
 
-    return NextResponse.json(
+    const successResponse = NextResponse.json(
       {
         success: true,
         data: {
@@ -219,14 +219,16 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
+    return successResponse;
   } catch (err: any) {
     console.error("Error in confirm-paypal endpoint:", err);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         success: false,
         error: { message: err.message || "Failed to confirm PayPal payment", code: "INTERNAL_ERROR" },
       },
       { status: 500 }
     );
+    return errorResponse;
   }
 }
