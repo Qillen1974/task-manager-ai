@@ -3,9 +3,8 @@ import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 
-// Use PAYPAL_SANDBOX env var to control PayPal environment
-// Set PAYPAL_SANDBOX=false in production to use live API
-const isPayPalSandbox = process.env.PAYPAL_SANDBOX !== "false";
+// Use live PayPal API (set to false for production)
+const isPayPalSandbox = false; // Set to true for sandbox testing, false for live
 const PAYPAL_BASE_URL = isPayPalSandbox
   ? "https://api.sandbox.paypal.com"
   : "https://api.paypal.com";
