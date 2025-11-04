@@ -133,7 +133,8 @@ export async function POST(request: NextRequest) {
         brand_name: "TaskQuadrant",
         return_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/upgrade`,
-        user_action: "PAY_NOW",
+        user_action: "CONTINUE",
+        locale: "en-US",
       },
     };
 
