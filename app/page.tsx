@@ -43,6 +43,20 @@ function flattenProjectTree(projects: Project[]): Project[] {
   return flat;
 }
 
+// Helper function to get all subproject IDs (including the project itself) recursively
+function getProjectAndSubprojectIds(projects: Project[], projectId: string): string[] {
+  const ids: string[] = [projectId];
+  const project = findProjectInTree(projects, projectId);
+
+  if (project && (project as any).children && (project as any).children.length > 0) {
+    for (const child of (project as any).children) {
+      ids.push(...getProjectAndSubprojectIds([child], child.id));
+    }
+  }
+
+  return ids;
+}
+
 export default function Home() {
   const api = useApi();
   const [hydrated, setHydrated] = useState(false);
@@ -178,13 +192,16 @@ export default function Home() {
     return result.allowed;
   }, [userPlan, recurringTaskCount]);
 
-  // Filter tasks based on dashboard project filter
+  // Filter tasks based on dashboard project filter (including subprojects)
   const filteredTasksForDashboard = useMemo(() => {
     if (!dashboardProjectFilter) {
       return tasks; // Show all tasks
     }
-    return tasks.filter((t) => t.projectId === dashboardProjectFilter);
-  }, [tasks, dashboardProjectFilter]);
+    // Get all project IDs including subprojects
+    const projectIds = getProjectAndSubprojectIds(projects, dashboardProjectFilter);
+    // Filter tasks that belong to the selected project or any of its subprojects
+    return tasks.filter((t) => projectIds.includes(t.projectId));
+  }, [tasks, dashboardProjectFilter, projects]);
 
   // Task operations
   const handleAddTask = async (task: Task) => {
