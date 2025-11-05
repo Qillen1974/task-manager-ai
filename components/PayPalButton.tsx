@@ -31,10 +31,21 @@ export default function PayPalButton({
     // Load PayPal SDK if not already loaded
     if (!window.paypal) {
       const script = document.createElement("script");
-      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+      // Use live mode by default (no sandbox parameter) - SDK defaults to production
+      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
       script.async = true;
       script.onload = () => {
-        renderButton();
+        // Wait a moment for PayPal to fully initialize
+        setTimeout(() => {
+          if (window.paypal) {
+            renderButton();
+          } else {
+            onError("PayPal SDK failed to initialize");
+          }
+        }, 100);
+      };
+      script.onerror = () => {
+        onError("Failed to load PayPal SDK");
       };
       document.body.appendChild(script);
     } else {
@@ -48,7 +59,7 @@ export default function PayPalButton({
       }
       buttonRenderedRef.current = false;
     };
-  }, []);
+  }, [onError]);
 
   const renderButton = () => {
     if (buttonRenderedRef.current || !containerRef.current) return;

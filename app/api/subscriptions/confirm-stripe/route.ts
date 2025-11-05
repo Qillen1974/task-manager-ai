@@ -20,13 +20,13 @@ function getStripeClient() {
 }
 
 interface ConfirmRequest {
-  paymentIntentId: string;
+  subscriptionId: string;
   plan: "FREE" | "PRO" | "ENTERPRISE";
 }
 
 /**
  * POST /api/subscriptions/confirm-stripe
- * Confirm Stripe payment and update subscription
+ * Confirm Stripe subscription setup and update subscription
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -44,27 +44,28 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId;
-    const { paymentIntentId, plan } = (await request.json()) as ConfirmRequest;
+    const { subscriptionId, plan } = (await request.json()) as ConfirmRequest;
 
-    if (!paymentIntentId || !plan) {
+    if (!subscriptionId || !plan) {
       return error("Missing required fields", 400, "MISSING_FIELDS");
     }
 
-    // Retrieve payment intent from Stripe
+    // Retrieve subscription from Stripe
     const stripeClient = getStripeClient();
-    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
 
-    if (paymentIntent.status !== "succeeded") {
+    // Verify subscription is in a valid state (incomplete_expired is terminal state)
+    if (subscription.status === "incomplete_expired") {
       return error(
-        `Payment not completed. Status: ${paymentIntent.status}`,
+        "Subscription setup expired. Please try again.",
         400,
-        "PAYMENT_NOT_COMPLETED"
+        "SUBSCRIPTION_EXPIRED"
       );
     }
 
-    // Verify the payment belongs to this user
-    if (paymentIntent.metadata?.userId !== userId) {
-      return error("Payment does not match user", 403, "USER_MISMATCH");
+    // Verify the subscription belongs to this user
+    if (subscription.metadata?.userId !== userId) {
+      return error("Subscription does not match user", 403, "USER_MISMATCH");
     }
 
     // Get user
@@ -79,12 +80,23 @@ export async function POST(request: NextRequest) {
 
     // Determine plan limits
     const planLimits = {
-      FREE: { projectLimit: 3, taskLimit: 50 },
-      PRO: { projectLimit: 100, taskLimit: 500 },
+      FREE: { projectLimit: 10, taskLimit: 50 },
+      PRO: { projectLimit: 30, taskLimit: 200 },
       ENTERPRISE: { projectLimit: 999999, taskLimit: 999999 },
     };
 
     const limits = planLimits[plan];
+
+    // Get the current period start date from subscription
+    const currentPeriodStart = (subscription as any).current_period_start
+      ? new Date((subscription as any).current_period_start * 1000)
+      : new Date();
+
+    const lastPaymentId = subscription.latest_invoice
+      ? typeof subscription.latest_invoice === "string"
+        ? subscription.latest_invoice
+        : (subscription.latest_invoice as Stripe.Invoice).id
+      : null;
 
     // Update or create subscription
     const updatedSubscription = await db.subscription.upsert({
@@ -95,16 +107,20 @@ export async function POST(request: NextRequest) {
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "stripe",
-        lastPaymentId: paymentIntentId,
-        lastPaymentDate: new Date(),
+        stripeSubId: subscriptionId,
+        stripeCustomerId: subscription.customer as string,
+        lastPaymentId: lastPaymentId,
+        lastPaymentDate: currentPeriodStart,
       },
       update: {
         plan,
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "stripe",
-        lastPaymentId: paymentIntentId,
-        lastPaymentDate: new Date(),
+        stripeSubId: subscriptionId,
+        stripeCustomerId: subscription.customer as string,
+        lastPaymentId: lastPaymentId,
+        lastPaymentDate: currentPeriodStart,
       },
     });
 

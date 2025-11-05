@@ -22,12 +22,12 @@ function getStripeClient() {
 
 interface UpgradeRequest {
   plan: "FREE" | "PRO" | "ENTERPRISE";
-  amount: number; // Amount in cents
+  billingCycle: "monthly" | "annual";
 }
 
 /**
  * POST /api/subscriptions/upgrade-stripe
- * Create a Stripe payment intent for subscription upgrade
+ * Create a Stripe Subscription for recurring billing
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId;
-    const { plan, amount } = (await request.json()) as UpgradeRequest;
+    const { plan, billingCycle } = (await request.json()) as UpgradeRequest;
 
-    if (!plan || !amount || amount <= 0) {
-      return error("Invalid plan or amount", 400, "INVALID_INPUT");
+    if (!plan || !billingCycle) {
+      return error("Invalid plan or billing cycle", 400, "INVALID_INPUT");
     }
 
     // Get user details
@@ -89,26 +89,80 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create payment intent
-    const stripeClient = getStripeClient();
-    const paymentIntent = await stripeClient.paymentIntents.create({
-      amount, // Amount in cents
-      currency: "usd",
-      payment_method_types: ["card"],
-      metadata: {
-        userId,
-        userEmail: user.email,
-        plan,
-        subscriptionId: user.subscription?.id || "new",
+    // Get the appropriate Stripe Price ID based on plan and billing cycle
+    const priceIdMap: Record<string, Record<string, string>> = {
+      PRO: {
+        monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || "",
       },
-      description: `TaskQuadrant subscription upgrade to ${plan} plan for ${user.email}`,
-    });
+      ENTERPRISE: {
+        monthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "",
+      },
+    };
+
+    const priceId = priceIdMap[plan]?.[billingCycle];
+    if (!priceId) {
+      return error("Invalid plan or billing cycle configuration", 400, "INVALID_PRICE_ID");
+    }
+
+    const stripeClient = getStripeClient();
+
+    // Get or create a Stripe customer
+    let stripeCustomerId = user.subscription?.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripeClient.customers.create({
+        email: user.email,
+        name: user.name || undefined,
+        metadata: {
+          userId,
+        },
+      });
+      stripeCustomerId = customer.id;
+    }
+
+    // If user already has a subscription, update it. Otherwise, create a new one.
+    let subscription: Stripe.Subscription;
+    if (user.subscription?.stripeSubId) {
+      // Update existing subscription
+      subscription = await stripeClient.subscriptions.update(
+        user.subscription.stripeSubId,
+        {
+          items: [
+            {
+              id: (await stripeClient.subscriptions.retrieve(user.subscription.stripeSubId)).items
+                .data[0]?.id,
+              price: priceId,
+            },
+          ],
+          proration_behavior: "create_prorations",
+        }
+      );
+    } else {
+      // Create new subscription
+      subscription = await stripeClient.subscriptions.create({
+        customer: stripeCustomerId,
+        items: [{ price: priceId }],
+        metadata: {
+          userId,
+          plan,
+          billingCycle,
+        },
+        payment_settings: {
+          payment_method_types: ["card"],
+          save_default_payment_method: "on_subscription",
+        },
+      });
+    }
 
     return success({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      amount,
+      subscriptionId: subscription.id,
+      clientSecret: subscription.latest_invoice
+        ? (subscription.latest_invoice as Stripe.Invoice).client_secret
+        : null,
+      status: subscription.status,
       plan,
+      billingCycle,
     });
   });
 }

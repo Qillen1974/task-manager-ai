@@ -169,16 +169,11 @@ export default function UpgradeMembership({
         return;
       }
 
-      const planPrice = PLAN_DETAILS[selectedPlan].price;
-      const finalPrice = getPrice(planPrice);
-      const amountInCents = Math.round(finalPrice * 100);
-
-      // Create payment intent
+      // Create subscription
       const response = await axios.post(
         "/api/subscriptions/upgrade-stripe",
         {
           plan: selectedPlan,
-          amount: amountInCents,
           billingCycle: billingCycle,
         },
         {
@@ -189,13 +184,13 @@ export default function UpgradeMembership({
       );
 
       if (response.data.success) {
-        // Store the payment intent ID for confirmation
+        // Store the subscription details for confirmation
         sessionStorage.setItem(
-          "stripe_payment_intent_id",
-          response.data.data.paymentIntentId
+          "stripe_subscription_id",
+          response.data.data.subscriptionId
         );
         sessionStorage.setItem("stripe_plan", selectedPlan);
-        sessionStorage.setItem("stripe_client_secret", response.data.data.clientSecret);
+        sessionStorage.setItem("stripe_client_secret", response.data.data.clientSecret || "");
         sessionStorage.setItem("stripe_billing_cycle", billingCycle);
 
         // Redirect to Stripe payment form

@@ -47,22 +47,22 @@ function CheckoutForm({
         return;
       }
 
-      // Confirm the payment intent
-      const { paymentIntent, error: confirmError } =
-        await stripe.confirmCardPayment(clientSecret, {
+      // For subscriptions, use confirmCardSetup to set up the payment method
+      const { setupIntent, error: confirmError } =
+        await stripe.confirmCardSetup(clientSecret, {
           payment_method: {
             card: cardElement,
           },
         });
 
       if (confirmError) {
-        setError(confirmError.message || "Payment confirmation failed");
+        setError(confirmError.message || "Card setup failed");
         setLoading(false);
         return;
       }
 
-      if (paymentIntent?.status === "succeeded") {
-        // Payment successful, confirm with backend
+      if (setupIntent?.status === "succeeded") {
+        // Card setup successful, confirm with backend
         const token = localStorage.getItem("accessToken");
         if (!token) {
           setError("Authentication token not found");
@@ -70,10 +70,18 @@ function CheckoutForm({
           return;
         }
 
+        // Get subscription ID from sessionStorage
+        const subscriptionId = sessionStorage.getItem("stripe_subscription_id");
+        if (!subscriptionId) {
+          setError("Subscription ID not found");
+          setLoading(false);
+          return;
+        }
+
         const confirmResponse = await axios.post(
           "/api/subscriptions/confirm-stripe",
           {
-            paymentIntentId: paymentIntent.id,
+            subscriptionId: subscriptionId,
             plan,
           },
           {
@@ -85,6 +93,11 @@ function CheckoutForm({
 
         if (confirmResponse.data.success) {
           setSuccess(true);
+          // Clear sessionStorage
+          sessionStorage.removeItem("stripe_subscription_id");
+          sessionStorage.removeItem("stripe_plan");
+          sessionStorage.removeItem("stripe_client_secret");
+          sessionStorage.removeItem("stripe_billing_cycle");
           // Redirect to home page after 2 seconds
           setTimeout(() => {
             router.push("/");
@@ -95,10 +108,10 @@ function CheckoutForm({
               "Failed to confirm subscription upgrade"
           );
         }
-      } else if (paymentIntent?.status === "requires_action") {
-        setError("Payment requires additional action. Please complete the verification.");
+      } else if (setupIntent?.status === "requires_action") {
+        setError("Card setup requires additional action. Please complete the verification.");
       } else {
-        setError(`Payment failed with status: ${paymentIntent?.status}`);
+        setError(`Card setup failed with status: ${setupIntent?.status}`);
       }
     } catch (err: any) {
       setError(
