@@ -20,13 +20,14 @@ function getStripeClient() {
 }
 
 interface ConfirmRequest {
-  paymentIntentId: string;
+  setupIntentId: string;
+  paymentMethodId: string | object;
   plan: "FREE" | "PRO" | "ENTERPRISE";
 }
 
 /**
  * POST /api/subscriptions/confirm-stripe
- * Confirm payment and create recurring subscription
+ * Create recurring subscription with confirmed payment method
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -44,28 +45,28 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId;
-    const { paymentIntentId, plan } = (await request.json()) as ConfirmRequest;
+    const { setupIntentId, paymentMethodId, plan } = (await request.json()) as ConfirmRequest;
 
-    if (!paymentIntentId || !plan) {
+    if (!setupIntentId || !paymentMethodId || !plan) {
       return error("Missing required fields", 400, "MISSING_FIELDS");
     }
 
-    // Retrieve payment intent from Stripe
+    // Retrieve setup intent from Stripe
     const stripeClient = getStripeClient();
-    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    const setupIntent = await stripeClient.setupIntents.retrieve(setupIntentId);
 
-    // Verify payment succeeded
-    if (paymentIntent.status !== "succeeded") {
+    // Verify setup intent succeeded
+    if (setupIntent.status !== "succeeded") {
       return error(
-        `Payment not completed. Status: ${paymentIntent.status}`,
+        `Card setup not completed. Status: ${setupIntent.status}`,
         400,
-        "PAYMENT_NOT_COMPLETED"
+        "SETUP_NOT_COMPLETED"
       );
     }
 
-    // Verify the payment belongs to this user
-    if (paymentIntent.metadata?.userId !== userId) {
-      return error("Payment does not match user", 403, "USER_MISMATCH");
+    // Verify the setup intent belongs to this user
+    if (setupIntent.metadata?.userId !== userId) {
+      return error("Setup intent does not match user", 403, "USER_MISMATCH");
     }
 
     // Get user
@@ -78,13 +79,13 @@ export async function POST(request: NextRequest) {
       return error("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // Get the plan details from the payment intent metadata
-    const billingCycle = (paymentIntent.metadata?.billingCycle as "monthly" | "annual") || "monthly";
+    // Get the plan details from the setup intent metadata
+    const billingCycle = (setupIntent.metadata?.billingCycle as "monthly" | "annual") || "monthly";
 
-    // Get customer ID from payment intent
-    const customerId = paymentIntent.customer as string;
+    // Get customer ID from setup intent
+    const customerId = setupIntent.customer as string;
     if (!customerId) {
-      return error("No customer associated with payment", 400, "NO_CUSTOMER");
+      return error("No customer associated with setup", 400, "NO_CUSTOMER");
     }
 
     // Get the appropriate Stripe Price ID based on plan and billing cycle
@@ -104,32 +105,41 @@ export async function POST(request: NextRequest) {
       return error("Invalid plan or billing cycle configuration", 400, "INVALID_PRICE_ID");
     }
 
-    // Create Stripe subscription with the payment method from the payment intent
+    // Create Stripe subscription with the payment method from the setup intent
     let subscription: Stripe.Subscription | null = null;
     if (plan !== "FREE") {
-      const paymentMethodId = paymentIntent.payment_method as string;
+      const payMethodId = typeof paymentMethodId === "string" ? paymentMethodId : (paymentMethodId as any).id;
 
-      // First, attach the payment method to the customer
       try {
-        await stripeClient.paymentMethods.attach(paymentMethodId, {
+        subscription = await stripeClient.subscriptions.create({
           customer: customerId,
+          items: [{ price: priceId }],
+          metadata: {
+            userId,
+            plan,
+            billingCycle,
+          },
+          // Use the payment method from setup intent as default
+          default_payment_method: payMethodId,
         });
       } catch (err: any) {
-        // Payment method might already be attached, continue anyway
-        console.log("Payment method attachment note:", err.message);
-      }
+        // If subscription creation fails but one might already exist, try to find it
+        console.log("Subscription creation error, checking if already exists:", err.message);
 
-      subscription = await stripeClient.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceId }],
-        metadata: {
-          userId,
-          plan,
-          billingCycle,
-        },
-        // Use the attached payment method as default
-        default_payment_method: paymentMethodId,
-      });
+        // List subscriptions for this customer to see if one was created
+        const subscriptions = await stripeClient.subscriptions.list({
+          customer: customerId,
+          limit: 1,
+        });
+
+        if (subscriptions.data.length > 0) {
+          subscription = subscriptions.data[0];
+          console.log("Found existing subscription:", subscription.id);
+        } else {
+          // No subscription found, re-throw the error
+          throw err;
+        }
+      }
     }
 
     // Determine plan limits
@@ -152,7 +162,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: "stripe",
         stripeSubId: subscription?.id || null,
         stripeCustomerId: customerId,
-        lastPaymentId: paymentIntentId,
+        lastPaymentId: setupIntentId,
         lastPaymentDate: new Date(),
       },
       update: {
@@ -162,7 +172,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: "stripe",
         stripeSubId: subscription?.id || null,
         stripeCustomerId: customerId,
-        lastPaymentId: paymentIntentId,
+        lastPaymentId: setupIntentId,
         lastPaymentDate: new Date(),
       },
     });

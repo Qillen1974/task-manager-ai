@@ -144,28 +144,21 @@ export async function POST(request: NextRequest) {
       // This way we collect payment before creating recurring billing
     }
 
-    // Create a payment intent for the first payment
-    // After payment confirms, the confirm endpoint will create the subscription
-    const price = PLAN_DETAILS[plan].price;
-    const finalPrice = getPrice(price, billingCycle);
-    const amountInCents = Math.round(finalPrice * 100);
-
-    const paymentIntent = await stripeClient.paymentIntents.create({
+    // Create a SetupIntent to capture the payment method for subscription
+    // SetupIntent creates a reusable payment method for future charges
+    const setupIntent = await stripeClient.setupIntents.create({
       customer: stripeCustomerId,
-      amount: amountInCents,
-      currency: "usd",
       payment_method_types: ["card"],
       metadata: {
         userId,
         plan,
         billingCycle,
       },
-      description: `${plan} plan subscription (${billingCycle})`,
     });
 
     return success({
-      clientSecret: paymentIntent.client_secret,
-      status: paymentIntent.status,
+      clientSecret: setupIntent.client_secret,
+      status: setupIntent.status,
       plan,
       billingCycle,
     });

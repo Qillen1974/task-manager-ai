@@ -47,22 +47,22 @@ function CheckoutForm({
         return;
       }
 
-      // Confirm the payment for the first billing cycle
-      const { paymentIntent, error: confirmError } =
-        await stripe.confirmCardPayment(clientSecret, {
+      // Use SetupIntent to create a reusable payment method for the subscription
+      const { setupIntent, error: confirmError } =
+        await stripe.confirmCardSetup(clientSecret, {
           payment_method: {
             card: cardElement,
           },
         });
 
       if (confirmError) {
-        setError(confirmError.message || "Payment failed");
+        setError(confirmError.message || "Card setup failed");
         setLoading(false);
         return;
       }
 
-      if (paymentIntent?.status === "succeeded") {
-        // Payment successful, now create subscription via backend
+      if (setupIntent?.status === "succeeded") {
+        // Card setup successful, now create subscription via backend
         const token = localStorage.getItem("accessToken");
         if (!token) {
           setError("Authentication token not found");
@@ -73,7 +73,8 @@ function CheckoutForm({
         const confirmResponse = await axios.post(
           "/api/subscriptions/confirm-stripe",
           {
-            paymentIntentId: paymentIntent.id,
+            setupIntentId: setupIntent.id,
+            paymentMethodId: setupIntent.payment_method,
             plan,
           },
           {
@@ -96,13 +97,13 @@ function CheckoutForm({
         } else {
           setError(
             confirmResponse.data.error?.message ||
-              "Failed to create subscription after payment"
+              "Failed to create subscription after card setup"
           );
         }
-      } else if (paymentIntent?.status === "requires_action") {
-        setError("Payment requires additional action. Please complete the verification.");
+      } else if (setupIntent?.status === "requires_action") {
+        setError("Card setup requires additional action. Please complete the verification.");
       } else {
-        setError(`Payment failed with status: ${paymentIntent?.status}`);
+        setError(`Card setup failed with status: ${setupIntent?.status}`);
       }
     } catch (err: any) {
       setError(
