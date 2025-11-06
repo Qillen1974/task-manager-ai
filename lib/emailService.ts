@@ -25,10 +25,18 @@ function getTransporter() {
   }
 
   // Check for SMTP variables (supports both EMAIL_* and SMTP_* naming)
-  const smtpHost = process.env.smtp_host || process.env.EMAIL_HOST;
-  const smtpPort = process.env.smtp_port || process.env.EMAIL_PORT;
-  const smtpUser = process.env.smtp_user || process.env.EMAIL_USER;
-  const smtpPassword = process.env.smtp_password || process.env.EMAIL_PASSWORD;
+  const smtpHost = process.env.smtp_host || process.env.SMTP_HOST || process.env.EMAIL_HOST;
+  const smtpPort = process.env.smtp_port || process.env.SMTP_PORT || process.env.EMAIL_PORT;
+  const smtpUser = process.env.smtp_user || process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPassword = process.env.smtp_password || process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD;
+
+  // Debug logging
+  console.log("[Email] Debug - Checking SMTP variables:");
+  console.log("[Email] smtp_host:", process.env.smtp_host ? "SET" : "NOT SET");
+  console.log("[Email] SMTP_HOST:", process.env.SMTP_HOST ? "SET" : "NOT SET");
+  console.log("[Email] EMAIL_HOST:", process.env.EMAIL_HOST ? "SET" : "NOT SET");
+  console.log("[Email] Final smtpHost:", smtpHost);
+  console.log("[Email] Final smtpUser:", smtpUser);
 
   // If SMTP credentials are provided, use them
   if (smtpHost && smtpUser && smtpPassword) {
@@ -58,6 +66,7 @@ function getTransporter() {
     });
   } else {
     console.warn("[Email] No SMTP configuration found. Email sending will fail.");
+    console.warn("[Email] Available env variables:", Object.keys(process.env).filter(k => k.includes("SMTP") || k.includes("EMAIL")).join(", "));
     transporter = nodemailer.createTransport({
       host: "localhost",
       port: 587,
