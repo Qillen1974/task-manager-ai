@@ -24,21 +24,27 @@ function getTransporter() {
     return transporter;
   }
 
-  // If Gmail credentials are provided, use Gmail
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD && process.env.EMAIL_HOST === "smtp.gmail.com") {
-    console.log("[Email] Using Gmail SMTP");
+  // Check for SMTP variables (supports both EMAIL_* and SMTP_* naming)
+  const smtpHost = process.env.smtp_host || process.env.EMAIL_HOST;
+  const smtpPort = process.env.smtp_port || process.env.EMAIL_PORT;
+  const smtpUser = process.env.smtp_user || process.env.EMAIL_USER;
+  const smtpPassword = process.env.smtp_password || process.env.EMAIL_PASSWORD;
+
+  // If SMTP credentials are provided, use them
+  if (smtpHost && smtpUser && smtpPassword) {
+    console.log(`[Email] Using SMTP: ${smtpHost}:${smtpPort}`);
     transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
+      host: smtpHost,
+      port: parseInt(smtpPort || "587"),
+      secure: smtpPort === "465", // true for 465, false for other ports
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
+        user: smtpUser,
+        pass: smtpPassword,
       },
     });
   }
   // For development: Use Ethereal email (fake email service for testing)
-  else if (process.env.NODE_ENV === "development" && !process.env.EMAIL_HOST) {
+  else if (process.env.NODE_ENV === "development") {
     console.log("[Email] Using Ethereal Email for development");
     // You can create a test account at https://ethereal.email/create
     transporter = nodemailer.createTransport({
@@ -51,15 +57,10 @@ function getTransporter() {
       },
     });
   } else {
-    // Production: Use configured email service (SendGrid, Resend via SMTP, etc.)
+    console.warn("[Email] No SMTP configuration found. Email sending will fail.");
     transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || "587"),
-      secure: process.env.EMAIL_PORT === "465", // true for 465, false for other ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
+      host: "localhost",
+      port: 587,
     });
   }
 
@@ -83,7 +84,7 @@ export async function sendEmail(options: SendEmailOptions) {
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || "noreply@taskquadrant.com",
+      from: process.env.smtp_from || process.env.EMAIL_FROM || "noreply@taskquadrant.com",
       to: options.to,
       subject: options.subject,
       text: options.text || options.html.replace(/<[^>]*>/g, ""),
