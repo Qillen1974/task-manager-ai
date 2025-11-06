@@ -352,9 +352,16 @@ export default function Home() {
       try {
         const response = await api.deleteTask(taskId);
         if (response.success) {
+          // Remove task from state immediately
           setTasks(tasks.filter((t) => t.id !== taskId));
+          // Show success message
+          alert("Task deleted successfully!");
+        } else {
+          alert("Failed to delete task: " + (response.error?.message || "Unknown error"));
+          console.error("Delete task failed:", response.error);
         }
       } catch (error) {
+        alert("Error deleting task: " + (error instanceof Error ? error.message : String(error)));
         console.error("Failed to delete task:", error);
       }
     }
