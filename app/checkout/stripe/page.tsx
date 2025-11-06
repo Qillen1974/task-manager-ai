@@ -70,11 +70,25 @@ function CheckoutForm({
           return;
         }
 
+        // Get payment method ID from setupIntent
+        const paymentMethodId = setupIntent.payment_method;
+        if (!paymentMethodId) {
+          setError("Payment method not attached to setup intent");
+          setLoading(false);
+          return;
+        }
+
+        console.log("Setup Intent succeeded:", {
+          setupIntentId: setupIntent.id,
+          paymentMethodId,
+          plan,
+        });
+
         const confirmResponse = await axios.post(
           "/api/subscriptions/confirm-stripe",
           {
             setupIntentId: setupIntent.id,
-            paymentMethodId: setupIntent.payment_method,
+            paymentMethodId: paymentMethodId,
             plan,
           },
           {
