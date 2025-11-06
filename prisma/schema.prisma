@@ -338,3 +338,12 @@ model Feedback {
 
   @@index([type])
 }
+
+// SchedulerState model - tracks the last time scheduler was run to prevent duplicates on deployment
+model SchedulerState {
+  id            String   @id @default("recurring-task-scheduler")
+  lastRunDate   DateTime @default(now())
+  isRunning     Boolean  @default(false)
+  lastError     String?
+  updatedAt     DateTime @updatedAt
+}
