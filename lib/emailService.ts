@@ -24,8 +24,21 @@ function getTransporter() {
     return transporter;
   }
 
+  // If Gmail credentials are provided, use Gmail
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD && process.env.EMAIL_HOST === "smtp.gmail.com") {
+    console.log("[Email] Using Gmail SMTP");
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
   // For development: Use Ethereal email (fake email service for testing)
-  if (process.env.NODE_ENV === "development" && !process.env.EMAIL_HOST) {
+  else if (process.env.NODE_ENV === "development" && !process.env.EMAIL_HOST) {
     console.log("[Email] Using Ethereal Email for development");
     // You can create a test account at https://ethereal.email/create
     transporter = nodemailer.createTransport({
@@ -38,7 +51,7 @@ function getTransporter() {
       },
     });
   } else {
-    // Production: Use configured email service
+    // Production: Use configured email service (SendGrid, Resend via SMTP, etc.)
     transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT || "587"),
