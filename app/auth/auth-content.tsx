@@ -8,6 +8,7 @@ export default function AuthPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [initialMode, setInitialMode] = useState<"login" | "signup">("login");
+  const [initialEmail, setInitialEmail] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,12 @@ export default function AuthPageContent() {
       setInitialMode("signup");
     } else {
       setInitialMode("login");
+    }
+
+    // Get email from URL params (from landing page)
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setInitialEmail(decodeURIComponent(emailParam));
     }
 
     // Check if user is already logged in and redirect to dashboard
@@ -38,5 +45,5 @@ export default function AuthPageContent() {
     router.push('/dashboard');
   };
 
-  return <AuthPage onAuthSuccess={handleAuthSuccess} initialMode={initialMode} />;
+  return <AuthPage onAuthSuccess={handleAuthSuccess} initialMode={initialMode} initialEmail={initialEmail} />;
 }
