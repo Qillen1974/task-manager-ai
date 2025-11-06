@@ -107,6 +107,18 @@ export async function POST(request: NextRequest) {
     // Create Stripe subscription with the payment method from the payment intent
     let subscription: Stripe.Subscription | null = null;
     if (plan !== "FREE") {
+      const paymentMethodId = paymentIntent.payment_method as string;
+
+      // First, attach the payment method to the customer
+      try {
+        await stripeClient.paymentMethods.attach(paymentMethodId, {
+          customer: customerId,
+        });
+      } catch (err: any) {
+        // Payment method might already be attached, continue anyway
+        console.log("Payment method attachment note:", err.message);
+      }
+
       subscription = await stripeClient.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
@@ -115,8 +127,8 @@ export async function POST(request: NextRequest) {
           plan,
           billingCycle,
         },
-        // Default payment method is from the payment intent's payment method
-        default_payment_method: paymentIntent.payment_method as string,
+        // Use the attached payment method as default
+        default_payment_method: paymentMethodId,
       });
     }
 
