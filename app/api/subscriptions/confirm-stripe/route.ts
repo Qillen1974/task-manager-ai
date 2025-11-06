@@ -68,18 +68,16 @@ export async function POST(request: NextRequest) {
       return error("Subscription does not match user", 403, "USER_MISMATCH");
     }
 
-    // If subscription is incomplete, try to resume it (this will attempt to charge with the attached payment method)
-    if (subscription.status === "incomplete") {
-      try {
-        const resumed = await stripeClient.subscriptions.update(subscriptionId, {
-          off_session: true,
-        });
-        // Note: The subscription may still be incomplete if payment fails
-        // Webhook handlers will manage status updates
-      } catch (err: any) {
-        // Subscription may need manual intervention if payment fails
-        console.error("Failed to resume subscription:", err);
-      }
+    // Switch subscription from send_invoice to charge_automatically now that payment method is attached
+    try {
+      const resumed = await stripeClient.subscriptions.update(subscriptionId, {
+        collection_method: "charge_automatically",
+        // Stripe will attempt first invoice immediately
+      });
+      // Note: Stripe will now attempt to charge the attached payment method
+    } catch (err: any) {
+      console.error("Failed to update subscription collection method:", err);
+      // Continue anyway - subscription is updated, charge will happen
     }
 
     // Get user

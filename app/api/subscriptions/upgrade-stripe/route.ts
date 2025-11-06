@@ -139,7 +139,8 @@ export async function POST(request: NextRequest) {
         }
       );
     } else {
-      // Create new subscription in incomplete state (requires payment method)
+      // Create new subscription with send_invoice collection method temporarily
+      // This prevents Stripe from trying to charge before payment method is attached
       subscription = await stripeClient.subscriptions.create({
         customer: stripeCustomerId,
         items: [{ price: priceId }],
@@ -148,15 +149,10 @@ export async function POST(request: NextRequest) {
           plan,
           billingCycle,
         },
-        payment_settings: {
-          payment_method_types: ["card"],
-          save_default_payment_method: "on_subscription",
-          // Don't require immediate payment - let checkout page handle it
-        },
-        // Set to off_session so the first payment happens after card is attached
-        off_session: false,
-        // Allow incomplete status so customer can complete setup
-        collection_method: "charge_automatically",
+        // Use send_invoice to avoid immediate charge attempt
+        // After payment method is confirmed, we'll switch to charge_automatically
+        collection_method: "send_invoice",
+        days_until_due: 1,
       });
     }
 
