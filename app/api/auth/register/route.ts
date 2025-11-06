@@ -9,6 +9,7 @@ import {
   generateRefreshToken,
 } from "@/lib/authUtils";
 import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
+import { sendWelcomeEmail } from "@/lib/emailService";
 
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -74,6 +75,12 @@ export async function POST(request: NextRequest) {
         token: refreshToken,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       },
+    });
+
+    // Send welcome email (don't wait for it to avoid slowing down the response)
+    sendWelcomeEmail(user.email, user.name, user.id, password).catch((error) => {
+      console.error("Failed to send welcome email:", error);
+      // Don't fail the registration if email sending fails
     });
 
     // Return success with tokens
