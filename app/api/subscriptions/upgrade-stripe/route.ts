@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         }
       );
     } else {
-      // Create new subscription
+      // Create new subscription in incomplete state (requires payment method)
       subscription = await stripeClient.subscriptions.create({
         customer: stripeCustomerId,
         items: [{ price: priceId }],
@@ -151,15 +151,30 @@ export async function POST(request: NextRequest) {
         payment_settings: {
           payment_method_types: ["card"],
           save_default_payment_method: "on_subscription",
+          // Don't require immediate payment - let checkout page handle it
         },
+        // Set to off_session so the first payment happens after card is attached
+        off_session: false,
+        // Allow incomplete status so customer can complete setup
+        collection_method: "charge_automatically",
       });
     }
 
+    // Create a Setup Intent for attaching the payment method to this subscription
+    const setupIntent = await stripeClient.setupIntents.create({
+      customer: stripeCustomerId,
+      usage: "on_session",
+      metadata: {
+        userId,
+        subscriptionId: subscription.id,
+        plan,
+        billingCycle,
+      },
+    });
+
     return success({
       subscriptionId: subscription.id,
-      clientSecret: subscription.latest_invoice
-        ? (subscription.latest_invoice as Stripe.Invoice).client_secret
-        : null,
+      clientSecret: setupIntent.client_secret,
       status: subscription.status,
       plan,
       billingCycle,

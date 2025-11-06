@@ -68,6 +68,20 @@ export async function POST(request: NextRequest) {
       return error("Subscription does not match user", 403, "USER_MISMATCH");
     }
 
+    // If subscription is incomplete, try to resume it (this will attempt to charge with the attached payment method)
+    if (subscription.status === "incomplete") {
+      try {
+        const resumed = await stripeClient.subscriptions.update(subscriptionId, {
+          off_session: true,
+        });
+        // Note: The subscription may still be incomplete if payment fails
+        // Webhook handlers will manage status updates
+      } catch (err: any) {
+        // Subscription may need manual intervention if payment fails
+        console.error("Failed to resume subscription:", err);
+      }
+    }
+
     // Get user
     const user = await db.user.findUnique({
       where: { id: userId },
