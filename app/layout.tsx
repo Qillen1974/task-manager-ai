@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { startRecurringTaskScheduler } from "@/lib/scheduler";
@@ -17,7 +17,13 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "TaskQuadrant - Professional Task Management",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
-  viewport: "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1.0,
+  maximumScale: 5.0,
+  userScalable: true,
 };
 
 // Initialize recurring task scheduler on server startup (not during build)
