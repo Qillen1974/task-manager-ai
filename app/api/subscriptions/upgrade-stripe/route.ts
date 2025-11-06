@@ -139,41 +139,52 @@ export async function POST(request: NextRequest) {
         }
       );
     } else {
-      // Create new subscription with send_invoice collection method temporarily
-      // This prevents Stripe from trying to charge before payment method is attached
-      subscription = await stripeClient.subscriptions.create({
-        customer: stripeCustomerId,
-        items: [{ price: priceId }],
-        metadata: {
-          userId,
-          plan,
-          billingCycle,
-        },
-        // Use send_invoice to avoid immediate charge attempt
-        // After payment method is confirmed, we'll switch to charge_automatically
-        collection_method: "send_invoice",
-        days_until_due: 1,
-      });
+      // Don't create subscription yet - create a payment intent first
+      // After payment succeeds, we'll create the subscription
+      // This way we collect payment before creating recurring billing
     }
 
-    // Create a Setup Intent for attaching the payment method to this subscription
-    const setupIntent = await stripeClient.setupIntents.create({
+    // Create a payment intent for the first payment
+    // After payment confirms, the confirm endpoint will create the subscription
+    const price = PLAN_DETAILS[plan].price;
+    const finalPrice = getPrice(price, billingCycle);
+    const amountInCents = Math.round(finalPrice * 100);
+
+    const paymentIntent = await stripeClient.paymentIntents.create({
       customer: stripeCustomerId,
-      usage: "on_session",
+      amount: amountInCents,
+      currency: "usd",
+      payment_method_types: ["card"],
       metadata: {
         userId,
-        subscriptionId: subscription.id,
         plan,
         billingCycle,
       },
+      description: `${plan} plan subscription (${billingCycle})`,
     });
 
     return success({
-      subscriptionId: subscription.id,
-      clientSecret: setupIntent.client_secret,
-      status: subscription.status,
+      clientSecret: paymentIntent.client_secret,
+      status: paymentIntent.status,
       plan,
       billingCycle,
     });
   });
+}
+
+// Helper to calculate price with discounts
+const PLAN_DETAILS: Record<string, { price: number }> = {
+  FREE: { price: 0 },
+  PRO: { price: 4.99 },
+  ENTERPRISE: { price: 9.99 },
+};
+
+function getPrice(basePrice: number, billingCycle: "monthly" | "annual") {
+  if (billingCycle === "annual" && basePrice > 0) {
+    const discountPercent = basePrice === 4.99 ? 20 : 17;
+    const annualPrice = basePrice * 12;
+    const discount = annualPrice * (discountPercent / 100);
+    return annualPrice - discount;
+  }
+  return basePrice;
 }

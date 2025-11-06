@@ -47,22 +47,22 @@ function CheckoutForm({
         return;
       }
 
-      // For subscriptions, use confirmCardSetup to set up the payment method
-      const { setupIntent, error: confirmError } =
-        await stripe.confirmCardSetup(clientSecret, {
+      // Confirm the payment for the first billing cycle
+      const { paymentIntent, error: confirmError } =
+        await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
             card: cardElement,
           },
         });
 
       if (confirmError) {
-        setError(confirmError.message || "Card setup failed");
+        setError(confirmError.message || "Payment failed");
         setLoading(false);
         return;
       }
 
-      if (setupIntent?.status === "succeeded") {
-        // Card setup successful, confirm with backend
+      if (paymentIntent?.status === "succeeded") {
+        // Payment successful, now create subscription via backend
         const token = localStorage.getItem("accessToken");
         if (!token) {
           setError("Authentication token not found");
@@ -70,18 +70,10 @@ function CheckoutForm({
           return;
         }
 
-        // Get subscription ID from sessionStorage
-        const subscriptionId = sessionStorage.getItem("stripe_subscription_id");
-        if (!subscriptionId) {
-          setError("Subscription ID not found");
-          setLoading(false);
-          return;
-        }
-
         const confirmResponse = await axios.post(
           "/api/subscriptions/confirm-stripe",
           {
-            subscriptionId: subscriptionId,
+            paymentIntentId: paymentIntent.id,
             plan,
           },
           {
@@ -94,7 +86,6 @@ function CheckoutForm({
         if (confirmResponse.data.success) {
           setSuccess(true);
           // Clear sessionStorage
-          sessionStorage.removeItem("stripe_subscription_id");
           sessionStorage.removeItem("stripe_plan");
           sessionStorage.removeItem("stripe_client_secret");
           sessionStorage.removeItem("stripe_billing_cycle");
@@ -105,13 +96,13 @@ function CheckoutForm({
         } else {
           setError(
             confirmResponse.data.error?.message ||
-              "Failed to confirm subscription upgrade"
+              "Failed to create subscription after payment"
           );
         }
-      } else if (setupIntent?.status === "requires_action") {
-        setError("Card setup requires additional action. Please complete the verification.");
+      } else if (paymentIntent?.status === "requires_action") {
+        setError("Payment requires additional action. Please complete the verification.");
       } else {
-        setError(`Card setup failed with status: ${setupIntent?.status}`);
+        setError(`Payment failed with status: ${paymentIntent?.status}`);
       }
     } catch (err: any) {
       setError(

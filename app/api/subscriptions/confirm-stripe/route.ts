@@ -20,13 +20,13 @@ function getStripeClient() {
 }
 
 interface ConfirmRequest {
-  subscriptionId: string;
+  paymentIntentId: string;
   plan: "FREE" | "PRO" | "ENTERPRISE";
 }
 
 /**
  * POST /api/subscriptions/confirm-stripe
- * Confirm Stripe subscription setup and update subscription
+ * Confirm payment and create recurring subscription
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -44,40 +44,28 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decoded.userId;
-    const { subscriptionId, plan } = (await request.json()) as ConfirmRequest;
+    const { paymentIntentId, plan } = (await request.json()) as ConfirmRequest;
 
-    if (!subscriptionId || !plan) {
+    if (!paymentIntentId || !plan) {
       return error("Missing required fields", 400, "MISSING_FIELDS");
     }
 
-    // Retrieve subscription from Stripe
+    // Retrieve payment intent from Stripe
     const stripeClient = getStripeClient();
-    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
 
-    // Verify subscription is in a valid state (incomplete_expired is terminal state)
-    if (subscription.status === "incomplete_expired") {
+    // Verify payment succeeded
+    if (paymentIntent.status !== "succeeded") {
       return error(
-        "Subscription setup expired. Please try again.",
+        `Payment not completed. Status: ${paymentIntent.status}`,
         400,
-        "SUBSCRIPTION_EXPIRED"
+        "PAYMENT_NOT_COMPLETED"
       );
     }
 
-    // Verify the subscription belongs to this user
-    if (subscription.metadata?.userId !== userId) {
-      return error("Subscription does not match user", 403, "USER_MISMATCH");
-    }
-
-    // Switch subscription from send_invoice to charge_automatically now that payment method is attached
-    try {
-      const resumed = await stripeClient.subscriptions.update(subscriptionId, {
-        collection_method: "charge_automatically",
-        // Stripe will attempt first invoice immediately
-      });
-      // Note: Stripe will now attempt to charge the attached payment method
-    } catch (err: any) {
-      console.error("Failed to update subscription collection method:", err);
-      // Continue anyway - subscription is updated, charge will happen
+    // Verify the payment belongs to this user
+    if (paymentIntent.metadata?.userId !== userId) {
+      return error("Payment does not match user", 403, "USER_MISMATCH");
     }
 
     // Get user
@@ -90,6 +78,48 @@ export async function POST(request: NextRequest) {
       return error("User not found", 404, "USER_NOT_FOUND");
     }
 
+    // Get the plan details from the payment intent metadata
+    const billingCycle = (paymentIntent.metadata?.billingCycle as "monthly" | "annual") || "monthly";
+
+    // Get customer ID from payment intent
+    const customerId = paymentIntent.customer as string;
+    if (!customerId) {
+      return error("No customer associated with payment", 400, "NO_CUSTOMER");
+    }
+
+    // Get the appropriate Stripe Price ID based on plan and billing cycle
+    const priceIdMap: Record<string, Record<string, string>> = {
+      PRO: {
+        monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID || "",
+      },
+      ENTERPRISE: {
+        monthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "",
+      },
+    };
+
+    const priceId = priceIdMap[plan]?.[billingCycle];
+    if (!priceId && plan !== "FREE") {
+      return error("Invalid plan or billing cycle configuration", 400, "INVALID_PRICE_ID");
+    }
+
+    // Create Stripe subscription with the payment method from the payment intent
+    let subscription: Stripe.Subscription | null = null;
+    if (plan !== "FREE") {
+      subscription = await stripeClient.subscriptions.create({
+        customer: customerId,
+        items: [{ price: priceId }],
+        metadata: {
+          userId,
+          plan,
+          billingCycle,
+        },
+        // Default payment method is from the payment intent's payment method
+        default_payment_method: paymentIntent.payment_method as string,
+      });
+    }
+
     // Determine plan limits
     const planLimits = {
       FREE: { projectLimit: 10, taskLimit: 50 },
@@ -99,18 +129,7 @@ export async function POST(request: NextRequest) {
 
     const limits = planLimits[plan];
 
-    // Get the current period start date from subscription
-    const currentPeriodStart = (subscription as any).current_period_start
-      ? new Date((subscription as any).current_period_start * 1000)
-      : new Date();
-
-    const lastPaymentId = subscription.latest_invoice
-      ? typeof subscription.latest_invoice === "string"
-        ? subscription.latest_invoice
-        : (subscription.latest_invoice as Stripe.Invoice).id
-      : null;
-
-    // Update or create subscription
+    // Update or create subscription in database
     const updatedSubscription = await db.subscription.upsert({
       where: { userId },
       create: {
@@ -119,20 +138,20 @@ export async function POST(request: NextRequest) {
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "stripe",
-        stripeSubId: subscriptionId,
-        stripeCustomerId: subscription.customer as string,
-        lastPaymentId: lastPaymentId,
-        lastPaymentDate: currentPeriodStart,
+        stripeSubId: subscription?.id || null,
+        stripeCustomerId: customerId,
+        lastPaymentId: paymentIntentId,
+        lastPaymentDate: new Date(),
       },
       update: {
         plan,
         projectLimit: limits.projectLimit,
         taskLimit: limits.taskLimit,
         paymentMethod: "stripe",
-        stripeSubId: subscriptionId,
-        stripeCustomerId: subscription.customer as string,
-        lastPaymentId: lastPaymentId,
-        lastPaymentDate: currentPeriodStart,
+        stripeSubId: subscription?.id || null,
+        stripeCustomerId: customerId,
+        lastPaymentId: paymentIntentId,
+        lastPaymentDate: new Date(),
       },
     });
 
