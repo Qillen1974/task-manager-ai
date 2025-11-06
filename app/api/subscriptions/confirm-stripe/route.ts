@@ -111,6 +111,10 @@ export async function POST(request: NextRequest) {
       const payMethodId = typeof paymentMethodId === "string" ? paymentMethodId : (paymentMethodId as any).id;
 
       try {
+        // Create a user-friendly description for the subscription
+        const billingCycleText = billingCycle === "annual" ? "yearly" : "monthly";
+        const description = `TaskQuadrant ${plan} Plan subscription (${billingCycleText})`;
+
         subscription = await stripeClient.subscriptions.create({
           customer: customerId,
           items: [{ price: priceId }],
@@ -119,6 +123,7 @@ export async function POST(request: NextRequest) {
             plan,
             billingCycle,
           },
+          description: description,
           // Use the payment method from setup intent as default
           default_payment_method: payMethodId,
         });
