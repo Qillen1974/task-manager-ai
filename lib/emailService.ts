@@ -35,6 +35,7 @@ function getTransporter() {
   // If SMTP credentials are provided, use them
   if (smtpHost && smtpUser && smtpPassword) {
     console.log(`[Email] Using SMTP: ${smtpHost}:${smtpPort}`);
+    console.log(`[Email] SMTP User: ${smtpUser}`);
     transporter = nodemailer.createTransport({
       host: smtpHost,
       port: parseInt(smtpPort || "587"),
@@ -42,6 +43,11 @@ function getTransporter() {
       auth: {
         user: smtpUser,
         pass: smtpPassword,
+      },
+      connectionTimeout: 10000, // 10 seconds
+      socketTimeout: 10000, // 10 seconds
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
@@ -93,8 +99,9 @@ export async function sendEmail(options: SendEmailOptions) {
       html: options.html,
     };
 
+    console.log("[Email] Attempting to send email to:", options.to);
     const info = await transporter.sendMail(mailOptions);
-    console.log("[Email] Message sent:", info.messageId);
+    console.log("[Email] Message sent successfully:", info.messageId);
 
     // For development with Ethereal, log the preview URL
     if (process.env.NODE_ENV === "development") {
@@ -104,7 +111,12 @@ export async function sendEmail(options: SendEmailOptions) {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("[Email] Failed to send email:", error);
-    return { success: false, error: String(error) };
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[Email] Error details:", {
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      message: errorMsg,
+    });
+    return { success: false, error: errorMsg };
   }
 }
 
