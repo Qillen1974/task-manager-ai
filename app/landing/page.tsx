@@ -1,30 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, CheckCircle, BarChart3, Clock, Zap } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Check if user is logged in
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // Redirect to dashboard if already logged in
-      router.push('/dashboard');
-    }
-  }, [router]);
 
   const handleGetStarted = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Redirect to auth with signup mode and email pre-filled
-    window.location.href = `/auth?mode=signup&email=${encodeURIComponent(email)}`;
+    // Could redirect to signup with email pre-filled
+    window.location.href = `/?email=${encodeURIComponent(email)}`;
     setIsLoading(false);
   };
 
@@ -327,7 +315,7 @@ export default function LandingPage() {
             Join thousands of professionals using TaskQuadrant to focus on what matters most.
           </p>
           <button
-            onClick={() => (window.location.href = "/auth?mode=signup")}
+            onClick={() => (window.location.href = "/?mode=signup")}
             className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition inline-flex items-center gap-2"
           >
             Get Started Free

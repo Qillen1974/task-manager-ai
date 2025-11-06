@@ -5,11 +5,12 @@ import { useApi } from "@/lib/useApi";
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
+  initialMode?: "login" | "signup";
 }
 
-export function AuthPage({ onAuthSuccess }: AuthPageProps) {
+export function AuthPage({ onAuthSuccess, initialMode = "login" }: AuthPageProps) {
   const api = useApi();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
