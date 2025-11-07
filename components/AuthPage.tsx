@@ -17,6 +17,37 @@ export function AuthPage({ onAuthSuccess, initialMode = "login", initialEmail = 
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<string[]>([]);
+
+  const validatePasswordStrength = (pwd: string): string[] => {
+    const errors: string[] = [];
+    if (pwd.length < 8) {
+      errors.push("At least 8 characters");
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      errors.push("One uppercase letter");
+    }
+    if (!/[a-z]/.test(pwd)) {
+      errors.push("One lowercase letter");
+    }
+    if (!/[0-9]/.test(pwd)) {
+      errors.push("One number");
+    }
+    if (!/[!@#$%^&*]/.test(pwd)) {
+      errors.push("One special character (!@#$%^&*)");
+    }
+    return errors;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pwd = e.target.value;
+    setPassword(pwd);
+    if (!isLogin && pwd) {
+      setPasswordFeedback(validatePasswordStrength(pwd));
+    } else {
+      setPasswordFeedback([]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,14 +158,37 @@ export function AuthPage({ onAuthSuccess, initialMode = "login", initialEmail = 
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               placeholder="••••••••"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 bg-white ${
+                !isLogin && password && passwordFeedback.length === 0
+                  ? "border-green-500"
+                  : "border-gray-300"
+              }`}
               required
-              minLength={6}
+              minLength={8}
             />
             {!isLogin && (
-              <p className="text-xs text-gray-500 mt-1">At least 6 characters</p>
+              <div className="mt-2">
+                {password ? (
+                  <>
+                    {passwordFeedback.length === 0 ? (
+                      <p className="text-xs text-green-600 font-medium">✓ Password requirements met</p>
+                    ) : (
+                      <div className="text-xs text-gray-600">
+                        <p className="font-medium mb-1">Password must contain:</p>
+                        <ul className="space-y-1">
+                          {passwordFeedback.map((req, idx) => (
+                            <li key={idx} className="text-red-600">• {req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-500">At least 8 characters, uppercase, lowercase, number, and special character (!@#$%^&*)</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -191,16 +245,6 @@ export function AuthPage({ onAuthSuccess, initialMode = "login", initialEmail = 
           </ul>
         </div>
 
-        {/* Admin Panel Link */}
-        <div className="mt-4 text-center pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-600 mb-2">Are you an administrator?</p>
-          <a
-            href="/admin"
-            className="text-sm font-medium text-slate-700 hover:text-slate-900 underline"
-          >
-            Go to Admin Panel →
-          </a>
-        </div>
       </div>
     </div>
   );
