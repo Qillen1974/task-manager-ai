@@ -1,82 +1,41 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 /**
- * Email Service using Nodemailer
+ * Email Service using Resend
  *
- * For production, configure with your email provider:
- * - Gmail: Use App Password and enable 2FA
- * - Outlook/Office365: Use OAuth2 or App Password
- * - SendGrid: Use SMTP credentials
- * - AWS SES: Use AWS credentials
+ * Resend is a modern email service built for developers.
+ * It provides reliable email delivery with excellent deliverability rates.
  *
  * Environment variables needed:
- * - EMAIL_FROM: Sender email address
- * - EMAIL_HOST: SMTP host
- * - EMAIL_PORT: SMTP port (usually 587 for TLS, 465 for SSL)
- * - EMAIL_USER: SMTP username
- * - EMAIL_PASSWORD: SMTP password
+ * - RESEND_API_KEY: Your Resend API key from https://resend.com
+ * - EMAIL_FROM: Sender email address (must be a verified domain or resend.dev for testing)
+ *
+ * To set up Resend:
+ * 1. Sign up at https://resend.com
+ * 2. Add and verify your domain
+ * 3. Generate an API key from the dashboard
+ * 4. Add DNS TXT record: resend._domainkey with the provided public key
+ * 5. Set RESEND_API_KEY in your environment variables
  */
 
-let transporter: nodemailer.Transporter | null = null;
+let resendClient: Resend | null = null;
 
-function getTransporter() {
-  if (transporter) {
-    return transporter;
+function getResendClient() {
+  if (resendClient) {
+    return resendClient;
   }
 
-  // Check for SMTP variables (supports both uppercase SMTP_* and lowercase smtp_* naming)
-  // Railway uses SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
-  // Fallback to EMAIL_* for other providers
-  const smtpHost = process.env.SMTP_HOST || process.env.smtp_host || process.env.EMAIL_HOST;
-  const smtpPort = process.env.SMTP_PORT || process.env.smtp_port || process.env.EMAIL_PORT;
-  const smtpUser = process.env.SMTP_USER || process.env.smtp_user || process.env.EMAIL_USER;
-  const smtpPassword = process.env.SMTP_PASSWORD || process.env.smtp_password || process.env.EMAIL_PASSWORD;
+  const apiKey = process.env.RESEND_API_KEY;
 
-  process.stderr.write(`[Email] Configuration check: SMTP_HOST=${process.env.SMTP_HOST ? "SET" : "NOT SET"}, smtp_host=${process.env.smtp_host ? "SET" : "NOT SET"}, EMAIL_HOST=${process.env.EMAIL_HOST ? "SET" : "NOT SET"}, SMTP_USER=${process.env.SMTP_USER ? "SET" : "NOT SET"}, smtp_user=${process.env.smtp_user ? "SET" : "NOT SET"}, EMAIL_USER=${process.env.EMAIL_USER ? "SET" : "NOT SET"}, SMTP_PASSWORD=${process.env.SMTP_PASSWORD ? "SET" : "NOT SET"}, smtp_password=${process.env.smtp_password ? "SET" : "NOT SET"}, EMAIL_PASSWORD=${process.env.EMAIL_PASSWORD ? "SET" : "NOT SET"}\n`);
-  process.stderr.write(`[Email] Final smtpHost: ${smtpHost || "NOT SET"}, Final smtpUser: ${smtpUser || "NOT SET"}\n`);
-
-  // If SMTP credentials are provided, use them
-  if (smtpHost && smtpUser && smtpPassword) {
-    process.stderr.write(`[Email] Using SMTP: ${smtpHost}:${smtpPort}\n`);
-    process.stderr.write(`[Email] SMTP User: ${smtpUser}\n`);
-    transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(smtpPort || "587"),
-      secure: smtpPort === "465", // true for 465, false for other ports
-      auth: {
-        user: smtpUser,
-        pass: smtpPassword,
-      },
-      connectionTimeout: 10000, // 10 seconds
-      socketTimeout: 10000, // 10 seconds
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-  }
-  // For development: Use Ethereal email (fake email service for testing)
-  else if (process.env.NODE_ENV === "development") {
-    process.stderr.write("[Email] Using Ethereal Email for development\n");
-    // You can create a test account at https://ethereal.email/create
-    transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.ETHEREAL_EMAIL || "test@ethereal.email",
-        pass: process.env.ETHEREAL_PASSWORD || "test",
-      },
-    });
-  } else {
-    process.stderr.write("[Email] CRITICAL: No SMTP configuration found. Email sending will fail.\n");
-    process.stderr.write("[Email] Please set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD environment variables.\n");
-    transporter = nodemailer.createTransport({
-      host: "localhost",
-      port: 587,
-    });
+  if (!apiKey) {
+    process.stderr.write("[Email] WARNING: RESEND_API_KEY is not set. Email sending will fail.\n");
+    process.stderr.write("[Email] Please set RESEND_API_KEY environment variable.\n");
   }
 
-  return transporter;
+  resendClient = new Resend(apiKey);
+  process.stderr.write("[Email] Resend client initialized\n");
+
+  return resendClient;
 }
 
 interface SendEmailOptions {
@@ -88,31 +47,32 @@ interface SendEmailOptions {
 
 export async function sendEmail(options: SendEmailOptions) {
   try {
-    const transporter = getTransporter();
+    const resend = getResendClient();
 
-    if (!transporter) {
-      process.stderr.write("[Email] No transporter configured\n");
+    const fromEmail = process.env.EMAIL_FROM || "noreply@resend.dev";
+
+    if (!process.env.RESEND_API_KEY) {
+      process.stderr.write("[Email] CRITICAL: RESEND_API_KEY not configured. Email sending failed.\n");
       return { success: false, message: "Email service not configured" };
     }
 
-    const mailOptions = {
-      from: process.env.smtp_from || process.env.EMAIL_FROM || "noreply@taskquadrant.com",
+    process.stderr.write(`[Email] Attempting to send email to: ${options.to}\n`);
+
+    const result = await resend.emails.send({
+      from: fromEmail,
       to: options.to,
       subject: options.subject,
-      text: options.text || options.html.replace(/<[^>]*>/g, ""),
       html: options.html,
-    };
+    });
 
-    process.stderr.write(`[Email] Attempting to send email to: ${options.to}\n`);
-    const info = await transporter.sendMail(mailOptions);
-    process.stderr.write(`[Email] Message sent successfully: ${info.messageId}\n`);
-
-    // For development with Ethereal, log the preview URL
-    if (process.env.NODE_ENV === "development") {
-      process.stderr.write(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}\n`);
+    if (result.error) {
+      const errorMsg = result.error.message || "Unknown Resend error";
+      process.stderr.write(`[Email] Failed to send email: ${errorMsg}\n`);
+      return { success: false, error: errorMsg };
     }
 
-    return { success: true, messageId: info.messageId };
+    process.stderr.write(`[Email] Message sent successfully: ${result.data?.id}\n`);
+    return { success: true, messageId: result.data?.id };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorType = error instanceof Error ? error.constructor.name : typeof error;
