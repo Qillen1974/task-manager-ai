@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Task, Project } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
@@ -537,11 +538,14 @@ export default function Home() {
   };
 
 
+  const router = useRouter();
+
   const handleLogout = () => {
     api.logout();
     setProjects([]);
     setTasks([]);
     setActiveView("dashboard");
+    router.push("/");
   };
 
   // Check if user has a token in localStorage

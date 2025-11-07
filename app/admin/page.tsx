@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { isAdminLoggedIn, getCurrentAdmin, adminLogout } from "@/lib/adminAuth";
 import { AdminLoginPage } from "@/components/AdminLoginPage";
 import { AdminDashboard } from "@/components/AdminDashboard";
@@ -41,10 +42,13 @@ export default function AdminPage() {
     }
   };
 
+  const router = useRouter();
+
   const handleLogout = () => {
     adminLogout();
     setIsLoggedIn(false);
     setAdmin(null);
+    router.push("/");
   };
 
   if (!hydrated) {
