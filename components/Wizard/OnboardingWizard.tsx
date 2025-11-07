@@ -32,8 +32,10 @@ export function OnboardingWizard({ onComplete, onSkip }: OnboardingWizardProps) 
     setCurrentStep(3);
   };
 
-  const handleNextFromFirstProject = (name: string) => {
-    setProjectName(name);
+  const handleNextFromFirstProject = (data: { name: string; color: string; description: string }) => {
+    setProjectName(data.name);
+    setProjectColor(data.color);
+    setProjectDescription(data.description);
     setCurrentStep(4);
   };
 

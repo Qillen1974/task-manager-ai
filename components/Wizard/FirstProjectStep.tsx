@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Palette } from "lucide-react";
 
 interface FirstProjectStepProps {
-  onNext: (projectName: string) => void;
+  onNext: (data: { name: string; color: string; description: string }) => void;
   onPrev: () => void;
   onSkip: () => void;
 }
@@ -30,7 +30,11 @@ export function FirstProjectStep({
 
   const handleNext = () => {
     if (projectName.trim()) {
-      onNext(projectName);
+      onNext({
+        name: projectName,
+        color: selectedColor,
+        description: description,
+      });
     }
   };
 
