@@ -10,13 +10,13 @@ interface ContactFormData {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[Contact] Received POST request to /api/contact");
+    process.stderr.write("[Contact] Received POST request to /api/contact\n");
     const body: ContactFormData = await request.json();
-    console.log("[Contact] Request body received:", { name: body.name, email: body.email, subject: body.subject });
+    process.stderr.write(`[Contact] Request body received: name=${body.name}, email=${body.email}, subject=${body.subject}\n`);
 
     // Validate required fields
     if (!body.name || !body.email || !body.subject || !body.message) {
-      console.log("[Contact] Validation failed: missing required fields");
+      process.stderr.write("[Contact] Validation failed: missing required fields\n");
       return Response.json(
         { success: false, error: "All fields are required" },
         { status: 400 }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.email)) {
-      console.log("[Contact] Email validation failed:", body.email);
+      process.stderr.write(`[Contact] Email validation failed: ${body.email}\n`);
       return Response.json(
         { success: false, error: "Invalid email address" },
         { status: 400 }
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
 
     // Validate message length
     if (body.message.length < 10) {
-      console.log("[Contact] Message too short:", body.message.length);
+      process.stderr.write(`[Contact] Message too short: ${body.message.length} chars\n`);
       return Response.json(
         { success: false, error: "Message must be at least 10 characters" },
         { status: 400 }
       );
     }
 
-    console.log("[Contact] All validations passed, preparing to send email");
+    process.stderr.write("[Contact] All validations passed, preparing to send email\n");
 
     // Create email HTML
     const emailHtml = `
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Send email to TaskQuadrant
-    console.log("[Contact] Calling sendEmail function...");
+    process.stderr.write("[Contact] Calling sendEmail function...\n");
     const result = await sendEmail({
       to: "TaskQuadrantAlert@gmail.com",
       subject: `Contact Form: ${body.subject}`,
@@ -103,10 +103,13 @@ export async function POST(request: NextRequest) {
       text: `From: ${body.name} <${body.email}>\n\nSubject: ${body.subject}\n\n${body.message}`,
     });
 
-    console.log("[Contact] sendEmail result:", result);
+    process.stderr.write(`[Contact] sendEmail result: success=${result.success}\n`);
+    if (result.error) {
+      process.stderr.write(`[Contact] sendEmail error: ${result.error}\n`);
+    }
 
     if (!result.success) {
-      console.error("Failed to send contact form email:", result.error);
+      process.stderr.write(`[Contact] Failed to send contact form email: ${result.error}\n`);
       return Response.json(
         {
           success: false,
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[Contact] Email sent successfully");
+    process.stderr.write("[Contact] Email sent successfully\n");
     return Response.json(
       {
         success: true,
@@ -125,9 +128,9 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("[Contact] Unexpected error:", error);
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[Contact] Error details:", errorMsg);
+    process.stderr.write(`[Contact] Unexpected error: ${errorMsg}\n`);
+    process.stderr.write(`[Contact] Error type: ${error instanceof Error ? error.constructor.name : typeof error}\n`);
     return Response.json(
       { success: false, error: "An unexpected error occurred. Please try again." },
       { status: 500 }

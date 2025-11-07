@@ -32,23 +32,13 @@ function getTransporter() {
   const smtpUser = process.env.SMTP_USER || process.env.smtp_user || process.env.EMAIL_USER;
   const smtpPassword = process.env.SMTP_PASSWORD || process.env.smtp_password || process.env.EMAIL_PASSWORD;
 
-  console.log(`[Email] Configuration check:
-    SMTP_HOST: ${process.env.SMTP_HOST ? "SET" : "NOT SET"}
-    smtp_host: ${process.env.smtp_host ? "SET" : "NOT SET"}
-    EMAIL_HOST: ${process.env.EMAIL_HOST ? "SET" : "NOT SET"}
-    SMTP_USER: ${process.env.SMTP_USER ? "SET" : "NOT SET"}
-    smtp_user: ${process.env.smtp_user ? "SET" : "NOT SET"}
-    EMAIL_USER: ${process.env.EMAIL_USER ? "SET" : "NOT SET"}
-    SMTP_PASSWORD: ${process.env.SMTP_PASSWORD ? "SET" : "NOT SET"}
-    smtp_password: ${process.env.smtp_password ? "SET" : "NOT SET"}
-    EMAIL_PASSWORD: ${process.env.EMAIL_PASSWORD ? "SET" : "NOT SET"}
-    Final smtpHost: ${smtpHost || "NOT SET"}
-    Final smtpUser: ${smtpUser || "NOT SET"}`);
+  process.stderr.write(`[Email] Configuration check: SMTP_HOST=${process.env.SMTP_HOST ? "SET" : "NOT SET"}, smtp_host=${process.env.smtp_host ? "SET" : "NOT SET"}, EMAIL_HOST=${process.env.EMAIL_HOST ? "SET" : "NOT SET"}, SMTP_USER=${process.env.SMTP_USER ? "SET" : "NOT SET"}, smtp_user=${process.env.smtp_user ? "SET" : "NOT SET"}, EMAIL_USER=${process.env.EMAIL_USER ? "SET" : "NOT SET"}, SMTP_PASSWORD=${process.env.SMTP_PASSWORD ? "SET" : "NOT SET"}, smtp_password=${process.env.smtp_password ? "SET" : "NOT SET"}, EMAIL_PASSWORD=${process.env.EMAIL_PASSWORD ? "SET" : "NOT SET"}\n`);
+  process.stderr.write(`[Email] Final smtpHost: ${smtpHost || "NOT SET"}, Final smtpUser: ${smtpUser || "NOT SET"}\n`);
 
   // If SMTP credentials are provided, use them
   if (smtpHost && smtpUser && smtpPassword) {
-    console.log(`[Email] Using SMTP: ${smtpHost}:${smtpPort}`);
-    console.log(`[Email] SMTP User: ${smtpUser}`);
+    process.stderr.write(`[Email] Using SMTP: ${smtpHost}:${smtpPort}\n`);
+    process.stderr.write(`[Email] SMTP User: ${smtpUser}\n`);
     transporter = nodemailer.createTransport({
       host: smtpHost,
       port: parseInt(smtpPort || "587"),
@@ -66,7 +56,7 @@ function getTransporter() {
   }
   // For development: Use Ethereal email (fake email service for testing)
   else if (process.env.NODE_ENV === "development") {
-    console.log("[Email] Using Ethereal Email for development");
+    process.stderr.write("[Email] Using Ethereal Email for development\n");
     // You can create a test account at https://ethereal.email/create
     transporter = nodemailer.createTransport({
       host: "smtp.ethereal.email",
@@ -78,8 +68,8 @@ function getTransporter() {
       },
     });
   } else {
-    console.error("[Email] CRITICAL: No SMTP configuration found. Email sending will fail.");
-    console.error("[Email] Please set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD environment variables.");
+    process.stderr.write("[Email] CRITICAL: No SMTP configuration found. Email sending will fail.\n");
+    process.stderr.write("[Email] Please set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD environment variables.\n");
     transporter = nodemailer.createTransport({
       host: "localhost",
       port: 587,
@@ -101,7 +91,7 @@ export async function sendEmail(options: SendEmailOptions) {
     const transporter = getTransporter();
 
     if (!transporter) {
-      console.warn("[Email] No transporter configured");
+      process.stderr.write("[Email] No transporter configured\n");
       return { success: false, message: "Email service not configured" };
     }
 
@@ -113,23 +103,21 @@ export async function sendEmail(options: SendEmailOptions) {
       html: options.html,
     };
 
-    console.log("[Email] Attempting to send email to:", options.to);
+    process.stderr.write(`[Email] Attempting to send email to: ${options.to}\n`);
     const info = await transporter.sendMail(mailOptions);
-    console.log("[Email] Message sent successfully:", info.messageId);
+    process.stderr.write(`[Email] Message sent successfully: ${info.messageId}\n`);
 
     // For development with Ethereal, log the preview URL
     if (process.env.NODE_ENV === "development") {
-      console.log("[Email] Preview URL:", nodemailer.getTestMessageUrl(info));
+      process.stderr.write(`[Email] Preview URL: ${nodemailer.getTestMessageUrl(info)}\n`);
     }
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("[Email] Failed to send email:", error);
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error("[Email] Error details:", {
-      type: error instanceof Error ? error.constructor.name : typeof error,
-      message: errorMsg,
-    });
+    const errorType = error instanceof Error ? error.constructor.name : typeof error;
+    process.stderr.write(`[Email] Failed to send email: ${errorMsg}\n`);
+    process.stderr.write(`[Email] Error type: ${errorType}\n`);
     return { success: false, error: errorMsg };
   }
 }
