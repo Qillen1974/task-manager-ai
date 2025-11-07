@@ -213,8 +213,8 @@ export function useApi() {
   );
 
   const createProject = useCallback(
-    async (name: string, color: string, description?: string) =>
-      call('POST', '/projects', { name, color, description }),
+    async (data: { name: string; color?: string; description?: string }) =>
+      call('POST', '/projects', data),
     [call]
   );
 
