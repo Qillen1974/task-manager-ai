@@ -106,6 +106,18 @@ export function Navigation({
             >
               Projects
             </button>
+            {onWizardClick && (
+              <button
+                onClick={onWizardClick}
+                className="ml-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition font-medium"
+                title="Get help with TaskQuadrant"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help & Tour
+              </button>
+            )}
           </div>
 
           {/* User Profile & Logout */}
@@ -137,20 +149,6 @@ export function Navigation({
                       <p className="text-sm font-medium text-gray-900">{userName}</p>
                       <p className="text-xs text-gray-500">{userEmail}</p>
                     </div>
-                    {onWizardClick && (
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          onWizardClick();
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Help & Tour
-                      </button>
-                    )}
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
@@ -245,25 +243,25 @@ export function Navigation({
             >
               Projects
             </button>
+            {onWizardClick && (
+              <button
+                onClick={() => {
+                  onWizardClick();
+                  setShowMobileMenu(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Help & Tour
+              </button>
+            )}
 
             {/* Mobile User Menu */}
             {userName && (
               <>
                 <div className="border-t border-gray-100 my-2" />
-                {onWizardClick && (
-                  <button
-                    onClick={() => {
-                      onWizardClick();
-                      setShowMobileMenu(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Help & Tour
-                  </button>
-                )}
                 <button
                   onClick={() => {
                     onSettingsClick?.();
