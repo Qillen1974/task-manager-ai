@@ -10,6 +10,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import axios from "axios";
+import { trackSubscriptionConversion } from "@/lib/gtagUtils";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -99,6 +100,9 @@ function CheckoutForm({
         );
 
         if (confirmResponse.data.success) {
+          // Track conversion in Google Ads
+          trackSubscriptionConversion();
+
           setSuccess(true);
           // Clear sessionStorage
           sessionStorage.removeItem("stripe_plan");

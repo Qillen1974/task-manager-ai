@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import UpgradeMembership from "@/components/UpgradeMembership";
+import { trackSubscriptionConversion } from "@/lib/gtagUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,9 @@ export default function UpgradePage() {
               console.log("Confirm-PayPal response:", confirmResponse.data);
 
               if (confirmResponse.data.success) {
+                // Track conversion in Google Ads
+                trackSubscriptionConversion();
+
                 // Clear localStorage after successful confirmation
                 localStorage.removeItem("paypal_order_id");
                 localStorage.removeItem("paypal_plan");
@@ -178,6 +182,9 @@ export default function UpgradePage() {
         console.log("Confirm-PayPal response:", confirmResponse.data);
 
         if (confirmResponse.data.success) {
+          // Track conversion in Google Ads
+          trackSubscriptionConversion();
+
           localStorage.removeItem("paypal_order_id");
           localStorage.removeItem("paypal_plan");
           localStorage.removeItem("paypal_billing_cycle");
