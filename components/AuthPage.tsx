@@ -227,23 +227,6 @@ export function AuthPage({ onAuthSuccess, initialMode = "login", initialEmail = 
           </button>
         </form>
 
-        {/* Info */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <p className="text-xs text-gray-600">
-            <strong>Demo Mode:</strong> Passwords are stored in localStorage (not hashed). For production, use proper authentication.
-          </p>
-        </div>
-
-        {/* Test Credentials */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 mb-2">
-            <strong>Test Accounts:</strong>
-          </p>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li>📧 user1@example.com / password123</li>
-            <li>📧 user2@example.com / password456</li>
-          </ul>
-        </div>
 
       </div>
     </div>
