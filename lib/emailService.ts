@@ -49,7 +49,7 @@ export async function sendEmail(options: SendEmailOptions) {
   try {
     const resend = getResendClient();
 
-    const fromEmail = process.env.EMAIL_FROM || "noreply@resend.dev";
+    const fromEmail = process.env.SMTP_FROM || "noreply@resend.dev";
 
     if (!process.env.RESEND_API_KEY) {
       process.stderr.write("[Email] CRITICAL: RESEND_API_KEY not configured. Email sending failed.\n");
