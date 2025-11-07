@@ -51,11 +51,20 @@ export async function sendEmail(options: SendEmailOptions) {
 
     const fromEmail = process.env.SMTP_FROM || "noreply@resend.dev";
 
+    console.log("[Email] Email config check:", {
+      RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
+      SMTP_FROM: process.env.SMTP_FROM,
+      FROM_EMAIL: fromEmail,
+      TO: options.to,
+    });
+
     if (!process.env.RESEND_API_KEY) {
+      console.error("[Email] CRITICAL: RESEND_API_KEY not configured. Email sending failed.");
       process.stderr.write("[Email] CRITICAL: RESEND_API_KEY not configured. Email sending failed.\n");
       return { success: false, message: "Email service not configured" };
     }
 
+    console.log(`[Email] Attempting to send email to: ${options.to}`);
     process.stderr.write(`[Email] Attempting to send email to: ${options.to}\n`);
 
     const result = await resend.emails.send({
@@ -65,17 +74,22 @@ export async function sendEmail(options: SendEmailOptions) {
       html: options.html,
     });
 
+    console.log("[Email] Resend response:", { success: !result.error, messageId: result.data?.id, error: result.error });
+
     if (result.error) {
       const errorMsg = result.error.message || "Unknown Resend error";
+      console.error(`[Email] Failed to send email: ${errorMsg}`, result.error);
       process.stderr.write(`[Email] Failed to send email: ${errorMsg}\n`);
       return { success: false, error: errorMsg };
     }
 
+    console.log(`[Email] Message sent successfully: ${result.data?.id}`);
     process.stderr.write(`[Email] Message sent successfully: ${result.data?.id}\n`);
     return { success: true, messageId: result.data?.id };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorType = error instanceof Error ? error.constructor.name : typeof error;
+    console.error(`[Email] Exception during email send: ${errorMsg}`, error);
     process.stderr.write(`[Email] Failed to send email: ${errorMsg}\n`);
     process.stderr.write(`[Email] Error type: ${errorType}\n`);
     return { success: false, error: errorMsg };
