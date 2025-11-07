@@ -67,6 +67,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [userPlan, setUserPlan] = useState<"FREE" | "PRO" | "ENTERPRISE">("FREE");
   const initialLoadDoneRef = useRef(false);
+  const wizardTriggeredRef = useRef(false);
 
   // Navigation and UI state
   const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>("dashboard");
@@ -212,18 +213,23 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!hydrated) return;
+    if (isLoading) return; // Wait for initial load to complete
 
     const token = localStorage.getItem('accessToken');
     if (!token) return;
+
+    // Only trigger wizard once per session
+    if (wizardTriggeredRef.current) return;
 
     // Check if user has already seen the wizard or has any existing projects
     const hasSeenWizard = localStorage.getItem('wizardCompleted');
     const hasProjects = projects.length > 0;
 
     if (!hasSeenWizard && !hasProjects) {
+      wizardTriggeredRef.current = true;
       setShowOnboardingWizard(true);
     }
-  }, [hydrated, projects.length]);
+  }, [hydrated, isLoading]);
 
   const projectsMap = useMemo(() => {
     const map = new Map<string, Project>();
