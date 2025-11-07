@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, CheckCircle, BarChart3, Clock, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { HeroDashboardPreview } from "@/components/HeroDashboardPreview";
+import { HeroVideoFallback } from "@/components/HeroVideoFallback";
 
 export default function LandingPage() {
   const [email, setEmail] = useState("");
@@ -87,30 +89,17 @@ export default function LandingPage() {
       {/* Hero Image Section */}
       <section className="px-4 sm:px-6 lg:px-8 pb-20">
         <div className="max-w-5xl mx-auto">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl h-96 flex items-center justify-center border border-gray-100">
-            <div className="text-center">
-              <div className="inline-block bg-white p-8 rounded-xl shadow-lg">
-                <div className="grid grid-cols-2 gap-4 max-w-xs">
-                  <div className="bg-red-50 p-4 rounded-lg text-center">
-                    <div className="text-xs text-gray-600 font-semibold mb-2">URGENT</div>
-                    <div className="text-2xl font-bold text-gray-900">→</div>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                    <div className="text-xs text-gray-600 font-semibold mb-2">IMPORTANT</div>
-                    <div className="text-2xl font-bold text-gray-900">→</div>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-xs text-gray-600 font-semibold mb-2">NOT URGENT</div>
-                    <div className="text-2xl font-bold text-gray-900">→</div>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg text-center">
-                    <div className="text-xs text-gray-600 font-semibold mb-2">NOT IMPORTANT</div>
-                    <div className="text-2xl font-bold text-gray-900">→</div>
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-600 mt-8 text-sm">The Eisenhower Matrix - your productivity system</p>
-            </div>
+          {/* Desktop: Interactive Dashboard Preview */}
+          <div className="hidden md:block">
+            <HeroDashboardPreview />
+          </div>
+
+          {/* Mobile: Video Fallback */}
+          <div className="md:hidden">
+            <HeroVideoFallback
+              title="See TaskQuadrant in Action"
+              description="Watch how to prioritize tasks in 30 seconds"
+            />
           </div>
         </div>
       </section>
