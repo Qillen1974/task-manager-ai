@@ -212,24 +212,49 @@ export default function Home() {
   // Detect first-time users and show onboarding wizard
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!hydrated) return;
-    if (isLoading) return; // Wait for initial load to complete
+    if (!hydrated) {
+      console.log('[Wizard] Not hydrated yet');
+      return;
+    }
+    if (isLoading) {
+      console.log('[Wizard] Still loading data');
+      return; // Wait for initial load to complete
+    }
 
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    if (!token) {
+      console.log('[Wizard] No token found');
+      return;
+    }
 
     // Only trigger wizard once per session
-    if (wizardTriggeredRef.current) return;
+    if (wizardTriggeredRef.current) {
+      console.log('[Wizard] Already triggered');
+      return;
+    }
 
     // Check if user has already seen the wizard or has any existing projects
     const hasSeenWizard = localStorage.getItem('wizardCompleted');
     const hasProjects = projects.length > 0;
 
+    console.log('[Wizard] Detection check:', {
+      hydrated,
+      isLoading,
+      hasToken: !!token,
+      hasSeenWizard,
+      hasProjects,
+      projectCount: projects.length,
+      wizardTriggered: wizardTriggeredRef.current
+    });
+
     if (!hasSeenWizard && !hasProjects) {
+      console.log('[Wizard] Showing wizard!');
       wizardTriggeredRef.current = true;
       setShowOnboardingWizard(true);
+    } else {
+      console.log('[Wizard] Not showing - hasSeenWizard:', hasSeenWizard, 'hasProjects:', hasProjects);
     }
-  }, [hydrated, isLoading]);
+  }, [hydrated, isLoading, projects.length]);
 
   const projectsMap = useMemo(() => {
     const map = new Map<string, Project>();
