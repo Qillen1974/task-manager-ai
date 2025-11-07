@@ -212,47 +212,22 @@ export default function Home() {
   // Detect first-time users and show onboarding wizard
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!hydrated) {
-      console.log('[Wizard] Not hydrated yet');
-      return;
-    }
-    if (isLoading) {
-      console.log('[Wizard] Still loading data');
-      return; // Wait for initial load to complete
-    }
+    if (!hydrated) return;
+    if (isLoading) return; // Wait for initial load to complete
 
     const token = localStorage.getItem('accessToken');
-    if (!token) {
-      console.log('[Wizard] No token found');
-      return;
-    }
+    if (!token) return;
 
     // Only trigger wizard once per session
-    if (wizardTriggeredRef.current) {
-      console.log('[Wizard] Already triggered');
-      return;
-    }
+    if (wizardTriggeredRef.current) return;
 
     // Check if user has already seen the wizard or has any existing projects
     const hasSeenWizard = localStorage.getItem('wizardCompleted');
     const hasProjects = projects.length > 0;
 
-    console.log('[Wizard] Detection check:', {
-      hydrated,
-      isLoading,
-      hasToken: !!token,
-      hasSeenWizard,
-      hasProjects,
-      projectCount: projects.length,
-      wizardTriggered: wizardTriggeredRef.current
-    });
-
     if (!hasSeenWizard && !hasProjects) {
-      console.log('[Wizard] Showing wizard!');
       wizardTriggeredRef.current = true;
       setShowOnboardingWizard(true);
-    } else {
-      console.log('[Wizard] Not showing - hasSeenWizard:', hasSeenWizard, 'hasProjects:', hasProjects);
     }
   }, [hydrated, isLoading, projects.length]);
 
@@ -729,6 +704,7 @@ export default function Home() {
           setParentProjectId(parentId);
           setShowProjectModal(true);
         }}
+        onWizardClick={() => setShowOnboardingWizard(true)}
       />
 
       <div className="w-full mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
