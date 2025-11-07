@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 import { success, handleApiError } from "@/lib/apiResponse";
-import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
+import { PROJECT_LIMITS, TASK_LIMITS, getCorrectLimitsForPlan } from "@/lib/projectLimits";
 
 // Mark as dynamic since it uses request.headers
 export const dynamic = "force-dynamic";
@@ -54,6 +54,21 @@ export async function GET(request: NextRequest) {
           status: "ACTIVE",
         },
       });
+    } else if (subscription && subscription.plan) {
+      // Correct any outdated/incorrect limits in existing subscriptions
+      const correctLimits = getCorrectLimitsForPlan(subscription.plan);
+
+      // If the subscription has incorrect limits, update them to match the plan
+      if (subscription.projectLimit !== correctLimits.projectLimit || subscription.taskLimit !== correctLimits.taskLimit) {
+        subscription = await db.subscription.update({
+          where: { userId },
+          data: {
+            projectLimit: correctLimits.projectLimit,
+            taskLimit: correctLimits.taskLimit,
+          },
+        });
+        console.log(`Corrected subscription limits for user ${userId}: ${subscription.plan} plan`);
+      }
     }
 
     return success({

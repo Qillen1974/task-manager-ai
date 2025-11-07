@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAdminAuth } from "@/lib/adminMiddleware";
 import { success, handleApiError } from "@/lib/apiResponse";
+import { getCorrectLimitsForPlan } from "@/lib/projectLimits";
 
 /**
  * GET /api/admin/users - Admin only: List all users with their subscriptions
@@ -37,24 +38,33 @@ export async function GET(request: NextRequest) {
     `;
 
     // Transform the raw results into the expected format
-    const userList = (users as any[]).map((row) => ({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      isAdmin: row.isAdmin || false,
-      createdAt: row.createdAt,
-      lastLoginAt: row.lastLoginAt,
-      _count: {
-        projects: Number(row.projectCount) || 0,
-        tasks: Number(row.taskCount) || 0,
-      },
-      subscription: row.subscription_id ? {
-        id: row.subscription_id,
-        plan: row.plan,
-        projectLimit: row.projectLimit,
-        taskLimit: row.taskLimit,
-      } : null,
-    }));
+    const userList = (users as any[]).map((row) => {
+      let subscription = null;
+      if (row.subscription_id) {
+        // Use correct limits for the plan (corrects any outdated/hardcoded values)
+        const correctLimits = getCorrectLimitsForPlan(row.plan);
+        subscription = {
+          id: row.subscription_id,
+          plan: row.plan,
+          projectLimit: correctLimits.projectLimit,
+          taskLimit: correctLimits.taskLimit,
+        };
+      }
+
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        isAdmin: row.isAdmin || false,
+        createdAt: row.createdAt,
+        lastLoginAt: row.lastLoginAt,
+        _count: {
+          projects: Number(row.projectCount) || 0,
+          tasks: Number(row.taskCount) || 0,
+        },
+        subscription,
+      };
+    });
 
     return success(userList);
   });
@@ -110,12 +120,17 @@ export async function PATCH(request: NextRequest) {
     }
 
     const row = rows[0];
-    const subscription = row.subscription_id ? {
-      id: row.subscription_id,
-      plan: row.plan,
-      projectLimit: row.projectLimit,
-      taskLimit: row.taskLimit,
-    } : null;
+    let subscription = null;
+    if (row.subscription_id) {
+      // Use correct limits for the plan (corrects any outdated/hardcoded values)
+      const correctLimits = getCorrectLimitsForPlan(row.plan);
+      subscription = {
+        id: row.subscription_id,
+        plan: row.plan,
+        projectLimit: correctLimits.projectLimit,
+        taskLimit: correctLimits.taskLimit,
+      };
+    }
 
     return success({
       message: `User ${row.email} admin status updated`,

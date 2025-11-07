@@ -215,3 +215,29 @@ export function getUpgradeMessage(
   }
   return `Upgrade your plan to unlock this feature.`;
 }
+
+/**
+ * Get correct subscription limits for a plan
+ * Converts -1 (unlimited) to 999999 for display purposes
+ */
+export function getCorrectLimitsForPlan(plan: string): {
+  projectLimit: number;
+  taskLimit: number;
+} {
+  const planKey = plan as keyof typeof PROJECT_LIMITS;
+  const projectLimitValue = PROJECT_LIMITS[planKey];
+  const taskLimitValue = TASK_LIMITS[planKey];
+
+  if (!projectLimitValue || !taskLimitValue) {
+    // Default to FREE plan if invalid plan
+    return {
+      projectLimit: PROJECT_LIMITS.FREE.maxProjects,
+      taskLimit: TASK_LIMITS.FREE.maxTasks,
+    };
+  }
+
+  return {
+    projectLimit: projectLimitValue.maxProjects === -1 ? 999999 : projectLimitValue.maxProjects,
+    taskLimit: taskLimitValue.maxTasks === -1 ? 999999 : taskLimitValue.maxTasks,
+  };
+}
