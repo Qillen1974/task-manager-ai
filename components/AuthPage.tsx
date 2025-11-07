@@ -75,6 +75,8 @@ export function AuthPage({ onAuthSuccess, initialMode = "login", initialEmail = 
 
         const result = await api.register(email, password);
         if (result.success) {
+          // Clear wizard completed flag so new users see the wizard
+          localStorage.removeItem('wizardCompleted');
           // Dispatch custom event to notify parent component
           window.dispatchEvent(new Event('authSuccess'));
           // Auto-login after registration
