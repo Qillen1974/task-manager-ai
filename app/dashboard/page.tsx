@@ -15,6 +15,7 @@ import { ProjectHierarchyModal, ProjectFormData } from "@/components/ProjectHier
 import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
+import { OnboardingWizard } from "@/components/Wizard/OnboardingWizard";
 import { getPendingTaskCount, getAutoPriority } from "@/lib/utils";
 import { canCreateRecurringTask, canCreateRootProject, TASK_LIMITS } from "@/lib/projectLimits";
 
@@ -74,6 +75,9 @@ export default function Home() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showUserSettings, setShowUserSettings] = useState(false);
+
+  // Onboarding wizard state
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
 
   // Editing state
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -203,6 +207,23 @@ export default function Home() {
     window.addEventListener('authSuccess', handleAuthSuccess);
     return () => window.removeEventListener('authSuccess', handleAuthSuccess);
   }, [api]);
+
+  // Detect first-time users and show onboarding wizard
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!hydrated) return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    // Check if user has already seen the wizard or has any existing projects
+    const hasSeenWizard = localStorage.getItem('wizardCompleted');
+    const hasProjects = projects.length > 0;
+
+    if (!hasSeenWizard && !hasProjects) {
+      setShowOnboardingWizard(true);
+    }
+  }, [hydrated, projects.length]);
 
   const projectsMap = useMemo(() => {
     const map = new Map<string, Project>();
@@ -548,6 +569,67 @@ export default function Home() {
     router.push("/");
   };
 
+  const handleWizardComplete = async (wizardData: {
+    name: string;
+    color: string;
+    description: string;
+    taskTitle: string;
+    quadrant: string;
+  }) => {
+    try {
+      // Create the project
+      const projectResponse = await api.createProject({
+        name: wizardData.name,
+        description: wizardData.description,
+        color: wizardData.color,
+      });
+
+      if (projectResponse.success && projectResponse.data) {
+        const newProject = projectResponse.data;
+
+        // Create the task
+        const taskResponse = await api.createTask({
+          title: wizardData.taskTitle,
+          projectId: newProject.id,
+          priority: wizardData.quadrant,
+        });
+
+        if (taskResponse.success) {
+          // Mark wizard as completed
+          localStorage.setItem('wizardCompleted', 'true');
+
+          // Hide wizard and reload projects/tasks
+          setShowOnboardingWizard(false);
+
+          // Reload data to show new project and task
+          const projectsResponse = await api.getProjects();
+          if (projectsResponse.success && projectsResponse.data) {
+            setProjects(projectsResponse.data);
+            if (projectsResponse.data.length > 0) {
+              setActiveProjectId(projectsResponse.data[0].id);
+              setActiveView("dashboard");
+            }
+          }
+
+          const tasksResponse = await api.getTasks();
+          if (tasksResponse.success && tasksResponse.data) {
+            setTasks(tasksResponse.data);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to complete wizard:", error);
+      // Still mark as completed so wizard doesn't keep showing
+      localStorage.setItem('wizardCompleted', 'true');
+      setShowOnboardingWizard(false);
+    }
+  };
+
+  const handleWizardSkip = () => {
+    localStorage.setItem('wizardCompleted', 'true');
+    setShowOnboardingWizard(false);
+  };
+
   // Check if user has a token in localStorage
   const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('accessToken');
 
@@ -572,6 +654,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Onboarding Wizard */}
+      {showOnboardingWizard && (
+        <OnboardingWizard
+          onComplete={handleWizardComplete}
+          onSkip={handleWizardSkip}
+        />
+      )}
+
       <Navigation
         projects={projects}
         activeView={activeView}
