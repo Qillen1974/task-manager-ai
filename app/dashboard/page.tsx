@@ -789,8 +789,26 @@ export default function Home() {
               <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Project Selected</h3>
-              <p className="text-gray-600">Select a project from the top tabs or create a new one to get started.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {projects.length === 0 ? "Create Your First Project" : "No Project Selected"}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {projects.length === 0
+                  ? "Get started by creating your first project. Click the 'New' button in the navigation bar above."
+                  : "Select a project from the top tabs or create a new one to get started."}
+              </p>
+              {projects.length === 0 && (
+                <button
+                  onClick={() => {
+                    setEditingProject(undefined);
+                    setParentProjectId(undefined);
+                    setShowProjectModal(true);
+                  }}
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                >
+                  ➕ Create Project
+                </button>
+              )}
             </div>
           )}
         </main>

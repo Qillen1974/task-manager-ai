@@ -184,20 +184,18 @@ export function Navigation({
         </div>
 
         {/* Project Tabs Navigation */}
-        {projects.length > 0 && (
-          <ProjectTabs
-            projects={projects}
-            activeProjectId={activeProjectId}
-            onSelectProject={(projectId) => {
-              onProjectSelect(projectId);
-              onViewChange("projects");
-            }}
-            onCreateProject={onCreateProject || (() => {})}
-            onEditProject={onEditProject || (() => {})}
-            onDeleteProject={onDeleteProject || (() => {})}
-            onCreateSubproject={onCreateSubproject || (() => {})}
-          />
-        )}
+        <ProjectTabs
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onSelectProject={(projectId) => {
+            onProjectSelect(projectId);
+            onViewChange("projects");
+          }}
+          onCreateProject={onCreateProject || (() => {})}
+          onEditProject={onEditProject || (() => {})}
+          onDeleteProject={onDeleteProject || (() => {})}
+          onCreateSubproject={onCreateSubproject || (() => {})}
+        />
       </div>
     </nav>
   );
