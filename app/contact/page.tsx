@@ -1,9 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, Send } from "lucide-react";
+import { useState } from "react";
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setSubmitMessage(
+          "Thank you for your message! We'll get back to you soon."
+        );
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        setSubmitMessage(
+          "There was an error sending your message. Please try again or email us directly at support@taskquadrant.io"
+        );
+      }
+    } catch (error) {
+      setSubmitMessage(
+        "There was an error sending your message. Please try again or email us directly at support@taskquadrant.io"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -38,59 +96,125 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* Contact Form Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-12 text-center">
-            <div className="flex justify-center mb-6">
-              <Mail className="w-16 h-16 text-blue-600" />
+          <div className="bg-white rounded-xl border border-gray-200 p-8 md:p-12">
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <Mail className="w-8 h-8 text-blue-600" />
+              <h2 className="text-3xl font-bold text-gray-900">
+                Send us a Message
+              </h2>
             </div>
 
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Email us directly
-            </h2>
-
-            <p className="text-lg text-gray-600 mb-8">
-              The best way to reach us is by sending an email to:
+            <p className="text-gray-600 text-center mb-8">
+              Have a question or feedback? Fill out the form below and we'll get back to you as soon as possible.
             </p>
 
-            <a
-              href="mailto:TaskQuadrantAlert@gmail.com"
-              className="inline-block mb-6"
-            >
-              <div className="bg-white border-2 border-blue-600 rounded-lg px-8 py-4 inline-block hover:bg-blue-50 transition">
-                <p className="text-2xl font-bold text-blue-600">
-                  TaskQuadrantAlert@gmail.com
-                </p>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="Your name"
+                />
               </div>
-            </a>
 
-            <p className="text-gray-600 mb-6">
-              Click the email above or copy it to send us a message. We typically respond to all inquiries within 24-48 hours during business days.
-            </p>
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="your@email.com"
+                />
+              </div>
 
-            <div className="space-y-3 text-left max-w-md mx-auto">
-              <h3 className="font-semibold text-gray-900 text-center mb-4">
-                What to include in your email:
-              </h3>
-              <ul className="space-y-2 text-gray-700">
-                <li className="flex items-start gap-3">
-                  <span className="text-blue-600 font-bold">•</span>
-                  <span>Your name</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-blue-600 font-bold">•</span>
-                  <span>Your email address</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-blue-600 font-bold">•</span>
-                  <span>Subject or topic of your inquiry</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-blue-600 font-bold">•</span>
-                  <span>Details about your question or feedback</span>
-                </li>
-              </ul>
+              {/* Subject */}
+              <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-gray-900 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="How can we help?"
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium text-gray-900 mb-2">
+                  Message
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  required
+                  rows={5}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+                  placeholder="Tell us what you think..."
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition"
+              >
+                <Send className="w-4 h-4" />
+                {isSubmitting ? "Sending..." : "Send Message"}
+              </button>
+
+              {/* Message Feedback */}
+              {submitMessage && (
+                <div
+                  className={`p-4 rounded-lg text-sm ${
+                    submitMessage.includes("Thank you")
+                      ? "bg-green-50 text-green-800 border border-green-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
+                >
+                  {submitMessage}
+                </div>
+              )}
+            </form>
+
+            {/* Alternative Contact */}
+            <div className="mt-8 pt-8 border-t border-gray-200 text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Or email us directly at:
+              </p>
+              <a
+                href="mailto:support@taskquadrant.io"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                support@taskquadrant.io
+              </a>
             </div>
           </div>
         </div>
