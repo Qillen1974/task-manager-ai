@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 import { success, handleApiError } from "@/lib/apiResponse";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 // Mark as dynamic since it uses request.headers
 export const dynamic = "force-dynamic";
@@ -41,12 +42,15 @@ export async function GET(request: NextRequest) {
 
     if (!subscription) {
       // Create default FREE subscription if it doesn't exist
+      const freePlanLimits = PROJECT_LIMITS.FREE;
+      const freeTaskLimits = TASK_LIMITS.FREE;
+
       subscription = await db.subscription.create({
         data: {
           userId,
           plan: "FREE",
-          projectLimit: 3,
-          taskLimit: 50,
+          projectLimit: freePlanLimits.maxProjects,
+          taskLimit: freeTaskLimits.maxTasks,
           status: "ACTIVE",
         },
       });
