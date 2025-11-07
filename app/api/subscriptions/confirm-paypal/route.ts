@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 // Use live PayPal API for production
 const isPayPalSandbox = false; // Set to true for sandbox testing, false for live
@@ -172,20 +173,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine plan limits
-    const planLimits: Record<string, { projectLimit: number; taskLimit: number }> = {
-      FREE: { projectLimit: 10, taskLimit: 50 },
-      PRO: { projectLimit: 30, taskLimit: 200 },
-      ENTERPRISE: { projectLimit: 999999, taskLimit: 999999 },
-    };
+    // Determine plan limits from centralized configuration
+    const projectLimitValue = PROJECT_LIMITS[plan as keyof typeof PROJECT_LIMITS];
+    const taskLimitValue = TASK_LIMITS[plan as keyof typeof TASK_LIMITS];
 
-    const limits = planLimits[plan];
-    if (!limits) {
+    if (!projectLimitValue || !taskLimitValue) {
       return NextResponse.json(
         { success: false, error: { message: "Invalid plan", code: "INVALID_PLAN" } },
         { status: 400 }
       );
     }
+
+    const limits = {
+      projectLimit: projectLimitValue.maxProjects === -1 ? 999999 : projectLimitValue.maxProjects,
+      taskLimit: taskLimitValue.maxTasks === -1 ? 999999 : taskLimitValue.maxTasks,
+    };
 
     // Update or create subscription
     console.log("Updating subscription for user:", userId, "to plan:", plan);

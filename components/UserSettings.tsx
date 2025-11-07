@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import axios from "axios";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 interface UserSettingsProps {
   userName: string;
@@ -147,11 +148,11 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
       if (response.data.success) {
         setCancellationInfo(response.data.data);
         setShowCancelConfirm(false);
-        // Refresh subscription
+        // Refresh subscription to FREE plan limits
         setSubscription({
           plan: "FREE",
-          projectLimit: 10,
-          taskLimit: 50,
+          projectLimit: PROJECT_LIMITS.FREE.maxProjects,
+          taskLimit: TASK_LIMITS.FREE.maxTasks,
         });
         alert("Subscription cancelled successfully! You are now on the FREE plan.");
       } else {

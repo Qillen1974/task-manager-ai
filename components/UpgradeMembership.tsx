@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Check, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { PROJECT_LIMITS, TASK_LIMITS, RECURRING_TASK_LIMITS } from "@/lib/projectLimits";
 
 interface Subscription {
   id: string;
@@ -26,52 +27,61 @@ interface PlanDetails {
   taskLimit: number;
 }
 
-const PLAN_DETAILS: Record<string, PlanDetails> = {
-  FREE: {
-    name: "Free",
-    price: 0,
-    description: "Perfect for getting started",
-    features: [
-      "10 Projects",
-      "50 Tasks",
-      "Auto-prioritization",
-      "Email support",
-    ],
-    projectLimit: 10,
-    taskLimit: 50,
-  },
-  PRO: {
-    name: "Pro",
-    price: 4.99,
-    description: "For busy professionals",
-    features: [
-      "Up to 30 Projects",
-      "Up to 200 Tasks",
-      "10 Recurring Tasks",
-      "PNG/PDF Exports",
-      "Subproject support",
-      "Priority support",
-    ],
-    projectLimit: 30,
-    taskLimit: 200,
-  },
-  ENTERPRISE: {
-    name: "Enterprise",
-    price: 9.99,
-    description: "For teams & organizations",
-    features: [
-      "Unlimited Projects",
-      "Unlimited Tasks",
-      "Unlimited Recurring Tasks",
-      "PNG/PDF Exports",
-      "Unlimited subproject levels",
-      "Team Collaboration (Coming Soon)",
-      "Dedicated support",
-    ],
-    projectLimit: 999999,
-    taskLimit: 999999,
-  },
+// Generate plan details from centralized projectLimits configuration
+const getPlanDetails = (): Record<string, PlanDetails> => {
+  const formatLimitText = (limit: number): string => {
+    return limit === -1 ? "Unlimited" : `Up to ${limit}`;
+  };
+
+  return {
+    FREE: {
+      name: "Free",
+      price: 0,
+      description: "Perfect for getting started",
+      features: [
+        `${PROJECT_LIMITS.FREE.maxProjects} Projects`,
+        `${TASK_LIMITS.FREE.maxTasks} Tasks`,
+        "Auto-prioritization",
+        "Email support",
+      ],
+      projectLimit: PROJECT_LIMITS.FREE.maxProjects,
+      taskLimit: TASK_LIMITS.FREE.maxTasks,
+    },
+    PRO: {
+      name: "Pro",
+      price: 4.99,
+      description: "For busy professionals",
+      features: [
+        `${formatLimitText(PROJECT_LIMITS.PRO.maxProjects)} Projects`,
+        `${formatLimitText(TASK_LIMITS.PRO.maxTasks)} Tasks`,
+        `${RECURRING_TASK_LIMITS.PRO.maxRecurringTasks} Recurring Tasks`,
+        "PNG/PDF Exports",
+        "Subproject support",
+        "Priority support",
+      ],
+      projectLimit: PROJECT_LIMITS.PRO.maxProjects,
+      taskLimit: TASK_LIMITS.PRO.maxTasks,
+    },
+    ENTERPRISE: {
+      name: "Enterprise",
+      price: 9.99,
+      description: "For teams & organizations",
+      features: [
+        `${formatLimitText(PROJECT_LIMITS.ENTERPRISE.maxProjects)} Projects`,
+        `${formatLimitText(TASK_LIMITS.ENTERPRISE.maxTasks)} Tasks`,
+        `${formatLimitText(RECURRING_TASK_LIMITS.ENTERPRISE.maxRecurringTasks)} Recurring Tasks`,
+        "PNG/PDF Exports",
+        "Unlimited subproject levels",
+        "Team Collaboration (Coming Soon)",
+        "Dedicated support",
+      ],
+      projectLimit: 999999, // Use large number for display purposes
+      taskLimit: 999999, // Use large number for display purposes
+    },
+  };
 };
+
+const PLAN_DETAILS = getPlanDetails();
 
 export default function UpgradeMembership({
   currentSubscription,

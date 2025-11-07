@@ -26,7 +26,7 @@ describe('ProjectLimits - Plan Limits', () => {
     it('should return FREE plan limits', () => {
       const limits = getPlanLimits(SubscriptionPlan.FREE)
 
-      expect(limits.maxProjects).toBe(3)
+      expect(limits.maxProjects).toBe(10)
       expect(limits.maxProjectNestingLevel).toBe(0)
       expect(limits.maxSubprojectsPerProject).toBe(0)
     })
@@ -34,7 +34,7 @@ describe('ProjectLimits - Plan Limits', () => {
     it('should return PRO plan limits', () => {
       const limits = getPlanLimits(SubscriptionPlan.PRO)
 
-      expect(limits.maxProjects).toBe(5)
+      expect(limits.maxProjects).toBe(30)
       expect(limits.maxProjectNestingLevel).toBe(1)
       expect(limits.maxSubprojectsPerProject).toBe(-1)
     })
@@ -79,11 +79,11 @@ describe('ProjectLimits - Project Creation Rules', () => {
     })
 
     it('should reject creating root project on FREE plan at limit', () => {
-      const result = canCreateRootProject(SubscriptionPlan.FREE, 3)
+      const result = canCreateRootProject(SubscriptionPlan.FREE, 10)
 
       expect(result.allowed).toBe(false)
       expect(result.message).toContain('reached your project limit')
-      expect(result.message).toContain('3')
+      expect(result.message).toContain('10')
     })
 
     it('should allow creating root project on PRO plan within limits', () => {
@@ -93,10 +93,10 @@ describe('ProjectLimits - Project Creation Rules', () => {
     })
 
     it('should reject creating root project on PRO plan at limit', () => {
-      const result = canCreateRootProject(SubscriptionPlan.PRO, 5)
+      const result = canCreateRootProject(SubscriptionPlan.PRO, 30)
 
       expect(result.allowed).toBe(false)
-      expect(result.message).toContain('5')
+      expect(result.message).toContain('30')
     })
 
     it('should always allow creating root project on ENTERPRISE plan', () => {
@@ -195,8 +195,8 @@ describe('ProjectLimits - Recurring Task Limits', () => {
     it('should return PRO plan recurring task limits', () => {
       const limits = getRecurringTaskLimit(SubscriptionPlan.PRO)
 
-      expect(limits.maxRecurringTasks).toBe(5)
-      expect(limits.description).toContain('5')
+      expect(limits.maxRecurringTasks).toBe(10)
+      expect(limits.description).toContain('10')
     })
 
     it('should return ENTERPRISE plan recurring task limits (unlimited)', () => {
@@ -223,11 +223,11 @@ describe('ProjectLimits - Recurring Task Limits', () => {
     })
 
     it('should reject creating recurring task on PRO plan at limit', () => {
-      const result = canCreateRecurringTask(SubscriptionPlan.PRO, 5)
+      const result = canCreateRecurringTask(SubscriptionPlan.PRO, 10)
 
       expect(result.allowed).toBe(false)
       expect(result.message).toContain('reached your recurring task limit')
-      expect(result.message).toContain('5')
+      expect(result.message).toContain('10')
     })
 
     it('should allow creating recurring task on ENTERPRISE plan', () => {

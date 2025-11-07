@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
-import { canCreateRecurringTask } from "@/lib/projectLimits";
+import { canCreateRecurringTask, TASK_LIMITS } from "@/lib/projectLimits";
 import { calculateNextOccurrenceDate } from "@/lib/utils";
 
 /**
@@ -168,7 +168,8 @@ export async function POST(request: NextRequest) {
       where: { userId: auth.userId },
     });
 
-    if (taskCount >= (subscription?.taskLimit || 50)) {
+    const taskLimit = subscription?.taskLimit || TASK_LIMITS.FREE.maxTasks;
+    if (taskCount >= taskLimit) {
       return ApiErrors.RESOURCE_LIMIT_EXCEEDED("task");
     }
 
