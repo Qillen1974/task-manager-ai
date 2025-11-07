@@ -112,6 +112,11 @@ export async function handleApiError(fn: () => Promise<any>) {
     return await fn();
   } catch (err: any) {
     console.error("API Error:", err);
+    console.error("Error details:", {
+      message: err?.message,
+      code: err?.code,
+      stack: err?.stack,
+    });
 
     if (err instanceof ApiError) {
       return error(err.message, err.statusCode, err.code);
@@ -125,6 +130,12 @@ export async function handleApiError(fn: () => Promise<any>) {
       return error("Record not found", 404, "NOT_FOUND");
     }
 
-    return ApiErrors.INTERNAL_SERVER_ERROR();
+    // Log the full error for debugging
+    return error(
+      err?.message || "An unexpected error occurred",
+      500,
+      "INTERNAL_ERROR",
+      { originalError: err?.code || err?.message }
+    );
   }
 }

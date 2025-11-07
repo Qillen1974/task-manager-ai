@@ -154,11 +154,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user subscription
-    const subscription = await db.subscription.findUnique({
-      where: { userId: auth.userId },
-    });
+    let subscription;
+    try {
+      subscription = await db.subscription.findUnique({
+        where: { userId: auth.userId },
+      });
+    } catch (err) {
+      console.error("[API] Failed to fetch subscription:", err);
+      // If subscription query fails, return error
+      throw err;
+    }
 
     if (!subscription) {
+      console.warn("[API] No subscription found for user:", auth.userId);
       return ApiErrors.UNAUTHORIZED();
     }
 
