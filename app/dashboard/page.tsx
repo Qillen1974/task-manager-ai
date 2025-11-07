@@ -698,10 +698,6 @@ export default function Home() {
         activeView={activeView}
         activeProjectId={activeProjectId}
         onViewChange={(view) => {
-          // Auto-select first root project only if switching to projects view, not already in projects view, and no project is selected
-          if (view === "projects" && activeView !== "projects" && !activeProjectId && rootProjects.length > 0) {
-            setActiveProjectId(rootProjects[0].id);
-          }
           setActiveView(view);
         }}
         onProjectSelect={setActiveProjectId}
