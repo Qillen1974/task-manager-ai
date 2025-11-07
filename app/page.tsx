@@ -6,6 +6,9 @@ import { ChevronRight, CheckCircle, BarChart3, Clock, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { HeroDashboardPreview } from "@/components/HeroDashboardPreview";
 import { HeroVideoFallback } from "@/components/HeroVideoFallback";
+import { HeroRecurringTasksPreview } from "@/components/HeroRecurringTasksPreview";
+import { HeroExportPreview } from "@/components/HeroExportPreview";
+import { HeroGanttChartPreview } from "@/components/HeroGanttChartPreview";
 
 export default function LandingPage() {
   const [email, setEmail] = useState("");
@@ -200,6 +203,33 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Showcases Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-4">
+            Advanced Features for Professionals
+          </h2>
+          <p className="text-gray-600 text-center mb-16 max-w-2xl mx-auto">
+            Unlock powerful tools to manage complex projects and teams with Pro and Enterprise plans
+          </p>
+
+          {/* Recurring Tasks Showcase */}
+          <div className="mb-12">
+            <HeroRecurringTasksPreview />
+          </div>
+
+          {/* Export & Analytics Showcase */}
+          <div className="mb-12">
+            <HeroExportPreview />
+          </div>
+
+          {/* Gantt Chart Showcase */}
+          <div className="mb-12">
+            <HeroGanttChartPreview />
           </div>
         </div>
       </section>
