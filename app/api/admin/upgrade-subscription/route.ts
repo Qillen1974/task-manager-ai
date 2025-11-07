@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAdminAuth } from "@/lib/adminMiddleware";
 import { success, handleApiError } from "@/lib/apiResponse";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 /**
  * POST /api/admin/upgrade-subscription - Admin only: Upgrade a user's subscription to unlimited
@@ -30,19 +31,23 @@ export async function POST(request: NextRequest) {
       return { success: false, error: { message: "User not found", code: "USER_NOT_FOUND" } };
     }
 
+    // Get limits for the plan
+    const planLimits = PROJECT_LIMITS[plan as keyof typeof PROJECT_LIMITS] || PROJECT_LIMITS.FREE;
+    const taskLimits = TASK_LIMITS[plan as keyof typeof TASK_LIMITS] || TASK_LIMITS.FREE;
+
     // Update or create subscription
     const updatedSubscription = await db.subscription.upsert({
       where: { userId: userToUpgrade.id },
       create: {
         userId: userToUpgrade.id,
         plan: plan as any,
-        projectLimit: plan === "ENTERPRISE" ? 999999 : plan === "PRO" ? 100 : 3,
-        taskLimit: plan === "ENTERPRISE" ? 999999 : plan === "PRO" ? 500 : 50,
+        projectLimit: planLimits.maxProjects === -1 ? 999999 : planLimits.maxProjects,
+        taskLimit: taskLimits.maxTasks === -1 ? 999999 : taskLimits.maxTasks,
       },
       update: {
         plan: plan as any,
-        projectLimit: plan === "ENTERPRISE" ? 999999 : plan === "PRO" ? 100 : 3,
-        taskLimit: plan === "ENTERPRISE" ? 999999 : plan === "PRO" ? 500 : 50,
+        projectLimit: planLimits.maxProjects === -1 ? 999999 : planLimits.maxProjects,
+        taskLimit: taskLimits.maxTasks === -1 ? 999999 : taskLimits.maxTasks,
       },
     });
 

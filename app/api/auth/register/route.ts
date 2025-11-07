@@ -10,6 +10,7 @@ import {
 } from "@/lib/authUtils";
 import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { sendWelcomeEmail } from "@/lib/emailService";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -54,8 +55,8 @@ export async function POST(request: NextRequest) {
           create: {
             plan: SubscriptionPlan.FREE,
             status: SubscriptionStatus.ACTIVE,
-            projectLimit: 3,
-            taskLimit: 50,
+            projectLimit: PROJECT_LIMITS.FREE.maxProjects,
+            taskLimit: TASK_LIMITS.FREE.maxTasks,
           },
         },
       },

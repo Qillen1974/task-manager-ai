@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getTokenFromHeader } from "@/lib/authUtils";
 import { verifyToken } from "@/lib/authUtils";
 import { success, error, handleApiError } from "@/lib/apiResponse";
+import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 
 // Lazy initialize Stripe client
 let stripe: Stripe | null = null;
@@ -81,8 +82,8 @@ export async function POST(request: NextRequest) {
         where: { userId },
         data: {
           plan: "FREE",
-          projectLimit: 10,
-          taskLimit: 50,
+          projectLimit: PROJECT_LIMITS.FREE.maxProjects,
+          taskLimit: TASK_LIMITS.FREE.maxTasks,
           stripeSubId: null,
           paymentMethod: null,
         },
