@@ -600,11 +600,20 @@ export default function Home() {
         console.log("[Wizard] Project created successfully:", newProject);
 
         // Create the task
-        console.log("[Wizard] Creating task with:", { title: wizardData.taskTitle, projectId: newProject.id, priority: wizardData.quadrant });
+        // Map wizard quadrant IDs to priority values
+        const quadrantMap: Record<string, string> = {
+          "do-first": "urgent-important",
+          "schedule": "not-urgent-important",
+          "delegate": "urgent-not-important",
+          "eliminate": "not-urgent-not-important",
+        };
+        const mappedPriority = quadrantMap[wizardData.quadrant] || "not-urgent-important";
+
+        console.log("[Wizard] Creating task with:", { title: wizardData.taskTitle, projectId: newProject.id, priority: mappedPriority });
         const taskResponse = await api.createTask({
           title: wizardData.taskTitle,
           projectId: newProject.id,
-          priority: wizardData.quadrant,
+          priority: mappedPriority,
         });
 
         console.log("[Wizard] Task response:", taskResponse);
