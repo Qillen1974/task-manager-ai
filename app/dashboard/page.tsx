@@ -583,22 +583,31 @@ export default function Home() {
     quadrant: string;
   }) => {
     try {
+      console.log("[Wizard] Starting wizard completion with data:", wizardData);
+
       // Create the project
+      console.log("[Wizard] Creating project with:", { name: wizardData.name, color: wizardData.color, description: wizardData.description });
       const projectResponse = await api.createProject({
         name: wizardData.name,
         description: wizardData.description,
         color: wizardData.color,
       });
 
+      console.log("[Wizard] Project response:", projectResponse);
+
       if (projectResponse.success && projectResponse.data) {
         const newProject = projectResponse.data;
+        console.log("[Wizard] Project created successfully:", newProject);
 
         // Create the task
+        console.log("[Wizard] Creating task with:", { title: wizardData.taskTitle, projectId: newProject.id, priority: wizardData.quadrant });
         const taskResponse = await api.createTask({
           title: wizardData.taskTitle,
           projectId: newProject.id,
           priority: wizardData.quadrant,
         });
+
+        console.log("[Wizard] Task response:", taskResponse);
 
         if (taskResponse.success) {
           // Mark wizard as completed
@@ -621,10 +630,17 @@ export default function Home() {
           if (tasksResponse.success && tasksResponse.data) {
             setTasks(tasksResponse.data);
           }
+        } else {
+          console.error("[Wizard] Task creation failed:", taskResponse.error);
+          alert("Failed to create task: " + (taskResponse.error?.message || "Unknown error"));
         }
+      } else {
+        console.error("[Wizard] Project creation failed:", projectResponse.error);
+        alert("Failed to create project: " + (projectResponse.error?.message || "Unknown error"));
       }
     } catch (error) {
-      console.error("Failed to complete wizard:", error);
+      console.error("[Wizard] Failed to complete wizard:", error);
+      alert("Wizard error: " + (error instanceof Error ? error.message : "Unknown error"));
       // Still mark as completed so wizard doesn't keep showing
       localStorage.setItem('wizardCompleted', 'true');
       setShowOnboardingWizard(false);
