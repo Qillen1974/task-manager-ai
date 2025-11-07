@@ -194,13 +194,17 @@ export function ProjectTabs({
           {/* Create Project Button */}
           <button
             onClick={onCreateProject}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition whitespace-nowrap"
+            className={`flex items-center gap-1 px-3 py-1.5 font-medium rounded-lg transition whitespace-nowrap ${
+              rootProjects.length === 0
+                ? "px-4 py-2 text-base bg-blue-600 text-white hover:bg-blue-700"
+                : "text-sm text-blue-600 hover:bg-blue-50"
+            }`}
             title="Create new project"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            New
+            {rootProjects.length === 0 ? "Create Project" : "New"}
           </button>
         </div>
       </div>
