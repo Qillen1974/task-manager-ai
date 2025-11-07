@@ -106,6 +106,13 @@ export function Navigation({
             >
               Projects
             </button>
+            <Link
+              href="/help"
+              className="pb-2 font-medium transition border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+              title="Help & Support"
+            >
+              Help
+            </Link>
             {onWizardClick && (
               <button
                 onClick={onWizardClick}
