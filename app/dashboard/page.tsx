@@ -985,6 +985,9 @@ export default function Home() {
           setEditingProject(undefined);
           setParentProjectId(undefined);
         }}
+        onDelete={async (projectId) => {
+          await handleDeleteProject(projectId);
+        }}
         onClose={() => {
           setShowProjectModal(false);
           setEditingProject(undefined);

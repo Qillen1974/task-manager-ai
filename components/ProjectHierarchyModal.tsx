@@ -11,6 +11,7 @@ interface ProjectHierarchyModalProps {
   allProjects: Project[];
   userPlan: "FREE" | "PRO" | "ENTERPRISE";
   onSubmit: (data: ProjectFormData) => Promise<void>;
+  onDelete?: (projectId: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -45,6 +46,7 @@ export function ProjectHierarchyModal({
   allProjects,
   userPlan,
   onSubmit,
+  onDelete,
   onClose,
 }: ProjectHierarchyModalProps) {
   const [formData, setFormData] = useState<ProjectFormData>({
@@ -61,6 +63,7 @@ export function ProjectHierarchyModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize form with project data if editing
   useEffect(() => {
@@ -129,6 +132,26 @@ export function ProjectHierarchyModal({
       setError(err instanceof Error ? err.message : "Failed to save project");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!project || !onDelete) return;
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${project.name}" and all its subprojects? This action cannot be undone.`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await onDelete(project.id);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete project");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -324,14 +347,24 @@ export function ProjectHierarchyModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || isDeleting}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition disabled:opacity-50"
             >
               Cancel
             </button>
+            {isEditing && onDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={loading || isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            )}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isDeleting}
               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:opacity-50"
             >
               {loading ? "Saving..." : isEditing ? "Update Project" : "Create Project"}
