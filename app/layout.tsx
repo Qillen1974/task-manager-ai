@@ -3,6 +3,7 @@ import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
 import { startRecurringTaskScheduler } from "@/lib/scheduler";
+import PWAProvider from "@/components/PWAProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,6 +19,23 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "TaskQuadrant - Professional Task Management",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TaskQuadrant",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,6 +43,7 @@ export const viewport: Viewport = {
   initialScale: 1.0,
   maximumScale: 5.0,
   userScalable: true,
+  viewportFit: "cover",
 };
 
 // Initialize recurring task scheduler on server startup (not during build)
@@ -42,6 +61,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* PWA Meta Tags */}
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="TaskQuadrant" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+
         {/* Google Ads Conversion Tracking */}
         <Script
           async
@@ -64,7 +93,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <PWAProvider>{children}</PWAProvider>
       </body>
     </html>
   );
