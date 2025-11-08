@@ -34,12 +34,12 @@ export default function MindMapsPage() {
     try {
       setIsLoading(true);
       // Load mind maps
-      const mindmapsResponse = await api.get("/api/mindmaps?includeConverted=false");
+      const mindmapsResponse = await api.get("/mindmaps?includeConverted=false");
       setMindMaps(mindmapsResponse.data || []);
 
       // Load subscription to check plan
       try {
-        const subscriptionResponse = await api.get("/api/subscriptions/current");
+        const subscriptionResponse = await api.get("/subscriptions/current");
         setUserPlan(subscriptionResponse.data?.plan);
       } catch {
         // Subscription endpoint might not exist or user is on free plan
@@ -72,7 +72,7 @@ export default function MindMapsPage() {
 
     try {
       setIsLoading(true);
-      await api.delete(`/api/mindmaps/${mindMapId}`);
+      await api.delete(`/mindmaps/${mindMapId}`);
       setMindMaps(mindMaps.filter((m) => m.id !== mindMapId));
     } catch (err) {
       setError("Failed to delete mind map");

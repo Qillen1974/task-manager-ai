@@ -76,7 +76,7 @@ export default function MindMapEditor({
   const loadMindMap = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`/api/mindmaps/${mindMapId}`);
+      const response = await api.get(`/mindmaps/${mindMapId}`);
       if (response.data) {
         const mindMap = response.data;
         setTitle(mindMap.title);
@@ -351,7 +351,7 @@ export default function MindMapEditor({
 
       if (mindMapId) {
         // Update existing mind map
-        await api.patch(`/api/mindmaps/${mindMapId}`, {
+        await api.patch(`/mindmaps/${mindMapId}`, {
           title,
           description,
           nodes,
@@ -359,7 +359,7 @@ export default function MindMapEditor({
         });
       } else {
         // Create new mind map
-        const response = await api.post("/api/mindmaps", {
+        const response = await api.post("/mindmaps", {
           title,
           description,
           nodes,
@@ -390,7 +390,7 @@ export default function MindMapEditor({
       setIsLoading(true);
       setError(null);
 
-      await api.post(`/api/mindmaps/${mindMapId}/convert`);
+      await api.post(`/mindmaps/${mindMapId}/convert`);
       setSuccessMessage("Mind map converted to projects and tasks successfully!");
       setShowConvertConfirm(false);
       onConvert?.(mindMapId);

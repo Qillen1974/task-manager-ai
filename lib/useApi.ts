@@ -293,6 +293,27 @@ export function useApi() {
     [call]
   );
 
+  // Convenience methods for common HTTP verbs
+  const get = useCallback(
+    async <T = any>(endpoint: string) => call<T>('GET', endpoint),
+    [call]
+  );
+
+  const post = useCallback(
+    async <T = any>(endpoint: string, body?: any) => call<T>('POST', endpoint, body),
+    [call]
+  );
+
+  const patch = useCallback(
+    async <T = any>(endpoint: string, body?: any) => call<T>('PATCH', endpoint, body),
+    [call]
+  );
+
+  const deleteRequest = useCallback(
+    async <T = any>(endpoint: string) => call<T>('DELETE', endpoint),
+    [call]
+  );
+
   return {
     // State
     accessToken,
@@ -324,5 +345,9 @@ export function useApi() {
     // Utility methods
     call,
     refreshAccessToken,
+    get,
+    post,
+    patch,
+    delete: deleteRequest,
   };
 }
