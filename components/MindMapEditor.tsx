@@ -66,6 +66,7 @@ export default function MindMapEditor({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [existingProjects, setExistingProjects] = useState<any[]>([]);
+  const [isConverted, setIsConverted] = useState(false);
 
   // Load existing mind map and projects
   useEffect(() => {
@@ -96,6 +97,7 @@ export default function MindMapEditor({
         setDescription(mindMap.description || "");
         setNodes(mindMap.nodes);
         setEdges(mindMap.edges);
+        setIsConverted(mindMap.isConverted || false);
       }
     } catch (err) {
       setError("Failed to load mind map");
@@ -404,7 +406,12 @@ export default function MindMapEditor({
       setError(null);
 
       await api.post(`/mindmaps/${mindMapId}/convert`);
-      setSuccessMessage("Mind map converted to projects and tasks successfully!");
+      setSuccessMessage(
+        isConverted
+          ? "Mind map re-converted to projects and tasks successfully!"
+          : "Mind map converted to projects and tasks successfully!"
+      );
+      setIsConverted(true);
       setShowConvertConfirm(false);
       onConvert?.(mindMapId);
     } catch (err: any) {
@@ -499,6 +506,15 @@ export default function MindMapEditor({
           {successMessage && (
             <div className="mb-4 p-3 bg-green-100 border border-green-400 rounded">
               <p className="text-sm text-green-800">{successMessage}</p>
+            </div>
+          )}
+
+          {isConverted && !showConvertConfirm && (
+            <div className="mb-4 p-3 bg-blue-100 border border-blue-400 rounded">
+              <p className="text-xs font-semibold text-blue-900 mb-1">✓ Converted to Projects</p>
+              <p className="text-xs text-blue-800">
+                This mind map has already been converted to projects and tasks. You can make changes and re-convert to create additional projects and tasks.
+              </p>
             </div>
           )}
 
@@ -735,15 +751,16 @@ export default function MindMapEditor({
                 disabled={isLoading}
                 className="w-full bg-indigo-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-400"
               >
-                Convert to Projects
+                {isConverted ? "Re-convert to Projects" : "Convert to Projects"}
               </button>
             )}
 
             {showConvertConfirm && (
               <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
                 <p className="text-sm text-yellow-800 mb-2">
-                  This will create projects and tasks from your mind map. This
-                  action cannot be undone.
+                  {isConverted
+                    ? "This will create new projects and tasks from your updated mind map. Existing projects and tasks will remain unchanged."
+                    : "This will create projects and tasks from your mind map."}
                 </p>
                 <div className="flex gap-2">
                   <button

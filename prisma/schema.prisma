@@ -367,6 +367,9 @@ model MindMap {
   convertedAt   DateTime?
   rootProjectId String?  // ID of the root project created from this mind map (if converted)
 
+  // Node to project/task mapping for smart re-conversion
+  nodeToResourceMap String? // JSON object mapping node IDs to { type: "project"|"task", id: string }
+
   // Metadata
   nodeCount     Int      @default(0)  // For quick validation against limits
   createdAt     DateTime @default(now())
