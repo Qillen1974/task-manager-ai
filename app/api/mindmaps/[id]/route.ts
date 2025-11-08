@@ -23,12 +23,12 @@ export async function GET(
     });
 
     if (!mindMap) {
-      return ApiErrors.NOT_FOUND("Mind map not found");
+      return ApiErrors.NOT_FOUND("Mind map");
     }
 
     // Verify ownership
     if (mindMap.userId !== auth.userId) {
-      return ApiErrors.UNAUTHORIZED("You do not have access to this mind map");
+      return ApiErrors.FORBIDDEN();
     }
 
     // Parse and return mind map with nodes/edges
@@ -60,12 +60,12 @@ export async function PATCH(
     });
 
     if (!mindMap) {
-      return ApiErrors.NOT_FOUND("Mind map not found");
+      return ApiErrors.NOT_FOUND("Mind map");
     }
 
     // Verify ownership
     if (mindMap.userId !== auth.userId) {
-      return ApiErrors.UNAUTHORIZED("You do not have access to this mind map");
+      return ApiErrors.FORBIDDEN();
     }
 
     const body = await request.json();
@@ -73,11 +73,11 @@ export async function PATCH(
 
     // Validate if provided
     if (nodes && !Array.isArray(nodes)) {
-      return ApiErrors.INVALID_REQUEST("Nodes must be an array");
+      return ApiErrors.INVALID_INPUT({ message: "Nodes must be an array" });
     }
 
     if (edges && !Array.isArray(edges)) {
-      return ApiErrors.INVALID_REQUEST("Edges must be an array");
+      return ApiErrors.INVALID_INPUT({ message: "Edges must be an array" });
     }
 
     // Get subscription if updating nodes
@@ -100,8 +100,8 @@ export async function PATCH(
     }
 
     if (!nodeValidation) {
-      return ApiErrors.LIMIT_EXCEEDED(
-        "Mind map exceeds node limit for your subscription"
+      return ApiErrors.RESOURCE_LIMIT_EXCEEDED(
+        "nodes per mind map"
       );
     }
 
@@ -146,12 +146,12 @@ export async function DELETE(
     });
 
     if (!mindMap) {
-      return ApiErrors.NOT_FOUND("Mind map not found");
+      return ApiErrors.NOT_FOUND("Mind map");
     }
 
     // Verify ownership
     if (mindMap.userId !== auth.userId) {
-      return ApiErrors.UNAUTHORIZED("You do not have access to this mind map");
+      return ApiErrors.FORBIDDEN();
     }
 
     // Delete mind map

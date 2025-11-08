@@ -51,17 +51,17 @@ export async function POST(
     });
 
     if (!mindMap) {
-      return ApiErrors.NOT_FOUND("Mind map not found");
+      return ApiErrors.NOT_FOUND("Mind map");
     }
 
     // Verify ownership
     if (mindMap.userId !== auth.userId) {
-      return ApiErrors.UNAUTHORIZED("You do not have access to this mind map");
+      return ApiErrors.FORBIDDEN();
     }
 
     // Check if already converted
     if (mindMap.isConverted) {
-      return ApiErrors.INVALID_REQUEST("This mind map has already been converted");
+      return ApiErrors.INVALID_INPUT({ message: "This mind map has already been converted" });
     }
 
     // Parse nodes and edges
@@ -72,11 +72,11 @@ export async function POST(
       nodes = JSON.parse(mindMap.nodes);
       edges = JSON.parse(mindMap.edges);
     } catch (error) {
-      return ApiErrors.INVALID_REQUEST("Invalid mind map data format");
+      return ApiErrors.INVALID_INPUT({ message: "Invalid mind map data format" });
     }
 
     if (nodes.length === 0) {
-      return ApiErrors.INVALID_REQUEST("Mind map must have at least one node");
+      return ApiErrors.INVALID_INPUT({ message: "Mind map must have at least one node" });
     }
 
     // Get subscription
@@ -85,7 +85,7 @@ export async function POST(
     });
 
     if (!subscription) {
-      return ApiErrors.NOT_FOUND("Subscription not found");
+      return ApiErrors.NOT_FOUND("Subscription");
     }
 
     // Find root node (node with no parent or first node)
@@ -102,13 +102,13 @@ export async function POST(
       rootProjectCount
     );
     if (!canCreateRoot.allowed) {
-      return ApiErrors.LIMIT_EXCEEDED(canCreateRoot.message);
+      return ApiErrors.RESOURCE_LIMIT_EXCEEDED("root projects");
     }
 
     // Validate node count against subscription limits
     const nodeCheck = canCreateMindMapWithNodes(subscription.plan, nodes.length);
     if (!nodeCheck.allowed) {
-      return ApiErrors.LIMIT_EXCEEDED(nodeCheck.message);
+      return ApiErrors.RESOURCE_LIMIT_EXCEEDED("nodes per mind map");
     }
 
     try {
@@ -124,17 +124,17 @@ export async function POST(
         });
 
         if (!parentProject) {
-          return ApiErrors.NOT_FOUND("Parent project not found");
+          return ApiErrors.NOT_FOUND("Parent project");
         }
 
         if (parentProject.userId !== auth.userId) {
-          return ApiErrors.UNAUTHORIZED("You do not have access to this parent project");
+          return ApiErrors.FORBIDDEN();
         }
 
         // Check if we can create a subproject at this level
         const canCreateSub = canCreateSubproject(subscription.plan, parentProject.projectLevel);
         if (!canCreateSub.allowed) {
-          return ApiErrors.LIMIT_EXCEEDED(canCreateSub.message);
+          return ApiErrors.RESOURCE_LIMIT_EXCEEDED("subprojects at this level");
         }
 
         rootProjectLevel = parentProject.projectLevel + 1;

@@ -61,15 +61,15 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return ApiErrors.INVALID_REQUEST("Title is required");
+      return ApiErrors.INVALID_INPUT({ message: "Title is required" });
     }
 
     if (!Array.isArray(nodes)) {
-      return ApiErrors.INVALID_REQUEST("Nodes must be an array");
+      return ApiErrors.INVALID_INPUT({ message: "Nodes must be an array" });
     }
 
     if (!Array.isArray(edges)) {
-      return ApiErrors.INVALID_REQUEST("Edges must be an array");
+      return ApiErrors.INVALID_INPUT({ message: "Edges must be an array" });
     }
 
     // Get user subscription to check limits
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!subscription) {
-      return ApiErrors.NOT_FOUND("Subscription not found");
+      return ApiErrors.USER_NOT_FOUND();
     }
 
     // Check if user can create mind maps
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
 
     const canCreate = canCreateMindMap(subscription.plan, mindMapCount);
     if (!canCreate.allowed) {
-      return ApiErrors.LIMIT_EXCEEDED(canCreate.message);
+      return ApiErrors.RESOURCE_LIMIT_EXCEEDED("mind maps");
     }
 
     // Check if mind map can have this many nodes
     const nodeCheck = canCreateMindMapWithNodes(subscription.plan, nodes.length);
     if (!nodeCheck.allowed) {
-      return ApiErrors.LIMIT_EXCEEDED(nodeCheck.message);
+      return ApiErrors.RESOURCE_LIMIT_EXCEEDED("nodes per mind map");
     }
 
     // Create mind map
