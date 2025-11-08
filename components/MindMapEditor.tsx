@@ -65,13 +65,26 @@ export default function MindMapEditor({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [existingProjects, setExistingProjects] = useState<any[]>([]);
 
-  // Load existing mind map
+  // Load existing mind map and projects
   useEffect(() => {
+    loadProjects();
     if (mindMapId) {
       loadMindMap();
     }
   }, [mindMapId]);
+
+  const loadProjects = async () => {
+    try {
+      const response = await api.get("/projects");
+      if (response.data) {
+        setExistingProjects(response.data);
+      }
+    } catch (err) {
+      // Silently fail - projects loading is optional
+    }
+  };
 
   const loadMindMap = async () => {
     try {
@@ -542,6 +555,130 @@ export default function MindMapEditor({
                       title={color}
                     />
                   ))}
+                </div>
+              </div>
+
+              {/* Root node project selection */}
+              {selectedNode === "root" && existingProjects.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parent Project (Optional)
+                  </label>
+                  <select
+                    value={selectedNodeData.metadata?.parentProjectId || ""}
+                    onChange={(e) =>
+                      setNodes(
+                        nodes.map((n) =>
+                          n.id === selectedNode
+                            ? {
+                                ...n,
+                                metadata: {
+                                  ...(n.metadata || {}),
+                                  parentProjectId: e.target.value || undefined,
+                                },
+                              }
+                            : n
+                        )
+                      )
+                    }
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  >
+                    <option value="">Create as root project</option>
+                    {existingProjects.map((proj) => (
+                      <option key={proj.id} value={proj.id}>
+                        {proj.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Choose a project to make this a subproject
+                  </p>
+                </div>
+              )}
+
+              {/* Priority field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority (for tasks)
+                </label>
+                <select
+                  value={selectedNodeData.metadata?.priority || ""}
+                  onChange={(e) =>
+                    setNodes(
+                      nodes.map((n) =>
+                        n.id === selectedNode
+                          ? {
+                              ...n,
+                              metadata: {
+                                ...(n.metadata || {}),
+                                priority: e.target.value || undefined,
+                              },
+                            }
+                          : n
+                      )
+                    )
+                  }
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                >
+                  <option value="">No priority</option>
+                  <option value="urgent-important">Urgent & Important</option>
+                  <option value="not-urgent-important">Important (Not Urgent)</option>
+                  <option value="urgent-not-important">Urgent (Not Important)</option>
+                  <option value="not-urgent-not-important">Neither</option>
+                </select>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedNodeData.metadata?.startDate || ""}
+                    onChange={(e) =>
+                      setNodes(
+                        nodes.map((n) =>
+                          n.id === selectedNode
+                            ? {
+                                ...n,
+                                metadata: {
+                                  ...(n.metadata || {}),
+                                  startDate: e.target.value || undefined,
+                                },
+                              }
+                            : n
+                        )
+                      )
+                    }
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedNodeData.metadata?.dueDate || ""}
+                    onChange={(e) =>
+                      setNodes(
+                        nodes.map((n) =>
+                          n.id === selectedNode
+                            ? {
+                                ...n,
+                                metadata: {
+                                  ...(n.metadata || {}),
+                                  dueDate: e.target.value || undefined,
+                                },
+                              }
+                            : n
+                        )
+                      )
+                    }
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  />
                 </div>
               </div>
 

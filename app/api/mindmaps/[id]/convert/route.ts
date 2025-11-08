@@ -112,16 +112,54 @@ export async function POST(
     }
 
     try {
-      // Create root project
-      const rootProject = await db.project.create({
-        data: {
-          userId: auth.userId,
-          name: rootNode.label,
-          description: rootNode.description || null,
-          color: rootNode.color || "blue",
-          projectLevel: 0,
-        },
-      });
+      // Determine if root project should be a subproject of an existing project
+      const parentProjectId = rootNode.metadata?.parentProjectId;
+      let rootProject: any;
+      let rootProjectLevel = 0;
+
+      if (parentProjectId) {
+        // Create as subproject of existing project
+        const parentProject = await db.project.findUnique({
+          where: { id: parentProjectId },
+        });
+
+        if (!parentProject) {
+          return ApiErrors.NOT_FOUND("Parent project not found");
+        }
+
+        if (parentProject.userId !== auth.userId) {
+          return ApiErrors.UNAUTHORIZED("You do not have access to this parent project");
+        }
+
+        // Check if we can create a subproject at this level
+        const canCreateSub = canCreateSubproject(subscription.plan, parentProject.projectLevel);
+        if (!canCreateSub.allowed) {
+          return ApiErrors.LIMIT_EXCEEDED(canCreateSub.message);
+        }
+
+        rootProjectLevel = parentProject.projectLevel + 1;
+        rootProject = await db.project.create({
+          data: {
+            userId: auth.userId,
+            name: rootNode.label,
+            description: rootNode.description || null,
+            color: rootNode.color || "blue",
+            parentProjectId,
+            projectLevel: rootProjectLevel,
+          },
+        });
+      } else {
+        // Create as root project
+        rootProject = await db.project.create({
+          data: {
+            userId: auth.userId,
+            name: rootNode.label,
+            description: rootNode.description || null,
+            color: rootNode.color || "blue",
+            projectLevel: 0,
+          },
+        });
+      }
 
       // Map to track node IDs to created project/task IDs
       const nodeToIdMap = new Map<string, { type: "project" | "task"; id: string }>();
