@@ -55,6 +55,28 @@ export const RECURRING_TASK_LIMITS = {
 };
 
 /**
+ * Mind mapping feature limits
+ * Mind maps can be created by PRO and ENTERPRISE users
+ */
+export const MIND_MAP_LIMITS = {
+  FREE: {
+    maxMindMaps: 0, // Disabled
+    maxNodesPerMindMap: 0,
+    description: "Mind mapping not available",
+  },
+  PRO: {
+    maxMindMaps: 5,
+    maxNodesPerMindMap: 50,
+    description: "Up to 5 mind maps with 50 nodes each",
+  },
+  ENTERPRISE: {
+    maxMindMaps: -1, // Unlimited
+    maxNodesPerMindMap: -1, // Unlimited
+    description: "Unlimited mind maps with unlimited nodes",
+  },
+};
+
+/**
  * Get limits for a subscription plan
  */
 export function getPlanLimits(plan: SubscriptionPlan) {
@@ -240,4 +262,83 @@ export function getCorrectLimitsForPlan(plan: string): {
     projectLimit: projectLimitValue.maxProjects === -1 ? 999999 : projectLimitValue.maxProjects,
     taskLimit: taskLimitValue.maxTasks === -1 ? 999999 : taskLimitValue.maxTasks,
   };
+}
+
+/**
+ * Get mind map limits for a subscription plan
+ */
+export function getMindMapLimit(plan: SubscriptionPlan) {
+  return MIND_MAP_LIMITS[plan];
+}
+
+/**
+ * Check if user can create a mind map
+ * @param plan - User's subscription plan
+ * @param currentMindMapCount - Current number of mind maps user has
+ * @returns Object with allowed boolean and message
+ */
+export function canCreateMindMap(
+  plan: SubscriptionPlan,
+  currentMindMapCount: number
+): { allowed: boolean; message?: string } {
+  const limits = getMindMapLimit(plan);
+
+  // Check if plan supports mind maps at all
+  if (limits.maxMindMaps === 0) {
+    return {
+      allowed: false,
+      message: "Mind mapping is not available on your current plan. Upgrade to PRO to create mind maps.",
+    };
+  }
+
+  // Check if unlimited
+  if (limits.maxMindMaps === -1) {
+    return { allowed: true };
+  }
+
+  // Check if user has reached limit
+  if (currentMindMapCount >= limits.maxMindMaps) {
+    return {
+      allowed: false,
+      message: `You have reached your mind map limit (${limits.maxMindMaps}) on the ${plan} plan. Upgrade to ENTERPRISE for unlimited mind maps.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Check if a mind map can have a certain number of nodes
+ * @param plan - User's subscription plan
+ * @param nodeCount - Number of nodes in the mind map
+ * @returns Object with allowed boolean and message
+ */
+export function canCreateMindMapWithNodes(
+  plan: SubscriptionPlan,
+  nodeCount: number
+): { allowed: boolean; message?: string } {
+  const limits = getMindMapLimit(plan);
+
+  // Check if plan supports mind maps at all
+  if (limits.maxMindMaps === 0) {
+    return {
+      allowed: false,
+      message: "Mind mapping is not available on your current plan. Upgrade to PRO to create mind maps.",
+    };
+  }
+
+  // Check if unlimited
+  if (limits.maxNodesPerMindMap === -1) {
+    return { allowed: true };
+  }
+
+  // Check if node count exceeds limit
+  if (nodeCount > limits.maxNodesPerMindMap) {
+    return {
+      allowed: false,
+      message: `Your mind map exceeds the node limit (${limits.maxNodesPerMindMap}) for the ${plan} plan. Upgrade to ENTERPRISE for unlimited nodes per mind map.`,
+    };
+  }
+
+  return { allowed: true };
 }

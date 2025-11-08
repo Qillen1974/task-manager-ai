@@ -107,6 +107,13 @@ export function Navigation({
               Projects
             </button>
             <Link
+              href="/dashboard/mindmaps"
+              className="pb-2 font-medium transition border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+              title="Mind Maps"
+            >
+              Mind Maps
+            </Link>
+            <Link
               href="/help"
               className="pb-2 font-medium transition border-b-2 border-transparent text-gray-600 hover:text-gray-900"
               title="Help & Support"
@@ -250,6 +257,13 @@ export function Navigation({
             >
               Projects
             </button>
+            <Link
+              href="/dashboard/mindmaps"
+              onClick={() => setShowMobileMenu(false)}
+              className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Mind Maps
+            </Link>
             {onWizardClick && (
               <button
                 onClick={() => {

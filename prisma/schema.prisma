@@ -27,6 +27,7 @@ model User {
   subscription  Subscription?
   sessions      Session[]
   settings      UserSettings?
+  mindMaps      MindMap[]
 
   @@index([email])
 }
@@ -346,4 +347,31 @@ model SchedulerState {
   isRunning     Boolean  @default(false)
   lastError     String?
   updatedAt     DateTime @updatedAt
+}
+
+// MindMap model - stores user-created mind maps before conversion to projects/tasks
+model MindMap {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+
+  // Mind map data structure stored as JSON
+  nodes         String   // JSON array of nodes: { id, label, description, color, metadata }
+  edges         String   // JSON array of connections: { id, source, target, label }
+
+  // Conversion tracking
+  isConverted   Boolean  @default(false)
+  convertedAt   DateTime?
+  rootProjectId String?  // ID of the root project created from this mind map (if converted)
+
+  // Metadata
+  nodeCount     Int      @default(0)  // For quick validation against limits
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isConverted])
 }
