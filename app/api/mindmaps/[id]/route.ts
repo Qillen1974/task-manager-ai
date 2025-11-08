@@ -68,11 +68,6 @@ export async function PATCH(
       return ApiErrors.UNAUTHORIZED("You do not have access to this mind map");
     }
 
-    // Don't allow updates to converted mind maps
-    if (mindMap.isConverted) {
-      return ApiErrors.INVALID_REQUEST("Cannot update a converted mind map");
-    }
-
     const body = await request.json();
     const { title, description, nodes, edges } = body;
 

@@ -33,8 +33,8 @@ export default function MindMapsPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      // Load mind maps
-      const mindmapsResponse = await api.get("/mindmaps?includeConverted=false");
+      // Load all mind maps (including converted ones)
+      const mindmapsResponse = await api.get("/mindmaps?includeConverted=true");
       setMindMaps(mindmapsResponse.data || []);
 
       // Load subscription to check plan
@@ -149,19 +149,11 @@ export default function MindMapsPage() {
         ) : mindMaps.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No mind maps yet</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600">
               {userPlan === "FREE"
                 ? "Upgrade your plan to start creating mind maps"
-                : "Create your first mind map to get started"}
+                : "Click the 'Create New Mind Map' button above to get started"}
             </p>
-            {userPlan !== "FREE" && (
-              <button
-                onClick={handleCreateNew}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700"
-              >
-                Create Mind Map
-              </button>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -189,9 +181,14 @@ export default function MindMapsPage() {
 
                 {mindMap.isConverted && mindMap.convertedAt && (
                   <div className="mb-4 p-2 bg-green-50 border border-green-200 rounded">
-                    <p className="text-xs text-green-700">
-                      ✓ Converted on{" "}
+                    <p className="text-xs text-green-700 font-medium">
+                      ✓ Converted to projects
+                    </p>
+                    <p className="text-xs text-green-600">
                       {new Date(mindMap.convertedAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      You can still edit and convert again if needed
                     </p>
                   </div>
                 )}
