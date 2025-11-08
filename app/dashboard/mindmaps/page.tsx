@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader, AlertCircle } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import { Plus, Loader, AlertCircle, ArrowLeft } from "lucide-react";
 import { useApi } from "@/lib/useApi";
+import Link from "next/link";
 
 interface MindMap {
   id: string;
@@ -83,17 +83,23 @@ export default function MindMapsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      {/* Simple header */}
+      <div className="bg-white border-b border-gray-200 p-4">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="hover:bg-gray-100 rounded p-2 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Mind Maps</h1>
+            <p className="text-sm text-gray-600">Create visual mind maps and convert to projects</p>
+          </div>
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Mind Maps</h1>
-          <p className="text-lg text-gray-600">
-            Create visual mind maps and automatically convert them to projects and tasks
-          </p>
-        </div>
-
         {/* Error message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg flex items-start gap-3">
