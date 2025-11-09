@@ -24,13 +24,22 @@ export interface ApiResponseBody<T = any> {
 /**
  * Send success response
  */
-export function success<T>(data: T, statusCode: number = 200) {
+export function success<T>(data: T, messageOrStatus?: string | number, statusCode?: number) {
+  let finalStatusCode = 200;
+
+  // Handle overloaded parameters
+  if (typeof messageOrStatus === "number") {
+    finalStatusCode = messageOrStatus;
+  } else if (typeof statusCode === "number") {
+    finalStatusCode = statusCode;
+  }
+
   return NextResponse.json(
     {
       success: true,
       data,
     } as ApiResponseBody<T>,
-    { status: statusCode }
+    { status: finalStatusCode }
   );
 }
 
