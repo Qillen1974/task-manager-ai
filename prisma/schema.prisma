@@ -252,8 +252,9 @@ model Team {
   updatedAt DateTime @updatedAt
 
   // Relations
-  members   TeamMember[]
-  projects  Project[]                  // Projects owned by this team
+  members      TeamMember[]
+  invitations  TeamInvitation[]         // Pending team invitations
+  projects     Project[]                // Projects owned by this team
 
   @@index([ownerId])
   @@index([slug])
@@ -295,6 +296,7 @@ model TeamMember {
 model TeamInvitation {
   id        String   @id @default(cuid())
   teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   email     String                      // Email address being invited
   role      TeamRole @default(VIEWER)   // Role being offered
