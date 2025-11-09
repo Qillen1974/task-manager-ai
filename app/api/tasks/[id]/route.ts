@@ -127,23 +127,68 @@ export async function PATCH(
     // Find task
     const task = await db.task.findUnique({
       where: { id: params.id },
+      include: { project: true },
     });
 
     if (!task) {
       return ApiErrors.NOT_FOUND("Task");
     }
 
-    if (task.userId !== auth.userId) {
+    // Check task access: user must be owner OR team member with EDITOR+ role
+    const isOwner = task.userId === auth.userId;
+    let canEditTask = isOwner;
+
+    if (task.project?.teamId && !isOwner) {
+      // For team projects, check if user is EDITOR or ADMIN
+      const teamMember = await db.teamMember.findFirst({
+        where: {
+          teamId: task.project.teamId,
+          userId: auth.userId,
+          acceptedAt: { not: null },
+        },
+      });
+
+      if (teamMember) {
+        const roleHierarchy = { ADMIN: 3, EDITOR: 2, VIEWER: 1 };
+        const userLevel = roleHierarchy[teamMember.role as keyof typeof roleHierarchy];
+        canEditTask = userLevel >= 2; // EDITOR or higher
+      }
+    }
+
+    if (!canEditTask) {
       return ApiErrors.FORBIDDEN();
     }
 
-    // If changing project, verify ownership
+    // If changing project, verify access to new project
     if (projectId && projectId !== task.projectId) {
-      const project = await db.project.findUnique({
+      const newProject = await db.project.findUnique({
         where: { id: projectId },
       });
 
-      if (!project || project.userId !== auth.userId) {
+      if (!newProject) {
+        return ApiErrors.NOT_FOUND("Project");
+      }
+
+      const isNewOwner = newProject.userId === auth.userId;
+      let canAccessNewProject = isNewOwner;
+
+      if (newProject.teamId && !isNewOwner) {
+        const teamMember = await db.teamMember.findFirst({
+          where: {
+            teamId: newProject.teamId,
+            userId: auth.userId,
+            acceptedAt: { not: null },
+          },
+        });
+
+        if (teamMember) {
+          const roleHierarchy = { ADMIN: 3, EDITOR: 2, VIEWER: 1 };
+          const userLevel = roleHierarchy[teamMember.role as keyof typeof roleHierarchy];
+          canAccessNewProject = userLevel >= 2;
+        }
+      }
+
+      if (!canAccessNewProject) {
         return ApiErrors.FORBIDDEN();
       }
     }
@@ -285,13 +330,35 @@ export async function DELETE(
     // Find task
     const task = await db.task.findUnique({
       where: { id: params.id },
+      include: { project: true },
     });
 
     if (!task) {
       return ApiErrors.NOT_FOUND("Task");
     }
 
-    if (task.userId !== auth.userId) {
+    // Check delete access: user must be owner OR team member with EDITOR+ role
+    const isOwner = task.userId === auth.userId;
+    let canDeleteTask = isOwner;
+
+    if (task.project?.teamId && !isOwner) {
+      // For team projects, check if user is EDITOR or ADMIN
+      const teamMember = await db.teamMember.findFirst({
+        where: {
+          teamId: task.project.teamId,
+          userId: auth.userId,
+          acceptedAt: { not: null },
+        },
+      });
+
+      if (teamMember) {
+        const roleHierarchy = { ADMIN: 3, EDITOR: 2, VIEWER: 1 };
+        const userLevel = roleHierarchy[teamMember.role as keyof typeof roleHierarchy];
+        canDeleteTask = userLevel >= 2; // EDITOR or higher
+      }
+    }
+
+    if (!canDeleteTask) {
       return ApiErrors.FORBIDDEN();
     }
 

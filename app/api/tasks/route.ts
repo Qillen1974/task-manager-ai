@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.MISSING_REQUIRED_FIELD("projectId");
     }
 
-    // Verify project exists and belongs to user
+    // Verify project exists and user has access
     const project = await db.project.findUnique({
       where: { id: projectId },
     });
@@ -144,7 +144,29 @@ export async function POST(request: NextRequest) {
       return ApiErrors.NOT_FOUND("Project");
     }
 
-    if (project.userId !== auth.userId) {
+    // Check access: either personal project owner OR team member with EDITOR+ role
+    const isOwner = project.userId === auth.userId;
+    let isTeamMember = false;
+
+    if (project.teamId) {
+      // For team projects, check if user is EDITOR or ADMIN
+      const teamMember = await db.teamMember.findFirst({
+        where: {
+          teamId: project.teamId,
+          userId: auth.userId,
+          acceptedAt: { not: null }, // Only accepted members
+        },
+      });
+
+      if (teamMember) {
+        const roleHierarchy = { ADMIN: 3, EDITOR: 2, VIEWER: 1 };
+        const userLevel = roleHierarchy[teamMember.role as keyof typeof roleHierarchy];
+        isTeamMember = userLevel >= 2; // EDITOR or higher
+      }
+    }
+
+    // Must be either owner or team member with appropriate access
+    if (!isOwner && !isTeamMember) {
       return ApiErrors.FORBIDDEN();
     }
 
