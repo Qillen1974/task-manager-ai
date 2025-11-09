@@ -19,11 +19,72 @@ export async function GET(request: NextRequest) {
     const projectId = url.searchParams.get("projectId");
     const completed = url.searchParams.get("completed");
 
-    // Build filter
-    const where: any = { userId: auth.userId };
+    // Build filter - include tasks from user's own projects AND team projects
+    let where: any;
+
     if (projectId) {
-      where.projectId = projectId;
+      // If specific project requested, get that project first to check if it's a team project
+      const project = await db.project.findUnique({
+        where: { id: projectId },
+      });
+
+      if (!project) {
+        return ApiErrors.NOT_FOUND("Project");
+      }
+
+      // For team projects, include all tasks in the project
+      // For personal projects, only include user's tasks
+      if (project.teamId) {
+        // Verify user is a team member
+        const teamMember = await db.teamMember.findFirst({
+          where: {
+            teamId: project.teamId,
+            userId: auth.userId,
+            acceptedAt: { not: null },
+          },
+        });
+
+        if (!teamMember) {
+          return ApiErrors.FORBIDDEN("You are not a member of this team");
+        }
+
+        // User is team member, show all tasks in project
+        where = { projectId };
+      } else {
+        // Personal project - only show user's tasks
+        where = { projectId, userId: auth.userId };
+      }
+    } else {
+      // No specific project - return user's personal tasks + all tasks from team projects they're in
+      const teamMemberships = await db.teamMember.findMany({
+        where: {
+          userId: auth.userId,
+          acceptedAt: { not: null },
+        },
+        select: { teamId: true },
+      });
+
+      const userTeamIds = teamMemberships.map((tm) => tm.teamId);
+
+      // Get all user's projects
+      const userProjects = await db.project.findMany({
+        where: {
+          OR: [
+            { userId: auth.userId }, // Personal projects
+            ...(userTeamIds.length > 0 ? [{ teamId: { in: userTeamIds } }] : []), // Team projects
+          ],
+        },
+        select: { id: true },
+      });
+
+      const projectIds = userProjects.map((p) => p.id);
+
+      where = {
+        projectId: { in: projectIds },
+      };
     }
+
+    // Add completion filter if specified
     if (completed !== null) {
       where.completed = completed === "true";
     }
@@ -72,6 +133,14 @@ export async function GET(request: NextRequest) {
             color: true,
           },
         },
+        assignments: {
+          select: {
+            id: true,
+            userId: true,
+            role: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -107,6 +176,7 @@ export async function GET(request: NextRequest) {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
+      assignments: task.assignments,
     }));
 
     return success(formattedTasks);
