@@ -182,13 +182,7 @@ export async function POST(request: NextRequest) {
 
       const canCreate = canCreateRootProject(subscription.plan, rootProjectCount);
       if (!canCreate.allowed) {
-        return {
-          success: false,
-          error: {
-            message: canCreate.message || "Cannot create project",
-            code: "LIMIT_EXCEEDED",
-          },
-        };
+        return ApiErrors.RESOURCE_LIMIT_EXCEEDED("root projects");
       }
 
       // Create root project
@@ -220,13 +214,7 @@ export async function POST(request: NextRequest) {
       // Check if user can create subprojects
       const canCreate = canCreateSubproject(subscription.plan, parentProject.projectLevel);
       if (!canCreate.allowed) {
-        return {
-          success: false,
-          error: {
-            message: canCreate.message || "Cannot create subproject",
-            code: "LIMIT_EXCEEDED",
-          },
-        };
+        return ApiErrors.RESOURCE_LIMIT_EXCEEDED("subprojects");
       }
 
       // Create subproject
