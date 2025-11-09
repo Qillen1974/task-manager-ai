@@ -449,7 +449,7 @@ export default function Home() {
       if (project && (project as any).teamId) {
         const teamId = (project as any).teamId;
         console.log("Fetching members for team:", teamId);
-        const response = await api.get(`/api/teams/${teamId}/members`);
+        const response = await api.get(`/teams/${teamId}/members`);
         console.log("Members response:", response);
         if (response.success && response.data) {
           setTeamMembers(response.data);
