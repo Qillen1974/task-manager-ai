@@ -23,10 +23,27 @@ interface Subscription {
   plan: "FREE" | "PRO" | "ENTERPRISE";
 }
 
+interface PendingInvitation {
+  id: string;
+  token: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  expiresAt: string;
+  team: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    ownerId: string;
+  };
+}
+
 export default function TeamsPage() {
   const api = useApi();
   const router = useRouter();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
@@ -35,6 +52,7 @@ export default function TeamsPage() {
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamDescription, setNewTeamDescription] = useState("");
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [acceptingInvitation, setAcceptingInvitation] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -61,9 +79,16 @@ export default function TeamsPage() {
   const loadTeams = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/teams");
-      if (response.data) {
-        setTeams(response.data);
+      const [teamsRes, invitationsRes] = await Promise.all([
+        api.get("/teams"),
+        api.get("/teams/pending-invitations").catch(() => ({ data: [] })),
+      ]);
+
+      if (teamsRes.data) {
+        setTeams(teamsRes.data);
+      }
+      if (invitationsRes.data) {
+        setPendingInvitations(invitationsRes.data);
       }
     } catch (err: any) {
       setError(err.response?.data?.error?.message || "Failed to load teams");
@@ -100,6 +125,27 @@ export default function TeamsPage() {
     }
   };
 
+  const handleAcceptInvitation = async (invitationToken: string) => {
+    try {
+      setAcceptingInvitation(invitationToken);
+      const response = await api.post("/teams/accept-invitation", {
+        token: invitationToken,
+      });
+
+      if (response.data) {
+        // Remove from pending invitations
+        setPendingInvitations(pendingInvitations.filter((inv) => inv.token !== invitationToken));
+        // Reload teams to show the new team
+        await loadTeams();
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "Failed to accept invitation");
+    } finally {
+      setAcceptingInvitation(null);
+    }
+  };
+
   if (!authenticated) {
     return <AuthPage />;
   }
@@ -121,19 +167,20 @@ export default function TeamsPage() {
             <p className="mt-2 text-gray-600">Collaborate with your team members</p>
             {subscription && subscription.plan !== "ENTERPRISE" && (
               <p className="mt-2 text-sm text-blue-600">
-                💡 Teams are an ENTERPRISE feature. <Link href="/dashboard/settings" className="font-semibold hover:underline">Upgrade now</Link>
+                💡 Creating teams requires ENTERPRISE plan. You can accept team invitations on any plan. <Link href="/dashboard/settings" className="font-semibold hover:underline">Upgrade to create teams</Link>
               </p>
             )}
           </div>
           <button
             onClick={() => {
               if (subscription?.plan !== "ENTERPRISE") {
-                setError("Teams are an ENTERPRISE feature. Please upgrade your subscription.");
+                setError("Creating teams requires an ENTERPRISE subscription. You can accept team invitations on any plan.");
                 return;
               }
               setShowCreateModal(true);
             }}
             disabled={subscription?.plan !== "ENTERPRISE"}
+            title={subscription?.plan !== "ENTERPRISE" ? "Creating teams requires ENTERPRISE plan" : "Create a new team"}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
               subscription?.plan === "ENTERPRISE"
                 ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -221,6 +268,47 @@ export default function TeamsPage() {
           </div>
         )}
 
+        {/* Pending Invitations */}
+        {!loading && pendingInvitations.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Team Invitations</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pendingInvitations.map((invitation) => (
+                <div
+                  key={invitation.id}
+                  className="bg-yellow-50 rounded-lg shadow-sm p-6 border border-yellow-200"
+                >
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{invitation.team.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">@{invitation.team.slug}</p>
+                  </div>
+
+                  {invitation.team.description && (
+                    <p className="text-sm text-gray-600 mb-3">{invitation.team.description}</p>
+                  )}
+
+                  <div className="mb-4 pt-3 border-t border-yellow-200">
+                    <p className="text-xs text-gray-600">
+                      Role: <span className="font-medium capitalize">{invitation.role}</span>
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Expires: {new Date(invitation.expiresAt).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleAcceptInvitation(invitation.token)}
+                    disabled={acceptingInvitation === invitation.token}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition font-medium"
+                  >
+                    {acceptingInvitation === invitation.token ? "Accepting..." : "Accept Invitation"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Teams Grid */}
         {!loading && teams.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -257,20 +345,31 @@ export default function TeamsPage() {
         )}
 
         {/* Empty State */}
-        {!loading && teams.length === 0 && (
+        {!loading && teams.length === 0 && pendingInvitations.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No teams yet</h3>
             <p className="text-gray-600 mb-6">
-              Create your first team to start collaborating with others
+              {subscription?.plan === "ENTERPRISE"
+                ? "Create your first team to start collaborating with others"
+                : "You're not a member of any teams yet. Ask a team owner to invite you to join their team, or upgrade to ENTERPRISE to create your own."}
             </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-            >
-              <Plus className="w-5 h-5" />
-              Create Your First Team
-            </button>
+            {subscription?.plan === "ENTERPRISE" ? (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                <Plus className="w-5 h-5" />
+                Create Your First Team
+              </button>
+            ) : (
+              <Link
+                href="/dashboard/settings"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                Upgrade to ENTERPRISE
+              </Link>
+            )}
           </div>
         )}
       </div>
