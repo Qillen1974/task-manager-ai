@@ -60,6 +60,8 @@ export default function MindMapEditor({
   const [description, setDescription] = useState(initialDescription);
   const [selectedNode, setSelectedNode] = useState<string | null>("root");
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const [connectionMode, setConnectionMode] = useState(false);
+  const [connectionFirstNode, setConnectionFirstNode] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -155,15 +157,26 @@ export default function MindMapEditor({
       const x = node.x || CANVAS_WIDTH / 2;
       const y = node.y || CANVAS_HEIGHT / 2;
 
+      // Determine node color based on selection and connection mode
+      let isSelected = false;
+      let isPartOfConnection = false;
+
+      if (connectionMode) {
+        isPartOfConnection = node.id === connectionFirstNode;
+        isSelected = isPartOfConnection;
+      } else {
+        isSelected = selectedNode === node.id;
+      }
+
       // Circle background
-      ctx.fillStyle = selectedNode === node.id ? "#3b82f6" : getColorHex(node.color || "blue");
+      ctx.fillStyle = isSelected ? "#3b82f6" : getColorHex(node.color || "blue");
       ctx.beginPath();
       ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2);
       ctx.fill();
 
-      // Border
-      ctx.strokeStyle = selectedNode === node.id ? "#1f2937" : "#ffffff";
-      ctx.lineWidth = 2;
+      // Border - thicker for selected nodes in connection mode
+      ctx.strokeStyle = isSelected ? "#1f2937" : "#ffffff";
+      ctx.lineWidth = isSelected ? 3 : 2;
       ctx.stroke();
 
       // Text
@@ -196,7 +209,7 @@ export default function MindMapEditor({
         ctx.fillText(line, x, startY + index * lineHeight);
       });
     });
-  }, [nodes, edges, selectedNode, selectedEdge]);
+  }, [nodes, edges, selectedNode, selectedEdge, connectionMode, connectionFirstNode]);
 
   const getColorHex = (color: string): string => {
     const colorMap: Record<string, string> = {
@@ -269,8 +282,44 @@ export default function MindMapEditor({
     });
 
     if (clickedNode) {
-      setSelectedNode(clickedNode.id);
-      setSelectedEdge(null);
+      // Handle connection mode
+      if (connectionMode) {
+        if (connectionFirstNode && clickedNode.id !== connectionFirstNode) {
+          // Second node selected - create connection
+          const newEdgeId = `edge-${Date.now()}`;
+          const newEdge: MindMapEdge = {
+            id: newEdgeId,
+            source: connectionFirstNode,
+            target: clickedNode.id,
+          };
+
+          // Avoid duplicate edges
+          const exists = edges.some(
+            (e) => (e.source === newEdge.source && e.target === newEdge.target) ||
+                   (e.source === newEdge.target && e.target === newEdge.source)
+          );
+
+          if (!exists) {
+            setEdges([...edges, newEdge]);
+            setSuccessMessage("Connection created successfully");
+            setConnectionMode(false);
+            setConnectionFirstNode(null);
+            setSelectedNode(null);
+          } else {
+            setError("Connection already exists between these nodes");
+          }
+        } else if (connectionFirstNode === clickedNode.id) {
+          // Deselect first node
+          setConnectionFirstNode(null);
+        } else {
+          // First node selected
+          setConnectionFirstNode(clickedNode.id);
+        }
+      } else {
+        // Normal node selection
+        setSelectedNode(clickedNode.id);
+        setSelectedEdge(null);
+      }
     } else {
       // Check if clicked on an edge
       let clickedEdge = null;
@@ -295,6 +344,11 @@ export default function MindMapEditor({
       } else {
         setSelectedNode(null);
         setSelectedEdge(null);
+        // Exit connection mode if clicking empty space
+        if (connectionMode) {
+          setConnectionMode(false);
+          setConnectionFirstNode(null);
+        }
       }
     }
   };
@@ -391,37 +445,24 @@ export default function MindMapEditor({
     setNodes(nodes.map((n) => (n.id === selectedNode ? { ...n, color } : n)));
   };
 
-  const addConnection = () => {
-    if (!selectedNode) {
-      setError("Please select a source node");
-      return;
-    }
-
-    // For simplicity, create a connection to a random other node
-    const otherNodes = nodes.filter((n) => n.id !== selectedNode);
-    if (otherNodes.length === 0) {
+  const toggleConnectionMode = () => {
+    if (nodes.length < 2) {
       setError("Need at least 2 nodes to create a connection");
       return;
     }
 
-    const targetNode = otherNodes[Math.floor(Math.random() * otherNodes.length)];
-    const newEdgeId = `edge-${Date.now()}`;
-
-    const newEdge: MindMapEdge = {
-      id: newEdgeId,
-      source: selectedNode,
-      target: targetNode.id,
-    };
-
-    // Avoid duplicate edges
-    const exists = edges.some(
-      (e) => (e.source === newEdge.source && e.target === newEdge.target) ||
-             (e.source === newEdge.target && e.target === newEdge.source)
-    );
-
-    if (!exists) {
-      setEdges([...edges, newEdge]);
-      setSuccessMessage("Connection added successfully");
+    if (connectionMode) {
+      // Exit connection mode
+      setConnectionMode(false);
+      setConnectionFirstNode(null);
+      setSelectedNode(null);
+      setSelectedEdge(null);
+    } else {
+      // Enter connection mode
+      setConnectionMode(true);
+      setConnectionFirstNode(null);
+      setSelectedEdge(null);
+      setError(null);
     }
   };
 
@@ -799,13 +840,33 @@ export default function MindMapEditor({
             </p>
           )}
 
+          {/* Connection mode section */}
+          {connectionMode && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-xs font-semibold text-blue-900 mb-2">Connection Mode Active</p>
+              {connectionFirstNode ? (
+                <p className="text-xs text-blue-800">
+                  {nodes.find((n) => n.id === connectionFirstNode)?.label || "Node"} selected
+                  <br />
+                  <span className="font-medium">Click another node to create connection</span>
+                </p>
+              ) : (
+                <p className="text-xs text-blue-800">Click the first node to start connecting</p>
+              )}
+            </div>
+          )}
+
           {/* Connection buttons */}
           <div className="flex gap-2 mb-4">
             <button
-              onClick={addConnection}
-              className="flex-1 bg-purple-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-purple-700"
+              onClick={toggleConnectionMode}
+              className={`flex-1 px-3 py-2 rounded text-sm font-medium text-white ${
+                connectionMode
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-purple-600 hover:bg-purple-700"
+              }`}
             >
-              Add Connection
+              {connectionMode ? "Cancel Connection" : "Add Connection"}
             </button>
             <button
               onClick={deleteConnection}
