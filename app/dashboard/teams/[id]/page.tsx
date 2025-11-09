@@ -159,6 +159,24 @@ export default function TeamDetailsPage() {
     }
   };
 
+  const handleDeleteTeam = async () => {
+    if (!confirm("Are you sure you want to delete this team? This action cannot be undone.")) {
+      return;
+    }
+
+    if (!confirm("This will permanently delete the team and all its data. Click OK to confirm.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/teams/${teamId}`);
+      // Redirect back to teams page after successful deletion
+      router.push("/dashboard/teams");
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "Failed to delete team");
+    }
+  };
+
   if (!authenticated) {
     return <AuthPage />;
   }
@@ -231,9 +249,20 @@ export default function TeamDetailsPage() {
               <p className="text-gray-600 mt-1">@{team.slug}</p>
               {team.description && <p className="text-gray-700 mt-2">{team.description}</p>}
             </div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 capitalize">
-              {team.userRole}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 capitalize">
+                {team.userRole}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={handleDeleteTeam}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                  title="Delete team"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
