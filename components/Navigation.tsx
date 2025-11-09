@@ -60,6 +60,7 @@ export function Navigation({
 }: NavigationProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -132,24 +133,57 @@ export function Navigation({
               Mind Maps
             </Link>
             <Link
-              href="/help"
+              href="/dashboard/teams"
               className="pb-2 font-medium transition border-b-2 border-transparent text-gray-600 hover:text-gray-900"
-              title="Help & Support"
+              title="Team Collaboration"
             >
-              Help
+              Teams
             </Link>
-            {onWizardClick && (
+            {/* Help Dropdown Menu */}
+            <div className="relative">
               <button
-                onClick={onWizardClick}
-                className="ml-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition font-medium"
-                title="Get help with TaskQuadrant"
+                onClick={() => setShowHelpMenu(!showHelpMenu)}
+                className="pb-2 font-medium transition border-b-2 border-transparent text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                title="Help & Support"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                Help
+                <svg
+                  className={`w-4 h-4 transition ${showHelpMenu ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
-                Help & Tour
               </button>
-            )}
+
+              {/* Help Dropdown Content */}
+              {showHelpMenu && (
+                <div className="absolute top-full left-0 mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <Link
+                    href="/help"
+                    onClick={() => setShowHelpMenu(false)}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    Help & Support
+                  </Link>
+                  {onWizardClick && (
+                    <button
+                      onClick={() => {
+                        onWizardClick();
+                        setShowHelpMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Guided Tour
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* User Profile & Logout */}
@@ -282,6 +316,20 @@ export function Navigation({
             >
               Mind Maps
             </Link>
+            <Link
+              href="/dashboard/teams"
+              onClick={() => setShowMobileMenu(false)}
+              className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Teams
+            </Link>
+            <Link
+              href="/help"
+              onClick={() => setShowMobileMenu(false)}
+              className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              Help & Support
+            </Link>
             {onWizardClick && (
               <button
                 onClick={() => {
@@ -293,7 +341,7 @@ export function Navigation({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Help & Tour
+                Guided Tour
               </button>
             )}
 
