@@ -75,7 +75,23 @@ export async function GET(
       return ApiErrors.NOT_FOUND("Task");
     }
 
-    if (task.userId !== auth.userId) {
+    // Check access: user must be creator OR team member with access
+    const isOwner = task.userId === auth.userId;
+    let canAccess = isOwner;
+
+    if (task.project?.teamId && !isOwner) {
+      // For team projects, check if user is a team member
+      const teamMember = await db.teamMember.findFirst({
+        where: {
+          teamId: task.project.teamId,
+          userId: auth.userId,
+          acceptedAt: { not: null },
+        },
+      });
+      canAccess = !!teamMember;
+    }
+
+    if (!canAccess) {
       return ApiErrors.FORBIDDEN();
     }
 

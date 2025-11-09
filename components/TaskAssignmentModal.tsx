@@ -18,6 +18,11 @@ interface TaskAssignmentModalProps {
   isLoading?: boolean;
 }
 
+interface MemberAssignment {
+  userId: string;
+  role: TaskAssignmentRole;
+}
+
 export function TaskAssignmentModal({
   task,
   teamMembers,
@@ -25,8 +30,7 @@ export function TaskAssignmentModal({
   onClose,
   isLoading = false
 }: TaskAssignmentModalProps) {
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-  const [selectedRole, setSelectedRole] = useState<TaskAssignmentRole>("COLLABORATOR");
+  const [assignments, setAssignments] = useState<Map<string, TaskAssignmentRole>>(new Map());
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
@@ -35,17 +39,23 @@ export function TaskAssignmentModal({
   const availableMembers = teamMembers.filter(m => !assignedUserIds.has(m.userId));
 
   const toggleMemberSelection = (userId: string) => {
-    const newSelected = new Set(selectedUserIds);
-    if (newSelected.has(userId)) {
-      newSelected.delete(userId);
+    const newAssignments = new Map(assignments);
+    if (newAssignments.has(userId)) {
+      newAssignments.delete(userId);
     } else {
-      newSelected.add(userId);
+      newAssignments.set(userId, "COLLABORATOR");
     }
-    setSelectedUserIds(newSelected);
+    setAssignments(newAssignments);
+  };
+
+  const updateMemberRole = (userId: string, role: TaskAssignmentRole) => {
+    const newAssignments = new Map(assignments);
+    newAssignments.set(userId, role);
+    setAssignments(newAssignments);
   };
 
   const handleAssignMultiple = async () => {
-    if (selectedUserIds.size === 0) {
+    if (assignments.size === 0) {
       setError("Please select at least one team member");
       return;
     }
@@ -54,15 +64,14 @@ export function TaskAssignmentModal({
       setError("");
       setIsAssigning(true);
 
-      // Assign each selected member with the chosen role
-      const userIds = Array.from(selectedUserIds);
-      for (const userId of userIds) {
-        await onAssign(userId, selectedRole);
+      // Assign each selected member with their chosen role
+      const assignmentEntries = Array.from(assignments.entries());
+      for (const [userId, role] of assignmentEntries) {
+        await onAssign(userId, role);
       }
 
-      setSuccess(`Assigned ${userIds.length} member${userIds.length > 1 ? 's' : ''} as ${selectedRole.toLowerCase()}`);
-      setSelectedUserIds(new Set());
-      setSelectedRole("COLLABORATOR");
+      setSuccess(`Assigned ${assignments.size} member${assignments.size > 1 ? 's' : ''}`);
+      setAssignments(new Map());
 
       // Reset success message after 2 seconds
       setTimeout(() => setSuccess(""), 2000);
@@ -77,9 +86,24 @@ export function TaskAssignmentModal({
     return member.name || member.email || member.userId;
   };
 
+  const roleOptions: TaskAssignmentRole[] = ["OWNER", "COLLABORATOR", "REVIEWER"];
+
+  const getRoleDescription = (role: TaskAssignmentRole) => {
+    switch (role) {
+      case "OWNER":
+        return "Primary responsibility";
+      case "COLLABORATOR":
+        return "Helping with task";
+      case "REVIEWER":
+        return "Reviewing/approving";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4 max-h-96 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full p-6 space-y-4 max-h-96 overflow-y-auto">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Assign Task</h2>
           <p className="text-sm text-gray-600 mt-1">{task.title}</p>
@@ -97,21 +121,24 @@ export function TaskAssignmentModal({
           </div>
         )}
 
-        {/* Team Member Selection with Checkboxes */}
+        {/* Team Member Selection with Per-Member Role Assignment */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Select Team Members ({selectedUserIds.size} selected)
+            Select Members and Assign Roles ({assignments.size} selected)
           </label>
           {availableMembers.length > 0 ? (
-            <div className="space-y-2 border border-gray-300 rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
+            <div className="space-y-3 border border-gray-300 rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
               {availableMembers.map((member) => (
-                <label key={member.userId} className="flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
-                  <input
-                    type="checkbox"
-                    checked={selectedUserIds.has(member.userId)}
-                    onChange={() => toggleMemberSelection(member.userId)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                  />
+                <div key={member.userId} className="flex items-center gap-3 hover:bg-gray-100 p-2 rounded transition">
+                  <div className="flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={assignments.has(member.userId)}
+                      onChange={() => toggleMemberSelection(member.userId)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {getMemberDisplayName(member)}
@@ -120,7 +147,24 @@ export function TaskAssignmentModal({
                       <p className="text-xs text-gray-500 truncate">{member.email}</p>
                     )}
                   </div>
-                </label>
+
+                  {/* Role selector - only visible when member is selected */}
+                  {assignments.has(member.userId) && (
+                    <div className="flex-shrink-0">
+                      <select
+                        value={assignments.get(member.userId) || "COLLABORATOR"}
+                        onChange={(e) => updateMemberRole(member.userId, e.target.value as TaskAssignmentRole)}
+                        className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                      >
+                        {roleOptions.map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : (
@@ -130,27 +174,31 @@ export function TaskAssignmentModal({
           )}
         </div>
 
-        {/* Role Selection */}
-        <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-            Assign Role
-          </label>
-          <select
-            id="role"
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value as TaskAssignmentRole)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          >
-            <option value="OWNER">Owner (Primary responsibility)</option>
-            <option value="COLLABORATOR">Collaborator (Helper)</option>
-            <option value="REVIEWER">Reviewer (Approval)</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-2">
-            {selectedRole === "OWNER" && "Primary person responsible for task completion"}
-            {selectedRole === "COLLABORATOR" && "Helping with the task"}
-            {selectedRole === "REVIEWER" && "Reviewing and approving the task"}
-          </p>
-        </div>
+        {/* Assignment Summary */}
+        {assignments.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm font-medium text-blue-900 mb-2">Assignment Summary:</p>
+            <div className="space-y-1">
+              {Array.from(assignments.entries()).map(([userId, role]) => {
+                const member = teamMembers.find(m => m.userId === userId);
+                return (
+                  <div key={userId} className="text-sm text-blue-800 flex items-center justify-between">
+                    <span>{getMemberDisplayName(member || { userId })}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      role === "OWNER"
+                        ? "bg-red-100 text-red-800"
+                        : role === "COLLABORATOR"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                    }`}>
+                      {role}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Current Assignments */}
         {task.assignments && task.assignments.length > 0 && (
@@ -162,7 +210,8 @@ export function TaskAssignmentModal({
                 const displayName = assignedMember?.name || assignedMember?.email || assignment.userId;
 
                 return (
-                  <div key={assignment.id} className="text-sm text-gray-600 flex items-center gap-2">
+                  <div key={assignment.id} className="text-sm text-gray-600 flex items-center justify-between">
+                    <span className="truncate">{displayName}</span>
                     <span className={`inline-block px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                       assignment.role === "OWNER"
                         ? "bg-red-100 text-red-800"
@@ -172,7 +221,6 @@ export function TaskAssignmentModal({
                     }`}>
                       {assignment.role}
                     </span>
-                    <span className="truncate">{displayName}</span>
                   </div>
                 );
               })}
@@ -184,10 +232,10 @@ export function TaskAssignmentModal({
         <div className="flex gap-3 pt-4">
           <button
             onClick={handleAssignMultiple}
-            disabled={selectedUserIds.size === 0 || isAssigning || isLoading}
+            disabled={assignments.size === 0 || isAssigning || isLoading}
             className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isAssigning ? "Assigning..." : `Assign ${selectedUserIds.size > 0 ? `(${selectedUserIds.size})` : ""}`}
+            {isAssigning ? "Assigning..." : `Assign ${assignments.size > 0 ? `(${assignments.size})` : ""}`}
           </button>
           <button
             onClick={onClose}
