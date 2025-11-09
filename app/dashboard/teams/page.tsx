@@ -81,7 +81,7 @@ export default function TeamsPage() {
       setLoading(true);
       const [teamsRes, invitationsRes] = await Promise.all([
         api.get("/teams"),
-        api.get("/teams/pending-invitations").catch(() => ({ data: [] })),
+        api.get("/teams/pending-invitations"),
       ]);
 
       if (teamsRes.data) {
@@ -89,6 +89,13 @@ export default function TeamsPage() {
       }
       if (invitationsRes.data) {
         setPendingInvitations(invitationsRes.data);
+      }
+
+      // Show error if either request failed
+      if (!teamsRes.success && teamsRes.error) {
+        setError(teamsRes.error.message || "Failed to load teams");
+      } else if (!invitationsRes.success && invitationsRes.error) {
+        setError(invitationsRes.error.message || "Failed to load invitations");
       }
     } catch (err: any) {
       setError(err.response?.data?.error?.message || "Failed to load teams");

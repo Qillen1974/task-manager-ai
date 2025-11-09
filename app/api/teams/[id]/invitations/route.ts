@@ -54,6 +54,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const body = await request.json();
     const { email, role } = inviteMemberSchema.parse(body);
 
+    // Normalize email to lowercase for consistent matching
+    const normalizedEmail = email.toLowerCase();
+
     // Check team exists
     const team = await db.team.findUnique({
       where: { id: teamId },
@@ -67,14 +70,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const existingMember = await db.teamMember.findFirst({
       where: {
         teamId,
-        userId: { contains: email }, // This is a rough check - in production, you'd have User relation
+        userId: { contains: normalizedEmail }, // This is a rough check - in production, you'd have User relation
       },
     });
 
     const existingInvitation = await db.teamInvitation.findFirst({
       where: {
         teamId,
-        email,
+        email: normalizedEmail,
         expiresAt: { gt: new Date() }, // Only check non-expired invitations
       },
     });
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const invitation = await db.teamInvitation.create({
       data: {
         teamId,
-        email,
+        email: normalizedEmail,
         role,
         token,
         expiresAt,
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return success(
       {
         id: invitation.id,
-        email: invitation.email,
+        email: normalizedEmail,
         role: invitation.role,
         createdAt: invitation.createdAt,
         expiresAt: invitation.expiresAt,
