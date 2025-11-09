@@ -272,7 +272,7 @@ export default function TeamDetailsPage() {
             <div>
               <h2 className="text-xl font-bold text-gray-900">Team Members</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {team.members.length} member{team.members.length !== 1 ? "s" : ""}
+                {team.members?.length || 0} member{team.members?.length !== 1 ? "s" : ""}
               </p>
             </div>
             {isAdmin && (
@@ -288,7 +288,8 @@ export default function TeamDetailsPage() {
 
           {/* Members List */}
           <div className="space-y-3">
-            {team.members.map((member) => (
+            {team.members && team.members.length > 0 ? (
+              team.members.map((member) => (
               <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div>
                   <p className="text-sm text-gray-600">{member.userId}</p>
@@ -352,7 +353,12 @@ export default function TeamDetailsPage() {
                   )}
                 </div>
               </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No team members yet</p>
+              </div>
+            )}
           </div>
         </div>
 
