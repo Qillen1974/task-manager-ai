@@ -59,6 +59,7 @@ export default function MindMapEditor({
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [selectedNode, setSelectedNode] = useState<string | null>("root");
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -135,12 +136,13 @@ export default function MindMapEditor({
     }
 
     // Draw edges (connections)
-    ctx.strokeStyle = "#9ca3af";
-    ctx.lineWidth = 2;
     edges.forEach((edge) => {
       const source = nodes.find((n) => n.id === edge.source);
       const target = nodes.find((n) => n.id === edge.target);
       if (source?.x && source?.y && target?.x && target?.y) {
+        // Highlight selected edge
+        ctx.strokeStyle = selectedEdge === edge.id ? "#ef4444" : "#9ca3af";
+        ctx.lineWidth = selectedEdge === edge.id ? 3 : 2;
         ctx.beginPath();
         ctx.moveTo(source.x, source.y);
         ctx.lineTo(target.x, target.y);
@@ -194,7 +196,7 @@ export default function MindMapEditor({
         ctx.fillText(line, x, startY + index * lineHeight);
       });
     });
-  }, [nodes, edges, selectedNode]);
+  }, [nodes, edges, selectedNode, selectedEdge]);
 
   const getColorHex = (color: string): string => {
     const colorMap: Record<string, string> = {
@@ -208,6 +210,46 @@ export default function MindMapEditor({
       teal: "#14b8a6",
     };
     return colorMap[color] || colorMap.blue;
+  };
+
+  // Helper function to calculate distance from a point to a line segment
+  const distanceToLineSegment = (
+    px: number,
+    py: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number
+  ): number => {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+
+    if (lenSq !== 0) {
+      param = dot / lenSq;
+    }
+
+    let xx, yy;
+
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -228,8 +270,32 @@ export default function MindMapEditor({
 
     if (clickedNode) {
       setSelectedNode(clickedNode.id);
+      setSelectedEdge(null);
     } else {
-      setSelectedNode(null);
+      // Check if clicked on an edge
+      let clickedEdge = null;
+      const EDGE_CLICK_TOLERANCE = 8; // pixels
+
+      for (const edge of edges) {
+        const source = nodes.find((n) => n.id === edge.source);
+        const target = nodes.find((n) => n.id === edge.target);
+
+        if (source?.x && source?.y && target?.x && target?.y) {
+          const distance = distanceToLineSegment(x, y, source.x, source.y, target.x, target.y);
+          if (distance <= EDGE_CLICK_TOLERANCE) {
+            clickedEdge = edge.id;
+            break;
+          }
+        }
+      }
+
+      if (clickedEdge) {
+        setSelectedEdge(clickedEdge);
+        setSelectedNode(null);
+      } else {
+        setSelectedNode(null);
+        setSelectedEdge(null);
+      }
     }
   };
 
@@ -357,6 +423,17 @@ export default function MindMapEditor({
       setEdges([...edges, newEdge]);
       setSuccessMessage("Connection added successfully");
     }
+  };
+
+  const deleteConnection = () => {
+    if (!selectedEdge) {
+      setError("Please select a connection to delete");
+      return;
+    }
+
+    setEdges(edges.filter((e) => e.id !== selectedEdge));
+    setSelectedEdge(null);
+    setSuccessMessage("Connection deleted successfully");
   };
 
   const saveMindMap = async () => {
@@ -722,13 +799,22 @@ export default function MindMapEditor({
             </p>
           )}
 
-          {/* Connection button */}
-          <button
-            onClick={addConnection}
-            className="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-purple-700 mb-4"
-          >
-            Add Connection
-          </button>
+          {/* Connection buttons */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={addConnection}
+              className="flex-1 bg-purple-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-purple-700"
+            >
+              Add Connection
+            </button>
+            <button
+              onClick={deleteConnection}
+              disabled={!selectedEdge}
+              className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:bg-gray-400"
+            >
+              Delete Connection
+            </button>
+          </div>
 
           {/* Action buttons */}
           <div className="space-y-2 pt-4 border-t border-gray-200">
