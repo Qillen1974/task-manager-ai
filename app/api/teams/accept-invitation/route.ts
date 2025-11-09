@@ -10,6 +10,14 @@ const acceptInvitationSchema = z.object({
 
 /**
  * POST /api/teams/accept-invitation - Accept a team invitation
+ *
+ * Flow for existing members to join teams:
+ * 1. Team owner invites user@example.com
+ * 2. User with existing account logs in
+ * 3. User accepts invitation (their email must match invitation email)
+ * 4. User is added to team with specified role
+ *
+ * This ensures only the intended recipient can accept the invitation.
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -35,8 +43,24 @@ export async function POST(request: NextRequest) {
       return ApiErrors.INVALID_INPUT("Invitation has expired");
     }
 
-    // For now, we'll use email matching since we don't have full User relation
-    // In production, you'd need to ensure the user's email matches the invitation email
+    // Get current user's email
+    const user = await db.user.findUnique({
+      where: { id: auth.userId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      return ApiErrors.NOT_FOUND("User not found");
+    }
+
+    // Email validation: ensure invited email matches current user's email
+    // This ensures only the intended recipient can accept the invitation
+    if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      return ApiErrors.FORBIDDEN(
+        "This invitation was sent to a different email address. " +
+        "You're currently logged in as " + user.email
+      );
+    }
 
     // Check if user is already a member of the team
     const existingMember = await db.teamMember.findFirst({
@@ -50,7 +74,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.INVALID_INPUT("You are already a member of this team");
     }
 
-    // Create team membership
+    // Create team membership for existing user
     const membership = await db.teamMember.create({
       data: {
         teamId: invitation.teamId,
@@ -61,12 +85,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Delete the invitation
+    // Delete the invitation after acceptance
     await db.teamInvitation.delete({
       where: { id: invitation.id },
     });
 
-    // Get the team
+    // Get the team with updated member list
     const team = await db.team.findUnique({
       where: { id: invitation.teamId },
       include: {
@@ -89,7 +113,7 @@ export async function POST(request: NextRequest) {
           team: undefined,
         },
       },
-      "Invitation accepted successfully"
+      "Successfully joined team!"
     );
   });
 }
