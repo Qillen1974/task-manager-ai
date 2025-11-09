@@ -9,10 +9,11 @@ interface TaskCardProps {
   onComplete: (taskId: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onAssign?: (task: Task) => void;
   showProject?: boolean;
 }
 
-export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProject = false }: TaskCardProps) {
+export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign, showProject = false }: TaskCardProps) {
   const isTaskOverdue = isOverdue(task.deadline);
   const isTaskSoon = isDeadlineSoon(task.deadline);
 
@@ -173,6 +174,17 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProj
 
         {/* Actions */}
         <div className="flex gap-1 ml-2 flex-shrink-0">
+          {onAssign && (
+            <button
+              onClick={() => onAssign(task)}
+              className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition"
+              title="Assign task"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v2h8v-2zM16 11a2 2 0 100-4 2 2 0 000 4z" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={() => onEdit(task)}
             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"

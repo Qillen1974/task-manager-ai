@@ -2,11 +2,12 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Task, Project } from "@/lib/types";
+import { Task, Project, TaskAssignmentRole } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskCard } from "@/components/TaskCard";
+import { TaskAssignmentModal } from "@/components/TaskAssignmentModal";
 import { EisenhowerMatrix } from "@/components/EisenhowerMatrix";
 import { UserSettings } from "@/components/UserSettings";
 import { AuthPage } from "@/components/AuthPage";
@@ -85,6 +86,11 @@ export default function Home() {
   const [editingProject, setEditingProject] = useState<Project | undefined>();
   const [parentProjectId, setParentProjectId] = useState<string | undefined>();
   const [defaultProjectId, setDefaultProjectId] = useState<string>("");
+
+  // Task assignment state
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [taskToAssign, setTaskToAssign] = useState<Task | undefined>();
+  const [assignmentIsLoading, setAssignmentIsLoading] = useState(false);
 
   // User preferences state
   const [userPreferences, setUserPreferences] = useState<{
@@ -398,6 +404,37 @@ export default function Home() {
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setShowTaskForm(true);
+  };
+
+  const handleAssignTask = async (userId: string, role: TaskAssignmentRole) => {
+    if (!taskToAssign) return;
+
+    try {
+      setAssignmentIsLoading(true);
+      const response = await api.post(`/api/tasks/${taskToAssign.id}/assignments`, {
+        userId,
+        role,
+      });
+
+      if (response.success) {
+        // Update the task with new assignment
+        const updatedTask = await api.get(`/api/tasks/${taskToAssign.id}`);
+        if (updatedTask.success && updatedTask.data) {
+          setTasks(tasks.map((t) => (t.id === taskToAssign.id ? updatedTask.data : t)));
+          setTaskToAssign(updatedTask.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to assign task:", error);
+      throw error;
+    } finally {
+      setAssignmentIsLoading(false);
+    }
+  };
+
+  const openAssignmentModal = (task: Task) => {
+    setTaskToAssign(task);
+    setShowAssignmentModal(true);
   };
 
   // Build hierarchical project tree (root projects only)
@@ -807,6 +844,7 @@ export default function Home() {
                       onComplete={() => handleCompleteTask(task.id)}
                       onEdit={() => handleEditTask(task)}
                       onDelete={() => handleDeleteTask(task.id)}
+                      onAssign={() => openAssignmentModal(task)}
                     />
                   ))
                 )}
@@ -897,6 +935,7 @@ export default function Home() {
                           onComplete={() => handleCompleteTask(task.id)}
                           onEdit={() => handleEditTask(task)}
                           onDelete={() => handleDeleteTask(task.id)}
+                          onAssign={() => openAssignmentModal(task)}
                         />
                       ))
                   )}
@@ -1001,6 +1040,20 @@ export default function Home() {
           userName={localStorage.getItem("userEmail") || "User"}
           userEmail={localStorage.getItem("userEmail") || ""}
           onClose={() => setShowUserSettings(false)}
+        />
+      )}
+
+      {/* Task Assignment Modal */}
+      {showAssignmentModal && taskToAssign && (
+        <TaskAssignmentModal
+          task={taskToAssign}
+          teamMembers={[]} // TODO: Fetch team members for the project
+          onAssign={handleAssignTask}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setTaskToAssign(undefined);
+          }}
+          isLoading={assignmentIsLoading}
         />
       )}
     </div>
