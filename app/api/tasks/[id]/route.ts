@@ -60,6 +60,14 @@ export async function GET(
             color: true,
           },
         },
+        assignments: {
+          select: {
+            id: true,
+            userId: true,
+            role: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -102,6 +110,7 @@ export async function GET(
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
+      assignments: task.assignments,
     };
 
     return success(formattedTask);
@@ -274,6 +283,14 @@ export async function PATCH(
             color: true,
           },
         },
+        assignments: {
+          select: {
+            id: true,
+            userId: true,
+            role: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -308,6 +325,7 @@ export async function PATCH(
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
       project: updated.project,
+      assignments: updated.assignments,
     };
 
     return success(formattedTask);

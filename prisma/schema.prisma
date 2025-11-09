@@ -212,6 +212,9 @@ model Task {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Relations
+  assignments   TaskAssignment[]  // Task assignments to team members
+
   @@index([userId])
   @@index([projectId])
   @@index([completed])
@@ -219,6 +222,31 @@ model Task {
   @@index([parentTaskId])
   @@index([isRecurring])
   @@index([nextGenerationDate])
+}
+
+enum TaskAssignmentRole {
+  OWNER        // Primary owner/assignee - responsible for completion
+  COLLABORATOR // Helping with the task
+  REVIEWER     // Reviewing/approving the task
+}
+
+// TaskAssignment model - tracks task assignments to team members
+model TaskAssignment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  userId    String   // User assigned to this task
+  // Note: We don't create a User relation here to maintain flexibility
+
+  role      TaskAssignmentRole @default(COLLABORATOR)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taskId, userId])            // Each user can only be assigned once per task
+  @@index([taskId])
+  @@index([userId])
 }
 
 // AuditLog model - track all important actions for compliance
