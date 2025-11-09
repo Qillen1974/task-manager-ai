@@ -29,8 +29,8 @@ function getProjectColors(color: string) {
   return colorMap[color] || colorMap.blue;
 }
 
-function findChildProjects(projects: Project[], parentId: string): Project[] {
-  return projects.filter((p) => p.parentProjectId === parentId);
+function findChildProjects(projects: Project[] | undefined, parentId: string): Project[] {
+  return (projects || []).filter((p) => p.parentProjectId === parentId);
 }
 
 export function ProjectTabs({
@@ -46,7 +46,7 @@ export function ProjectTabs({
   const [showContextMenu, setShowContextMenu] = useState<{ projectId: string; x: number; y: number } | null>(null);
 
   // Filter to only root projects
-  const rootProjects = projects.filter((p) => !p.parentProjectId);
+  const rootProjects = (projects || []).filter((p) => !p.parentProjectId);
 
   const handleProjectClick = (projectId: string) => {
     onSelectProject(projectId);
