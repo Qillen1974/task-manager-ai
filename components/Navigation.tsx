@@ -74,7 +74,7 @@ export function Navigation({
 
               {/* Quadrant 2: Purple (Top Left) - Brainstorm */}
               <rect x="25" y="25" width="70" height="70" rx="8" fill="#8b5cf6"/>
-              <path d="M 45 70 Q 60 50 75 70" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75"/>
+              <path d="M 45 70 Q 60 50 75 70" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.75"/>
 
               {/* Quadrant 3: Green (Bottom Left) - Track Progress */}
               <rect x="25" y="105" width="70" height="70" rx="8" fill="#10b981"/>
@@ -84,7 +84,7 @@ export function Navigation({
 
               {/* Quadrant 4: Orange (Bottom Right) - Complete */}
               <rect x="105" y="105" width="70" height="70" rx="8" fill="#f59e0b"/>
-              <path d="M 130 155 L 145 140 M 150 155 L 165 140" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+              <path d="M 130 155 L 145 140 M 150 155 L 165 140" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.75"/>
 
               {/* Center accent */}
               <circle cx="100" cy="100" r="8" fill="#1a202c"/>
