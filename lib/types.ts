@@ -2,6 +2,15 @@ export type Priority = "urgent-important" | "not-urgent-important" | "urgent-not
 
 export type RecurringPattern = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 
+export type TaskAssignmentRole = "OWNER" | "COLLABORATOR" | "REVIEWER";
+
+export interface TaskAssignment {
+  id: string;
+  userId: string;
+  role: TaskAssignmentRole;
+  createdAt: string;
+}
+
 export interface RecurringConfig {
   pattern: RecurringPattern;
   interval: number; // Every X days/weeks/months
@@ -40,6 +49,10 @@ export interface Task {
   parentTaskId?: string; // Reference to parent recurring task
   createdAt: string;
   updatedAt: string;
+  // Task assignments
+  assignments?: TaskAssignment[]; // Team members assigned to this task
+  userId?: string; // Creator of the task
+  project?: Project; // Project this task belongs to
 }
 
 export interface Project {

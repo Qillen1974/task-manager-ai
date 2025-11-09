@@ -1,6 +1,6 @@
 "use client";
 
-import { Task, Project } from "@/lib/types";
+import { Task, Project, TaskAssignment } from "@/lib/types";
 import { formatDateTime, getPriorityBadgeColor, isOverdue, isDeadlineSoon, formatRecurringDescription } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -110,6 +110,30 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, showProj
               />
             </div>
           </div>
+
+          {/* Assignments */}
+          {task.assignments && task.assignments.length > 0 && (
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs text-gray-600 font-medium">Assigned to:</span>
+              <div className="flex gap-2 flex-wrap">
+                {task.assignments.map((assignment) => (
+                  <div
+                    key={assignment.id}
+                    className={`text-xs px-2 py-1 rounded font-medium ${
+                      assignment.role === "OWNER"
+                        ? "bg-red-100 text-red-800"
+                        : assignment.role === "COLLABORATOR"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                    }`}
+                    title={`Role: ${assignment.role}`}
+                  >
+                    👤 {assignment.role}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Dependencies and Resources */}
           <div className="flex flex-wrap gap-3 text-xs">
