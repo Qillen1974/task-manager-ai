@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, CheckCircle, BarChart3, Clock, Zap } from "lucide-react";
+import { ChevronRight, CheckCircle, BarChart3, Clock, Zap, Brain, Map, Lightbulb } from "lucide-react";
 
 export default function LandingPage() {
   const [email, setEmail] = useState("");
@@ -203,6 +203,163 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Mind Map Feature Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Content */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                <span className="text-sm font-semibold text-blue-600">NEW FEATURE</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                Visualize Your Ideas with Mind Maps
+              </h2>
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Brainstorm projects visually. Create mind maps, organize your thoughts, and automatically convert them into actionable tasks and projects. Perfect for planning complex initiatives.
+              </p>
+
+              <div className="space-y-4 mb-10">
+                <div className="flex gap-4 items-start">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Visual Brainstorming</h3>
+                    <p className="text-gray-600">Create mind maps on an interactive canvas. Add nodes, connections, and organize your thoughts visually.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Rich Metadata</h3>
+                    <p className="text-gray-600">Add priorities, due dates, and descriptions directly in your mind map. All details carry over when converting.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">One-Click Conversion</h3>
+                    <p className="text-gray-600">Convert your entire mind map into projects and tasks instantly. Edit and re-convert anytime to evolve your plan.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Smart Hierarchy</h3>
+                    <p className="text-gray-600">Branch nodes become subprojects, leaf nodes become tasks. Perfect project structure automatically created.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition inline-flex items-center gap-2">
+                Try Mind Maps Free
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Right: Visual */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+                {/* Mind Map Visualization */}
+                <div className="relative h-96 flex items-center justify-center">
+                  <svg viewBox="0 0 400 350" className="w-full h-full">
+                    {/* Center node */}
+                    <circle cx="200" cy="175" r="35" fill="#3b82f6" opacity="0.9" />
+                    <text x="200" y="180" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">Project</text>
+
+                    {/* Branch 1 - Left Top */}
+                    <line x1="165" y1="155" x2="80" y2="100" stroke="#9ca3af" strokeWidth="2" />
+                    <circle cx="80" cy="100" r="25" fill="#8b5cf6" opacity="0.8" />
+                    <text x="80" y="105" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">Planning</text>
+
+                    {/* Leaf nodes from Planning */}
+                    <line x1="80" y1="125" x2="30" y2="160" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="30" cy="160" r="18" fill="#06b6d4" opacity="0.7" />
+                    <text x="30" y="163" textAnchor="middle" fill="white" fontSize="9">Research</text>
+
+                    <line x1="80" y1="125" x2="50" y2="200" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="50" cy="200" r="18" fill="#06b6d4" opacity="0.7" />
+                    <text x="50" y="203" textAnchor="middle" fill="white" fontSize="9">Outline</text>
+
+                    {/* Branch 2 - Right Top */}
+                    <line x1="235" y1="155" x2="320" y2="100" stroke="#9ca3af" strokeWidth="2" />
+                    <circle cx="320" cy="100" r="25" fill="#8b5cf6" opacity="0.8" />
+                    <text x="320" y="105" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">Design</text>
+
+                    {/* Leaf nodes from Design */}
+                    <line x1="320" y1="125" x2="370" y2="160" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="370" cy="160" r="18" fill="#10b981" opacity="0.7" />
+                    <text x="370" y="163" textAnchor="middle" fill="white" fontSize="9">Mockups</text>
+
+                    <line x1="320" y1="125" x2="350" y2="200" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="350" cy="200" r="18" fill="#10b981" opacity="0.7" />
+                    <text x="350" y="203" textAnchor="middle" fill="white" fontSize="9">Prototypes</text>
+
+                    {/* Branch 3 - Bottom */}
+                    <line x1="200" y1="210" x2="150" y2="280" stroke="#9ca3af" strokeWidth="2" />
+                    <circle cx="150" cy="280" r="25" fill="#8b5cf6" opacity="0.8" />
+                    <text x="150" y="285" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">Execution</text>
+
+                    {/* Leaf nodes from Execution */}
+                    <line x1="150" y1="305" x2="100" y2="330" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="100" cy="330" r="18" fill="#f59e0b" opacity="0.7" />
+                    <text x="100" y="333" textAnchor="middle" fill="white" fontSize="9">Build</text>
+
+                    <line x1="150" y1="305" x2="200" y2="330" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="200" cy="330" r="18" fill="#f59e0b" opacity="0.7" />
+                    <text x="200" y="333" textAnchor="middle" fill="white" fontSize="9">Test</text>
+
+                    {/* Branch 4 - Right Bottom */}
+                    <line x1="200" y1="210" x2="250" y2="280" stroke="#9ca3af" strokeWidth="2" />
+                    <circle cx="250" cy="280" r="25" fill="#8b5cf6" opacity="0.8" />
+                    <text x="250" y="285" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">Launch</text>
+
+                    {/* Leaf nodes from Launch */}
+                    <line x1="250" y1="305" x2="280" y2="330" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="280" cy="330" r="18" fill="#ef4444" opacity="0.7" />
+                    <text x="280" y="333" textAnchor="middle" fill="white" fontSize="9">Deploy</text>
+
+                    <line x1="250" y1="305" x2="300" y2="330" stroke="#d1d5db" strokeWidth="1.5" strokeDasharray="4" />
+                    <circle cx="300" cy="330" r="18" fill="#ef4444" opacity="0.7" />
+                    <text x="300" y="333" textAnchor="middle" fill="white" fontSize="9">Monitor</text>
+                  </svg>
+                </div>
+
+                {/* Feature indicator */}
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-600 border-t pt-4">
+                  <Map className="w-4 h-4 text-blue-600" />
+                  <span>Interactive mind map with automatic project conversion</span>
+                </div>
+              </div>
+
+              {/* Floating badge */}
+              <div className="absolute -bottom-6 -right-6 bg-white rounded-xl shadow-lg p-4 border border-gray-100 w-48">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Convert & Iterate</h4>
+                    <p className="text-gray-600 text-xs">Edit and re-convert anytime</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Preview Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-5xl mx-auto">
@@ -267,6 +424,10 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-blue-200" />
+                  <span>Mind Maps (5 maps, 50 nodes)</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-blue-200" />
                   <span>PNG/PDF Exports</span>
                 </li>
               </ul>
@@ -286,15 +447,15 @@ export default function LandingPage() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-gray-700">Unlimited Everything</span>
+                  <span className="text-gray-700">Unlimited Projects & Tasks</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-gray-700">All Features</span>
+                  <span className="text-gray-700">Unlimited Mind Maps & Nodes</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-gray-700">Dedicated Support</span>
+                  <span className="text-gray-700">All Features + Priority Support</span>
                 </li>
               </ul>
               <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition">
