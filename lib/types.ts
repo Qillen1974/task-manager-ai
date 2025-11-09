@@ -11,6 +11,17 @@ export interface TaskAssignment {
   createdAt: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  isAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RecurringConfig {
   pattern: RecurringPattern;
   interval: number; // Every X days/weeks/months

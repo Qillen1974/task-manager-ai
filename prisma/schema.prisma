@@ -15,7 +15,9 @@ model User {
   id            String     @id @default(cuid())
   email         String     @unique
   passwordHash  String     // bcrypt hashed password
-  name          String?
+  firstName     String?    // User's first name
+  lastName      String?    // User's last name
+  name          String?    // Full name (legacy field, kept for backward compatibility)
   isAdmin       Boolean    @default(false)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt

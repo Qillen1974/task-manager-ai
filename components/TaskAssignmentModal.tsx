@@ -125,7 +125,11 @@ export function TaskAssignmentModal({
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-sm font-medium text-gray-700 mb-2">Current Assignments:</p>
             <div className="space-y-1">
-              {task.assignments.map((assignment) => (
+              {task.assignments.map((assignment) => {
+                const assignedMember = teamMembers.find(m => m.userId === assignment.userId);
+                const displayName = assignedMember?.name || assignedMember?.email || assignment.userId;
+
+                return (
                 <div key={assignment.id} className="text-sm text-gray-600 flex items-center gap-2">
                   <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                     assignment.role === "OWNER"
@@ -136,9 +140,10 @@ export function TaskAssignmentModal({
                   }`}>
                     {assignment.role}
                   </span>
-                  <span>{assignment.userId}</span>
+                  <span>{displayName}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

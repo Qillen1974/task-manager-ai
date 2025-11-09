@@ -42,11 +42,39 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       },
     });
 
-    // Format the response
-    const formattedMembers = members.map((member) => ({
-      userId: member.userId,
-      role: member.role,
-    }));
+    // Get user details for all members
+    const userIds = members.map(m => m.userId);
+    const users = await db.user.findMany({
+      where: {
+        id: { in: userIds },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    // Create a map of user data
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    // Format the response with user information
+    const formattedMembers = members.map((member) => {
+      const user = userMap.get(member.userId);
+      const displayName = user?.firstName && user?.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user?.firstName || user?.lastName || user?.email || member.userId;
+
+      return {
+        userId: member.userId,
+        email: user?.email,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        name: displayName,
+        role: member.role,
+      };
+    });
 
     return success(formattedMembers);
   });

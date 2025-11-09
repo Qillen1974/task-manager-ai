@@ -130,11 +130,11 @@ export function useApi() {
    * Register new user
    */
   const register = useCallback(
-    async (email: string, password: string, name?: string) => {
+    async (email: string, password: string, firstName?: string, lastName?: string) => {
       const response = await call<{
-        user: { id: string; email: string; name: string; isAdmin: boolean };
+        user: { id: string; email: string; firstName?: string; lastName?: string; isAdmin: boolean };
         tokens: { accessToken: string; refreshToken: string };
-      }>('POST', '/auth/register', { email, password, name });
+      }>('POST', '/auth/register', { email, password, firstName, lastName });
 
       if (response.success && response.data) {
         setAccessToken(response.data.tokens.accessToken);

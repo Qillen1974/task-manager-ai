@@ -15,7 +15,7 @@ import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
     const body = await request.json();
-    const { email, password, name } = body;
+    const { email, password, firstName, lastName } = body;
 
     // Validation
     if (!email || !password) {
@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         passwordHash,
-        name: name || email.split("@")[0],
+        firstName: firstName?.trim() || undefined,
+        lastName: lastName?.trim() || undefined,
         subscription: {
           create: {
             plan: SubscriptionPlan.FREE,
