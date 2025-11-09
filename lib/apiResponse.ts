@@ -87,7 +87,7 @@ export const ApiErrors = {
 
   // Resource errors
   NOT_FOUND: (resource: string) => error(`${resource} not found`, 404, "NOT_FOUND"),
-  FORBIDDEN: () => error("You don't have permission to access this resource", 403, "FORBIDDEN"),
+  FORBIDDEN: (message?: string) => error(message || "You don't have permission to access this resource", 403, "FORBIDDEN"),
   RESOURCE_LIMIT_EXCEEDED: (resource: string) =>
     error(`You have reached the maximum number of ${resource}s for your plan`, 429, "LIMIT_EXCEEDED"),
 
