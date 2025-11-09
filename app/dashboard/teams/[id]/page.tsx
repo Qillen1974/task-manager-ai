@@ -150,7 +150,7 @@ export default function TeamDetailsPage() {
       });
 
       // Update local state
-      if (team) {
+      if (team && team.members) {
         const updatedMembers = team.members.filter((m) => m.userId !== userId);
         setTeam({ ...team, members: updatedMembers });
       }
