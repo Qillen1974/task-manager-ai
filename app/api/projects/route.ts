@@ -7,6 +7,7 @@ import { canCreateRootProject, canCreateSubproject } from "@/lib/projectLimits";
 /**
  * GET /api/projects - List all projects for the user
  * Returns root projects by default.
+ * Includes both personal projects and team projects user is a member of.
  * Optional query: includeAll=true to get all projects (including non-root)
  * Optional query: includeChildren=true to get full tree structure
  */
@@ -21,9 +22,24 @@ export async function GET(request: NextRequest) {
     const includeChildren = searchParams.get("includeChildren") === "true";
     const includeAll = searchParams.get("includeAll") === "true";
 
+    // Get user's team memberships
+    const teamMemberships = await db.teamMember.findMany({
+      where: {
+        userId: auth.userId,
+        acceptedAt: { not: null }, // Only accepted memberships
+      },
+      select: { teamId: true },
+    });
+
+    const userTeamIds = teamMemberships.map((tm) => tm.teamId);
+
     // Get projects - root projects only by default, or all if requested
+    // Include both personal projects (userId = auth.userId) and team projects (teamId in userTeamIds)
     const where: any = {
-      userId: auth.userId,
+      OR: [
+        { userId: auth.userId }, // Personal projects
+        ...(userTeamIds.length > 0 ? [{ teamId: { in: userTeamIds } }] : []), // Team projects
+      ],
     };
 
     // Only filter for root projects if not requesting all
@@ -135,8 +151,12 @@ export async function getProjectTree(request: NextRequest) {
 }
 
 /**
- * POST /api/projects - Create a new project (root or subproject)
- * Body: { name, color, description, parentProjectId? }
+ * POST /api/projects - Create a new project (root, subproject, or team project)
+ * Body: { name, color, description, parentProjectId?, teamId? }
+ *
+ * For team projects:
+ * - teamId: ID of the team (ENTERPRISE feature)
+ * - User must be EDITOR or ADMIN in the team
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
@@ -146,7 +166,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, color, description, parentProjectId, startDate, endDate, owner } = body;
+    const { name, color, description, parentProjectId, teamId, startDate, endDate, owner } = body;
 
     // Validation
     if (!name || name.trim().length === 0) {
@@ -170,6 +190,44 @@ export async function POST(request: NextRequest) {
       return ApiErrors.UNAUTHORIZED();
     }
 
+    // If creating a team project, validate team access
+    if (teamId) {
+      // Team projects are ENTERPRISE feature
+      if (subscription.plan !== "ENTERPRISE") {
+        return ApiErrors.FORBIDDEN("Team projects are only available to ENTERPRISE members");
+      }
+
+      // Verify user is a member of the team and has EDITOR or ADMIN role
+      const teamMember = await db.teamMember.findFirst({
+        where: {
+          teamId,
+          userId: auth.userId,
+          acceptedAt: { not: null }, // Only accepted members
+        },
+      });
+
+      if (!teamMember) {
+        return ApiErrors.FORBIDDEN("You must be a member of the team to create projects");
+      }
+
+      const roleHierarchy = { ADMIN: 3, EDITOR: 2, VIEWER: 1 };
+      const userLevel = roleHierarchy[teamMember.role as keyof typeof roleHierarchy];
+
+      if (userLevel < 2) {
+        // EDITOR or higher required
+        return ApiErrors.FORBIDDEN("You must be an EDITOR or ADMIN to create team projects");
+      }
+
+      // Verify team exists
+      const team = await db.team.findUnique({
+        where: { id: teamId },
+      });
+
+      if (!team) {
+        return ApiErrors.NOT_FOUND("Team not found");
+      }
+    }
+
     // Determine if this is a root project or subproject
     if (!parentProjectId) {
       // Creating a root project
@@ -189,6 +247,7 @@ export async function POST(request: NextRequest) {
       const project = await db.project.create({
         data: {
           userId: auth.userId,
+          teamId: teamId || undefined,
           name: name.trim(),
           color: color || "blue",
           description: description?.trim(),
@@ -221,6 +280,7 @@ export async function POST(request: NextRequest) {
       const subproject = await db.project.create({
         data: {
           userId: auth.userId,
+          teamId: teamId || parentProject.teamId || undefined, // Inherit teamId from parent if not specified
           parentProjectId: parentProjectId,
           name: name.trim(),
           color: color || parentProject.color, // Inherit parent color by default

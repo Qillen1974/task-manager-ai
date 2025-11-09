@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { useApi } from "@/lib/useApi";
 import { AuthPage } from "@/components/AuthPage";
-import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader } from "lucide-react";
+import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus } from "lucide-react";
 import Link from "next/link";
 
 interface TeamMember {
@@ -53,6 +53,14 @@ export default function TeamDetailsPage() {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<"ADMIN" | "EDITOR" | "VIEWER">("VIEWER");
 
+  // Team projects state
+  const [teamProjects, setTeamProjects] = useState<any[]>([]);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectColor, setProjectColor] = useState("blue");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -73,9 +81,10 @@ export default function TeamDetailsPage() {
   const loadTeamDetails = async () => {
     try {
       setLoading(true);
-      const [teamRes, invitationsRes] = await Promise.all([
+      const [teamRes, invitationsRes, projectsRes] = await Promise.all([
         api.get(`/teams/${teamId}`),
         api.get(`/teams/${teamId}/invitations`).catch(() => ({ data: [] })),
+        api.get(`/projects?includeChildren=true`).catch(() => ({ data: [] })),
       ]);
 
       if (teamRes.data) {
@@ -83,6 +92,11 @@ export default function TeamDetailsPage() {
       }
       if (invitationsRes.data) {
         setInvitations(invitationsRes.data);
+      }
+      // Filter projects for this team
+      if (projectsRes.data) {
+        const filtered = projectsRes.data.filter((p: any) => p.teamId === teamId);
+        setTeamProjects(filtered);
       }
     } catch (err: any) {
       setError(err.response?.data?.error?.message || "Failed to load team");
@@ -156,6 +170,37 @@ export default function TeamDetailsPage() {
       }
     } catch (err: any) {
       setError(err.response?.data?.error?.message || "Failed to remove member");
+    }
+  };
+
+  const handleCreateTeamProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectName.trim()) {
+      setError("Project name is required");
+      return;
+    }
+
+    try {
+      setCreatingProject(true);
+      const response = await api.post("/projects", {
+        name: projectName,
+        color: projectColor,
+        description: projectDescription,
+        teamId: teamId,
+      });
+
+      if (response.data) {
+        setTeamProjects([response.data, ...teamProjects]);
+        setProjectName("");
+        setProjectColor("blue");
+        setProjectDescription("");
+        setShowCreateProjectModal(false);
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || "Failed to create project");
+    } finally {
+      setCreatingProject(false);
     }
   };
 
@@ -390,6 +435,69 @@ export default function TeamDetailsPage() {
           </div>
         )}
 
+        {/* Team Projects */}
+        {team && team.userRole && (["ADMIN", "EDITOR"] as string[]).includes(team.userRole) && (
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mt-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Team Projects</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {teamProjects.length} project{teamProjects.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateProjectModal(true)}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                <FolderPlus className="w-4 h-4" />
+                Create Project
+              </button>
+            </div>
+
+            {teamProjects.length > 0 ? (
+              <div className="space-y-3">
+                {teamProjects.map((project) => (
+                  <Link key={project.id} href={`/dashboard?projectId=${project.id}`}>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              {
+                                blue: "#3B82F6",
+                                red: "#EF4444",
+                                green: "#10B981",
+                                yellow: "#FBBF24",
+                                purple: "#A78BFA",
+                                pink: "#EC4899",
+                                indigo: "#6366F1",
+                                cyan: "#06B6D4",
+                              }[project.color as string] || "#3B82F6",
+                          }}
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{project.name}</p>
+                          {project.description && (
+                            <p className="text-xs text-gray-600 mt-1">{project.description}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-600">
+                          {project.taskCount || 0} task{project.taskCount !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No team projects yet. Create one to get started!</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Invite Modal */}
         {showInviteModal && isAdmin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -444,6 +552,86 @@ export default function TeamDetailsPage() {
                       </>
                     ) : (
                       "Send Invitation"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Create Team Project Modal */}
+        {showCreateProjectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-2xl font-bold mb-4">Create Team Project</h2>
+              <form onSubmit={handleCreateTeamProject} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Project Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="e.g., Website Redesign"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    disabled={creatingProject}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                  <select
+                    value={projectColor}
+                    onChange={(e) => setProjectColor(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    disabled={creatingProject}
+                  >
+                    <option value="blue">Blue</option>
+                    <option value="red">Red</option>
+                    <option value="green">Green</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="purple">Purple</option>
+                    <option value="pink">Pink</option>
+                    <option value="indigo">Indigo</option>
+                    <option value="cyan">Cyan</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
+                    placeholder="What is this project about?"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    disabled={creatingProject}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateProjectModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    disabled={creatingProject}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
+                    disabled={creatingProject}
+                  >
+                    {creatingProject ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Project"
                     )}
                   </button>
                 </div>
