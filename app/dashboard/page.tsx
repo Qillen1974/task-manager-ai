@@ -438,14 +438,25 @@ export default function Home() {
 
     // Fetch team members for the project
     try {
-      const project = allProjectsFlattened.find(p => p.id === task.projectId);
+      // Find the project - use flattenProjectTree to get all projects including nested ones
+      const flatProjects = flattenProjectTree(projects);
+      const project = flatProjects.find(p => p.id === task.projectId);
+
+      console.log("Task project ID:", task.projectId);
+      console.log("Found project:", project);
+      console.log("Project teamId:", (project as any)?.teamId);
+
       if (project && (project as any).teamId) {
-        const response = await api.get(`/api/teams/${(project as any).teamId}/members`);
+        const teamId = (project as any).teamId;
+        console.log("Fetching members for team:", teamId);
+        const response = await api.get(`/api/teams/${teamId}/members`);
+        console.log("Members response:", response);
         if (response.success && response.data) {
           setTeamMembers(response.data);
         }
       } else {
         // Personal project - no team members
+        console.log("Personal project - no team members available");
         setTeamMembers([]);
       }
     } catch (error) {

@@ -60,6 +60,7 @@ export interface Project {
   name: string;
   description: string;
   color: string;
+  teamId?: string; // Team ID if this is a team project
   createdAt: string;
   updatedAt: string;
 }
