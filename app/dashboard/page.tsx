@@ -412,14 +412,14 @@ export default function Home() {
 
     try {
       setAssignmentIsLoading(true);
-      const response = await api.post(`/api/tasks/${taskToAssign.id}/assignments`, {
+      const response = await api.post(`/tasks/${taskToAssign.id}/assignments`, {
         userId,
         role,
       });
 
       if (response.success) {
         // Update the task with new assignment
-        const updatedTask = await api.get(`/api/tasks/${taskToAssign.id}`);
+        const updatedTask = await api.get(`/tasks/${taskToAssign.id}`);
         if (updatedTask.success && updatedTask.data) {
           setTasks(tasks.map((t) => (t.id === taskToAssign.id ? updatedTask.data : t)));
           setTaskToAssign(updatedTask.data);
