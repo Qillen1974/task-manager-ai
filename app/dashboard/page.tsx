@@ -92,6 +92,7 @@ export default function Home() {
   const [taskToAssign, setTaskToAssign] = useState<Task | undefined>();
   const [assignmentIsLoading, setAssignmentIsLoading] = useState(false);
   const [teamMembers, setTeamMembers] = useState<Array<{ userId: string; name?: string; email?: string; role: string }>>([]);
+  const [userTeamRole, setUserTeamRole] = useState<string | undefined>();
 
   // User preferences state
   const [userPreferences, setUserPreferences] = useState<{
@@ -433,6 +434,54 @@ export default function Home() {
     }
   };
 
+  const handleUpdateAssignmentRole = async (assignmentId: string, role: TaskAssignmentRole) => {
+    if (!taskToAssign) return;
+
+    try {
+      setAssignmentIsLoading(true);
+      const response = await api.patch(`/tasks/${taskToAssign.id}/assignments/${assignmentId}`, {
+        role,
+      });
+
+      if (response.success) {
+        // Update the task with new assignment data
+        const updatedTask = await api.get(`/tasks/${taskToAssign.id}`);
+        if (updatedTask.success && updatedTask.data) {
+          setTasks(tasks.map((t) => (t.id === taskToAssign.id ? updatedTask.data : t)));
+          setTaskToAssign(updatedTask.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update assignment role:", error);
+      throw error;
+    } finally {
+      setAssignmentIsLoading(false);
+    }
+  };
+
+  const handleRemoveAssignment = async (assignmentId: string) => {
+    if (!taskToAssign) return;
+
+    try {
+      setAssignmentIsLoading(true);
+      const response = await api.delete(`/tasks/${taskToAssign.id}/assignments/${assignmentId}`);
+
+      if (response.success) {
+        // Update the task after removing assignment
+        const updatedTask = await api.get(`/tasks/${taskToAssign.id}`);
+        if (updatedTask.success && updatedTask.data) {
+          setTasks(tasks.map((t) => (t.id === taskToAssign.id ? updatedTask.data : t)));
+          setTaskToAssign(updatedTask.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to remove assignment:", error);
+      throw error;
+    } finally {
+      setAssignmentIsLoading(false);
+    }
+  };
+
   const openAssignmentModal = async (task: Task) => {
     setTaskToAssign(task);
 
@@ -453,11 +502,17 @@ export default function Home() {
         console.log("Members response:", response);
         if (response.success && response.data) {
           setTeamMembers(response.data);
+
+          // Find current user's role in this team
+          const currentUserId = localStorage.getItem("userId");
+          const currentMember = response.data.find((m: any) => m.userId === currentUserId);
+          setUserTeamRole(currentMember?.role);
         }
       } else {
-        // Personal project - no team members
-        console.log("Personal project - no team members available");
+        // Personal project - user is the owner, can edit assignments
+        console.log("Personal project - user is owner");
         setTeamMembers([]);
+        setUserTeamRole("OWNER");
       }
     } catch (error) {
       console.error("Failed to fetch team members:", error);
@@ -1080,10 +1135,14 @@ export default function Home() {
           task={taskToAssign}
           teamMembers={teamMembers}
           onAssign={handleAssignTask}
+          onRoleChange={handleUpdateAssignmentRole}
+          onRemoveAssignment={handleRemoveAssignment}
+          canEditAssignments={userTeamRole === "ADMIN" || userTeamRole === "EDITOR" || userTeamRole === "OWNER"}
           onClose={() => {
             setShowAssignmentModal(false);
             setTaskToAssign(undefined);
             setTeamMembers([]);
+            setUserTeamRole(undefined);
           }}
           isLoading={assignmentIsLoading}
         />

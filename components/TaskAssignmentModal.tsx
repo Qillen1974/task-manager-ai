@@ -14,8 +14,11 @@ interface TaskAssignmentModalProps {
   task: Task;
   teamMembers: TeamMember[];
   onAssign: (userId: string, role: TaskAssignmentRole) => Promise<void>;
+  onRoleChange?: (assignmentId: string, role: TaskAssignmentRole) => Promise<void>;
+  onRemoveAssignment?: (assignmentId: string) => Promise<void>;
   onClose: () => void;
   isLoading?: boolean;
+  canEditAssignments?: boolean;
 }
 
 interface MemberAssignment {
@@ -27,13 +30,18 @@ export function TaskAssignmentModal({
   task,
   teamMembers,
   onAssign,
+  onRoleChange,
+  onRemoveAssignment,
   onClose,
-  isLoading = false
+  isLoading = false,
+  canEditAssignments = false
 }: TaskAssignmentModalProps) {
   const [assignments, setAssignments] = useState<Map<string, TaskAssignmentRole>>(new Map());
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
+  const [editingRoles, setEditingRoles] = useState<Map<string, TaskAssignmentRole>>(new Map());
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   const assignedUserIds = new Set(task.assignments?.map(a => a.userId) || []);
   const availableMembers = teamMembers.filter(m => !assignedUserIds.has(m.userId));
@@ -79,6 +87,39 @@ export function TaskAssignmentModal({
       setError(err instanceof Error ? err.message : "Failed to assign task");
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleUpdateRole = async (assignmentId: string, newRole: TaskAssignmentRole) => {
+    if (!onRoleChange) return;
+
+    try {
+      setError("");
+      setIsUpdatingRole(true);
+      await onRoleChange(assignmentId, newRole);
+      setEditingRoles(new Map());
+      setSuccess("Role updated successfully");
+      setTimeout(() => setSuccess(""), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update role");
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
+  const handleRemoveAssignment = async (assignmentId: string) => {
+    if (!onRemoveAssignment) return;
+
+    try {
+      setError("");
+      setIsUpdatingRole(true);
+      await onRemoveAssignment(assignmentId);
+      setSuccess("Assignment removed successfully");
+      setTimeout(() => setSuccess(""), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove assignment");
+    } finally {
+      setIsUpdatingRole(false);
     }
   };
 
@@ -204,23 +245,67 @@ export function TaskAssignmentModal({
         {task.assignments && task.assignments.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
             <p className="text-sm font-medium text-gray-700 mb-2">Current Assignments:</p>
-            <div className="space-y-1 max-h-24 overflow-y-auto">
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {task.assignments.map((assignment) => {
                 const assignedMember = teamMembers.find(m => m.userId === assignment.userId);
                 const displayName = assignedMember?.name || assignedMember?.email || assignment.userId;
+                const isEditingThis = editingRoles.has(assignment.id);
+                const currentRole = editingRoles.get(assignment.id) || assignment.role;
 
                 return (
-                  <div key={assignment.id} className="text-sm text-gray-600 flex items-center justify-between">
-                    <span className="truncate">{displayName}</span>
-                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                      assignment.role === "OWNER"
-                        ? "bg-red-100 text-red-800"
-                        : assignment.role === "COLLABORATOR"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
-                    }`}>
-                      {assignment.role}
-                    </span>
+                  <div key={assignment.id} className="text-sm text-gray-600 flex items-center justify-between gap-2 p-2 bg-white rounded hover:bg-gray-50 transition">
+                    <span className="truncate flex-1">{displayName}</span>
+
+                    {canEditAssignments && isEditingThis ? (
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={currentRole}
+                          onChange={(e) => setEditingRoles(new Map(editingRoles).set(assignment.id, e.target.value as TaskAssignmentRole))}
+                          className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                          disabled={isUpdatingRole}
+                        >
+                          {roleOptions.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleUpdateRole(assignment.id, currentRole)}
+                          disabled={isUpdatingRole || currentRole === assignment.role}
+                          className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => setEditingRoles(new Map())}
+                          disabled={isUpdatingRole}
+                          className="px-2 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500 disabled:cursor-not-allowed transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 items-center">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                          assignment.role === "OWNER"
+                            ? "bg-red-100 text-red-800"
+                            : assignment.role === "COLLABORATOR"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                        }`}>
+                          {assignment.role}
+                        </span>
+                        {canEditAssignments && (
+                          <button
+                            onClick={() => setEditingRoles(new Map(editingRoles).set(assignment.id, assignment.role))}
+                            disabled={isUpdatingRole}
+                            className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded disabled:cursor-not-allowed transition"
+                            title="Edit role"
+                          >
+                            ✎
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
