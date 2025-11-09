@@ -91,6 +91,7 @@ export default function Home() {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [taskToAssign, setTaskToAssign] = useState<Task | undefined>();
   const [assignmentIsLoading, setAssignmentIsLoading] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<Array<{ userId: string; name?: string; email?: string; role: string }>>([]);
 
   // User preferences state
   const [userPreferences, setUserPreferences] = useState<{
@@ -432,8 +433,26 @@ export default function Home() {
     }
   };
 
-  const openAssignmentModal = (task: Task) => {
+  const openAssignmentModal = async (task: Task) => {
     setTaskToAssign(task);
+
+    // Fetch team members for the project
+    try {
+      const project = allProjectsFlattened.find(p => p.id === task.projectId);
+      if (project && (project as any).teamId) {
+        const response = await api.get(`/api/teams/${(project as any).teamId}/members`);
+        if (response.success && response.data) {
+          setTeamMembers(response.data);
+        }
+      } else {
+        // Personal project - no team members
+        setTeamMembers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch team members:", error);
+      setTeamMembers([]);
+    }
+
     setShowAssignmentModal(true);
   };
 
@@ -811,6 +830,7 @@ export default function Home() {
                 onTaskComplete={handleCompleteTask}
                 onTaskEdit={handleEditTask}
                 onTaskDelete={handleDeleteTask}
+                onTaskAssign={openAssignmentModal}
               />
             </div>
           )}
@@ -1047,11 +1067,12 @@ export default function Home() {
       {showAssignmentModal && taskToAssign && (
         <TaskAssignmentModal
           task={taskToAssign}
-          teamMembers={[]} // TODO: Fetch team members for the project
+          teamMembers={teamMembers}
           onAssign={handleAssignTask}
           onClose={() => {
             setShowAssignmentModal(false);
             setTaskToAssign(undefined);
+            setTeamMembers([]);
           }}
           isLoading={assignmentIsLoading}
         />

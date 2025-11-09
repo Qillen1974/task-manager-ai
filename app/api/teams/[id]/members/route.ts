@@ -13,6 +13,46 @@ const removeMemberSchema = z.object({
 });
 
 /**
+ * GET /api/teams/[id]/members - Get all team members
+ */
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  return handleApiError(async () => {
+    const auth = await verifyAuth(request);
+    if (!auth.authenticated) {
+      return auth.error;
+    }
+
+    const { id: teamId } = params;
+
+    // Check if user is a team member
+    const access = await checkTeamAccess(teamId, auth.userId, "VIEWER");
+    if (!access.allowed) {
+      return ApiErrors.FORBIDDEN("You are not a member of this team");
+    }
+
+    // Get all team members
+    const members = await db.teamMember.findMany({
+      where: {
+        teamId,
+        acceptedAt: { not: null }, // Only accepted members
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+
+    // Format the response
+    const formattedMembers = members.map((member) => ({
+      userId: member.userId,
+      role: member.role,
+    }));
+
+    return success(formattedMembers);
+  });
+}
+
+/**
  * Helper to check team access
  */
 async function checkTeamAccess(teamId: string, userId: string, requiredRole: "ADMIN" | "EDITOR" | "VIEWER" = "VIEWER") {

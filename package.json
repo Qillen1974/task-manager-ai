@@ -12,7 +12,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "delete-teams": "ts-node scripts/delete-teams.ts",
+    "list-teams": "ts-node scripts/delete-teams.ts"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",

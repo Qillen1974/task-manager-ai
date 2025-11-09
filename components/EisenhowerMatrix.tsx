@@ -10,6 +10,7 @@ interface EisenhowerMatrixProps {
   onTaskComplete: (taskId: string) => void;
   onTaskEdit: (task: Task) => void;
   onTaskDelete: (taskId: string) => void;
+  onTaskAssign?: (task: Task) => void;
 }
 
 type QuadrantPriority = Exclude<Priority, "">;
@@ -57,6 +58,7 @@ export function EisenhowerMatrix({
   onTaskComplete,
   onTaskEdit,
   onTaskDelete,
+  onTaskAssign,
 }: EisenhowerMatrixProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -87,6 +89,7 @@ export function EisenhowerMatrix({
                     onComplete={onTaskComplete}
                     onEdit={onTaskEdit}
                     onDelete={onTaskDelete}
+                    onAssign={onTaskAssign}
                     showProject
                   />
                 ))
