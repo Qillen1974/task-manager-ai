@@ -19,6 +19,10 @@ interface Team {
   memberCount: number;
 }
 
+interface Subscription {
+  plan: "FREE" | "PRO" | "ENTERPRISE";
+}
+
 export default function TeamsPage() {
   const api = useApi();
   const router = useRouter();
@@ -26,6 +30,7 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamDescription, setNewTeamDescription] = useState("");
@@ -37,9 +42,14 @@ export default function TeamsPage() {
 
   const checkAuth = async () => {
     try {
-      const response = await api.get("/auth/me");
-      if (response.data) {
+      const [authRes, subRes] = await Promise.all([
+        api.get("/auth/me"),
+        api.get("/subscriptions/current").catch(() => ({ data: { plan: "FREE" } })),
+      ]);
+
+      if (authRes.data) {
         setAuthenticated(true);
+        setSubscription(subRes.data);
         loadTeams();
       }
     } catch (err) {
@@ -103,10 +113,26 @@ export default function TeamsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
             <p className="mt-2 text-gray-600">Collaborate with your team members</p>
+            {subscription && subscription.plan !== "ENTERPRISE" && (
+              <p className="mt-2 text-sm text-blue-600">
+                💡 Teams are an ENTERPRISE feature. <Link href="/dashboard/settings" className="font-semibold hover:underline">Upgrade now</Link>
+              </p>
+            )}
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            onClick={() => {
+              if (subscription?.plan !== "ENTERPRISE") {
+                setError("Teams are an ENTERPRISE feature. Please upgrade your subscription.");
+                return;
+              }
+              setShowCreateModal(true);
+            }}
+            disabled={subscription?.plan !== "ENTERPRISE"}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+              subscription?.plan === "ENTERPRISE"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
           >
             <Plus className="w-5 h-5" />
             Create Team

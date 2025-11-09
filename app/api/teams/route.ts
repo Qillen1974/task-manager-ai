@@ -59,12 +59,26 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/teams - Create a new team
+ *
+ * ENTERPRISE feature - requires ENTERPRISE subscription
+ * Only ENTERPRISE plan members can create and manage teams
  */
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
     const auth = await verifyAuth(request);
     if (!auth.authenticated) {
       return auth.error;
+    }
+
+    // Check subscription - teams are ENTERPRISE feature only
+    const subscription = await db.subscription.findUnique({
+      where: { userId: auth.userId },
+    });
+
+    if (!subscription || subscription.plan !== "ENTERPRISE") {
+      return ApiErrors.FORBIDDEN(
+        "Team collaboration is an ENTERPRISE feature. Please upgrade your subscription to create teams."
+      );
     }
 
     const body = await request.json();
