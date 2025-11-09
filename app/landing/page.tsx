@@ -22,12 +22,32 @@ export default function LandingPage() {
       <nav className="fixed w-full bg-white border-b border-gray-100 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">Q</span>
-              </div>
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
+              <svg className="w-9 h-9" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                {/* Quadrant 1: Blue (Top Right) */}
+                <rect x="105" y="25" width="70" height="70" rx="8" fill="#3b82f6"/>
+                <circle cx="140" cy="60" r="12" fill="white" opacity="0.75"/>
+                <circle cx="155" cy="75" r="8" fill="white" opacity="0.6"/>
+
+                {/* Quadrant 2: Purple (Top Left) */}
+                <rect x="25" y="25" width="70" height="70" rx="8" fill="#8b5cf6"/>
+                <path d="M 45 70 Q 60 50 75 70" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.75"/>
+
+                {/* Quadrant 3: Green (Bottom Left) */}
+                <rect x="25" y="105" width="70" height="70" rx="8" fill="#10b981"/>
+                <circle cx="40" cy="120" r="6" fill="white" opacity="0.75"/>
+                <circle cx="55" cy="130" r="6" fill="white" opacity="0.75"/>
+                <circle cx="70" cy="120" r="6" fill="white" opacity="0.75"/>
+
+                {/* Quadrant 4: Orange (Bottom Right) */}
+                <rect x="105" y="105" width="70" height="70" rx="8" fill="#f59e0b"/>
+                <path d="M 130 155 L 145 140 M 150 155 L 165 140" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+
+                {/* Center accent */}
+                <circle cx="100" cy="100" r="8" fill="#1a202c"/>
+              </svg>
               <span className="font-bold text-xl text-gray-900">TaskQuadrant</span>
-            </div>
+            </Link>
             <Link
               href="/auth?mode=login"
               className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
