@@ -72,12 +72,15 @@ export default function MindMapEditor({
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [existingProjects, setExistingProjects] = useState<any[]>([]);
   const [isConverted, setIsConverted] = useState(false);
+  const [canEdit, setCanEdit] = useState(true);
+  const [checkingPermissions, setCheckingPermissions] = useState(false);
 
   // Load existing mind map and projects
   useEffect(() => {
     loadProjects();
     if (mindMapId) {
       loadMindMap();
+      checkEditPermissions();
     }
   }, [mindMapId]);
 
@@ -89,6 +92,34 @@ export default function MindMapEditor({
       }
     } catch (err) {
       // Silently fail - projects loading is optional
+    }
+  };
+
+  const checkEditPermissions = async () => {
+    if (!mindMapId) return;
+
+    try {
+      setCheckingPermissions(true);
+
+      // Try to check permissions by attempting a PATCH request
+      // This will be rejected at the backend if user doesn't have permission
+      // We'll do a dry-run by sending only the title unchanged
+      if (teamId) {
+        // For team mind maps, we can't directly check without a dedicated endpoint
+        // Instead, we'll rely on the backend to reject the PATCH if user lacks permission
+        // For now, assume they can edit if they can view
+        setCanEdit(true);
+      } else {
+        // For personal mind maps, owner can always edit
+        setCanEdit(true);
+      }
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        setCanEdit(false);
+        setError("You do not have permission to edit this mind map");
+      }
+    } finally {
+      setCheckingPermissions(false);
     }
   };
 
@@ -570,7 +601,13 @@ export default function MindMapEditor({
 
       setSuccessMessage("Mind map saved successfully");
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to save mind map");
+      // Check if it's a permission error
+      if (err.response?.status === 403) {
+        setCanEdit(false);
+        setError("You do not have permission to edit this mind map. Only team admins and editors can make changes.");
+      } else {
+        setError(err.response?.data?.error?.message || "Failed to save mind map");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -600,10 +637,16 @@ export default function MindMapEditor({
       setShowConvertConfirm(false);
       onConvert?.(mindMapId);
     } catch (err: any) {
-      setError(
-        err.response?.data?.error?.message ||
-        "Failed to convert mind map to projects and tasks"
-      );
+      // Check if it's a permission error
+      if (err.response?.status === 403) {
+        setCanEdit(false);
+        setError("You do not have permission to convert this mind map. Only team admins and editors can do this.");
+      } else {
+        setError(
+          err.response?.data?.error?.message ||
+          "Failed to convert mind map to projects and tasks"
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -637,17 +680,27 @@ export default function MindMapEditor({
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="max-w-7xl mx-auto">
+          {!canEdit && (
+            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                You do not have permission to edit this mind map. Only team admins and editors can make changes.
+              </p>
+            </div>
+          )}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="text-2xl font-bold mb-2 w-full border border-gray-300 rounded px-3 py-2"
+            disabled={!canEdit}
+            className="text-2xl font-bold mb-2 w-full border border-gray-300 rounded px-3 py-2 disabled:bg-gray-100 disabled:text-gray-600"
             placeholder="Mind Map Title"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-600"
+            disabled={!canEdit}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-600 disabled:bg-gray-100 disabled:text-gray-500"
             placeholder="Description (optional)"
             rows={2}
           />
@@ -714,7 +767,8 @@ export default function MindMapEditor({
                   type="text"
                   value={selectedNodeData.label}
                   onChange={(e) => updateNodeLabel(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  disabled={!canEdit}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                 />
               </div>
 
@@ -733,7 +787,8 @@ export default function MindMapEditor({
                       )
                     )
                   }
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  disabled={!canEdit}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                   rows={3}
                 />
               </div>
@@ -747,7 +802,8 @@ export default function MindMapEditor({
                     <button
                       key={color}
                       onClick={() => updateNodeColor(color)}
-                      className={`w-full h-8 rounded border-2 ${
+                      disabled={!canEdit}
+                      className={`w-full h-8 rounded border-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                         selectedNodeData.color === color
                           ? "border-gray-800"
                           : "border-transparent"
@@ -886,14 +942,15 @@ export default function MindMapEditor({
               <div className="flex gap-2">
                 <button
                   onClick={addNode}
-                  className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-1"
+                  disabled={!canEdit}
+                  className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 flex items-center justify-center gap-1"
                 >
                   <Plus className="w-4 h-4" />
                   Add Child
                 </button>
                 <button
                   onClick={deleteNode}
-                  disabled={selectedNode === "root"}
+                  disabled={selectedNode === "root" || !canEdit}
                   className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:bg-gray-400 flex items-center justify-center gap-1"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -927,8 +984,9 @@ export default function MindMapEditor({
           <div className="flex gap-2 mb-4">
             <button
               onClick={toggleConnectionMode}
-              className={`flex-1 px-3 py-2 rounded text-sm font-medium text-white ${
-                connectionMode
+              disabled={!canEdit}
+              className={`flex-1 px-3 py-2 rounded text-sm font-medium text-white disabled:bg-gray-400 ${
+                connectionMode && canEdit
                   ? "bg-blue-600 hover:bg-blue-700"
                   : "bg-purple-600 hover:bg-purple-700"
               }`}
@@ -937,7 +995,7 @@ export default function MindMapEditor({
             </button>
             <button
               onClick={deleteConnection}
-              disabled={!selectedEdge}
+              disabled={!selectedEdge || !canEdit}
               className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:bg-gray-400"
             >
               Delete Connection
@@ -948,7 +1006,7 @@ export default function MindMapEditor({
           <div className="space-y-2 pt-4 border-t border-gray-200">
             <button
               onClick={saveMindMap}
-              disabled={isLoading}
+              disabled={isLoading || !canEdit}
               className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
               {isLoading ? (
@@ -962,7 +1020,7 @@ export default function MindMapEditor({
             {mindMapId && !showConvertConfirm && (
               <button
                 onClick={() => setShowConvertConfirm(true)}
-                disabled={isLoading}
+                disabled={isLoading || !canEdit}
                 className="w-full bg-indigo-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-400"
               >
                 {isConverted ? "Re-convert to Projects" : "Convert to Projects"}
