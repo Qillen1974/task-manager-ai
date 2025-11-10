@@ -9,6 +9,13 @@ export interface TaskAssignment {
   userId: string;
   role: TaskAssignmentRole;
   createdAt: string;
+  user?: {
+    id: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+  };
 }
 
 export interface User {

@@ -117,21 +117,26 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs text-gray-600 font-medium">Assigned to:</span>
               <div className="flex gap-2 flex-wrap">
-                {task.assignments.map((assignment) => (
-                  <div
-                    key={assignment.id}
-                    className={`text-xs px-2 py-1 rounded font-medium ${
-                      assignment.role === "OWNER"
-                        ? "bg-red-100 text-red-800"
-                        : assignment.role === "COLLABORATOR"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
-                    }`}
-                    title={`Role: ${assignment.role}`}
-                  >
-                    👤 {assignment.role}
-                  </div>
-                ))}
+                {task.assignments.map((assignment) => {
+                  const displayName = assignment.user?.name || assignment.user?.firstName || assignment.user?.email || assignment.userId;
+                  const tooltipText = `${displayName} - ${assignment.role}`;
+
+                  return (
+                    <div
+                      key={assignment.id}
+                      className={`text-xs px-2 py-1 rounded font-medium cursor-help ${
+                        assignment.role === "OWNER"
+                          ? "bg-red-100 text-red-800"
+                          : assignment.role === "COLLABORATOR"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-green-100 text-green-800"
+                      }`}
+                      title={tooltipText}
+                    >
+                      👤 {assignment.role}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

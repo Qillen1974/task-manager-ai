@@ -67,6 +67,15 @@ export async function GET(
             userId: true,
             role: true,
             createdAt: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -307,6 +316,15 @@ export async function PATCH(
             userId: true,
             role: true,
             createdAt: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
           },
         },
       },
