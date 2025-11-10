@@ -121,8 +121,11 @@ export default function Home() {
       try {
         // Generate any due recurring task instances
         try {
-          await api.post("/tasks/generate-recurring?action=generate-all", {});
-          console.log("[Dashboard] Recurring tasks generation triggered");
+          const genResponse = await api.post("/tasks/generate-recurring?action=generate-all", {});
+          console.log("[Dashboard] Recurring tasks generation result:", genResponse);
+          if (genResponse?.success === false || genResponse?.data?.tasksGenerated === 0) {
+            console.log("[Dashboard] No recurring tasks were generated. Result:", genResponse?.data);
+          }
         } catch (err) {
           console.warn("[Dashboard] Recurring task generation failed:", err);
           // Don't block task loading if generation fails
@@ -199,8 +202,11 @@ export default function Home() {
         try {
           // Generate any due recurring task instances
           try {
-            await api.post("/tasks/generate-recurring?action=generate-all", {});
-            console.log("[Dashboard] Recurring tasks generation triggered on auth");
+            const genResponse = await api.post("/tasks/generate-recurring?action=generate-all", {});
+            console.log("[Dashboard] Recurring tasks generation result on auth:", genResponse);
+            if (genResponse?.success === false || genResponse?.data?.tasksGenerated === 0) {
+              console.log("[Dashboard] No recurring tasks were generated on auth. Result:", genResponse?.data);
+            }
           } catch (err) {
             console.warn("[Dashboard] Recurring task generation failed on auth:", err);
             // Don't block task loading if generation fails
