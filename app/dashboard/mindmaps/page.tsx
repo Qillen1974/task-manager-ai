@@ -111,8 +111,12 @@ export default function MindMapsPage() {
     router.push("/dashboard/mindmaps/new");
   };
 
-  const handleEdit = (mindMapId: string) => {
-    router.push(`/dashboard/mindmaps/${mindMapId}`);
+  const handleEdit = (mindMapId: string, teamId?: string) => {
+    if (teamId) {
+      router.push(`/dashboard/mindmaps/${mindMapId}?teamId=${teamId}`);
+    } else {
+      router.push(`/dashboard/mindmaps/${mindMapId}`);
+    }
   };
 
   const handleDelete = async (mindMapId: string, teamId?: string) => {
@@ -132,8 +136,9 @@ export default function MindMapsPage() {
       const response = await api.delete(endpoint);
       console.log(`Delete response:`, response);
 
-      setMindMaps(mindMaps.filter((m) => m.id !== mindMapId));
       setSuccessMessage("Mind map deleted successfully");
+      // Reload data to refresh the mind maps list
+      await loadData();
     } catch (err: any) {
       console.error(`Delete error:`, err);
       const errorMsg = err.response?.data?.error?.message || err.message || "Failed to delete mind map";
@@ -279,7 +284,7 @@ export default function MindMapsPage() {
 }
 
 // Mind Map Card Component
-function MindMapCard({ mindMap, onEdit, onDelete }: { mindMap: MindMap; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+function MindMapCard({ mindMap, onEdit, onDelete }: { mindMap: MindMap; onEdit: (id: string, teamId?: string) => void; onDelete: (id: string) => void }) {
   const isTeam = mindMap.ownershipType === "team";
   const createdByName = mindMap.createdByUser?.firstName || mindMap.createdByUser?.lastName
     ? `${mindMap.createdByUser?.firstName || ""} ${mindMap.createdByUser?.lastName || ""}`.trim()
@@ -336,7 +341,7 @@ function MindMapCard({ mindMap, onEdit, onDelete }: { mindMap: MindMap; onEdit: 
 
       <div className="flex gap-2">
         <button
-          onClick={() => onEdit(mindMap.id)}
+          onClick={() => onEdit(mindMap.id, mindMap.teamId)}
           className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-medium text-sm hover:bg-blue-700"
         >
           Edit
