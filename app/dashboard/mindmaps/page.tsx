@@ -33,6 +33,7 @@ export default function MindMapsPage() {
   const [teamMaps, setTeamMaps] = useState<MindMap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [showUserSettings, setShowUserSettings] = useState(false);
@@ -50,6 +51,16 @@ export default function MindMapsPage() {
     }
     loadData();
   }, []);
+
+  // Auto-dismiss success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const loadData = async () => {
     try {
@@ -111,14 +122,22 @@ export default function MindMapsPage() {
 
     try {
       setIsLoading(true);
+      setError(null);
       // Use team endpoint if teamId is provided, otherwise use personal endpoint
       const endpoint = teamId
         ? `/teams/${teamId}/mindmaps/${mindMapId}`
         : `/mindmaps/${mindMapId}`;
-      await api.delete(endpoint);
+
+      console.log(`Deleting mind map from endpoint: ${endpoint}`);
+      const response = await api.delete(endpoint);
+      console.log(`Delete response:`, response);
+
       setMindMaps(mindMaps.filter((m) => m.id !== mindMapId));
-    } catch (err) {
-      setError("Failed to delete mind map");
+      setSuccessMessage("Mind map deleted successfully");
+    } catch (err: any) {
+      console.error(`Delete error:`, err);
+      const errorMsg = err.response?.data?.error?.message || err.message || "Failed to delete mind map";
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +179,18 @@ export default function MindMapsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Mind Maps</h1>
           <p className="text-gray-600 mt-2">Create visual mind maps and convert to projects</p>
         </div>
+
+        {/* Success message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-400 rounded-lg flex items-start gap-3">
+            <div className="text-green-600 flex-shrink-0">✓</div>
+            <div>
+              <h3 className="font-semibold text-green-900">Success</h3>
+              <p className="text-green-800">{successMessage}</p>
+            </div>
+          </div>
+        )}
+
         {/* Error message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg flex items-start gap-3">
