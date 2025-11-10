@@ -105,6 +105,23 @@ export async function GET(
       return ApiErrors.FORBIDDEN();
     }
 
+    // Fetch user data for assignments
+    const assignmentUserIds = task.assignments?.map(a => a.userId) || [];
+    const users = assignmentUserIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: assignmentUserIds } },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+          },
+        })
+      : [];
+
+    const userMap = new Map(users.map(u => [u.id, u]));
+
     // Format response
     const formattedTask = {
       id: task.id,
@@ -136,7 +153,10 @@ export async function GET(
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
-      assignments: task.assignments,
+      assignments: task.assignments?.map(a => ({
+        ...a,
+        user: userMap.get(a.userId),
+      })),
     };
 
     return success(formattedTask);
@@ -316,19 +336,27 @@ export async function PATCH(
             userId: true,
             role: true,
             createdAt: true,
-            user: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                name: true,
-              },
-            },
           },
         },
       },
     });
+
+    // Fetch user data for assignments
+    const updatedAssignmentUserIds = updated.assignments?.map(a => a.userId) || [];
+    const updatedUsers = updatedAssignmentUserIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: updatedAssignmentUserIds } },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+          },
+        })
+      : [];
+
+    const updatedUserMap = new Map(updatedUsers.map(u => [u.id, u]));
 
     // Format response
     const formattedTask = {
@@ -361,7 +389,10 @@ export async function PATCH(
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
       project: updated.project,
-      assignments: updated.assignments,
+      assignments: updated.assignments?.map(a => ({
+        ...a,
+        user: updatedUserMap.get(a.userId),
+      })),
     };
 
     return success(formattedTask);
