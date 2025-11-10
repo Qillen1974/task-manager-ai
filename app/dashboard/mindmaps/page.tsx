@@ -104,14 +104,18 @@ export default function MindMapsPage() {
     router.push(`/dashboard/mindmaps/${mindMapId}`);
   };
 
-  const handleDelete = async (mindMapId: string) => {
+  const handleDelete = async (mindMapId: string, teamId?: string) => {
     if (!confirm("Are you sure you want to delete this mind map?")) {
       return;
     }
 
     try {
       setIsLoading(true);
-      await api.delete(`/mindmaps/${mindMapId}`);
+      // Use team endpoint if teamId is provided, otherwise use personal endpoint
+      const endpoint = teamId
+        ? `/teams/${teamId}/mindmaps/${mindMapId}`
+        : `/mindmaps/${mindMapId}`;
+      await api.delete(endpoint);
       setMindMaps(mindMaps.filter((m) => m.id !== mindMapId));
     } catch (err) {
       setError("Failed to delete mind map");
@@ -219,7 +223,7 @@ export default function MindMapsPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Personal Mind Maps</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {personalMaps.map((mindMap) => (
-                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={handleDelete} />
+                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={(id) => handleDelete(id, undefined)} />
                   ))}
                 </div>
               </div>
@@ -231,7 +235,7 @@ export default function MindMapsPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Team Mind Maps</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {teamMaps.map((mindMap) => (
-                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={handleDelete} />
+                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={(id) => handleDelete(id, mindMap.teamId)} />
                   ))}
                 </div>
               </div>
