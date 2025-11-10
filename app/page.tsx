@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronRight, CheckCircle, BarChart3, Clock, Zap, Brain, Map, Lightbulb } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { HeroDashboardPreview } from "@/components/HeroDashboardPreview";
-import { HeroVideoFallback } from "@/components/HeroVideoFallback";
 import { HeroRecurringTasksPreview } from "@/components/HeroRecurringTasksPreview";
 import { HeroExportPreview } from "@/components/HeroExportPreview";
 import { HeroGanttChartPreview } from "@/components/HeroGanttChartPreview";
@@ -112,18 +111,7 @@ export default function LandingPage() {
       {/* Hero Image Section */}
       <section className="px-4 sm:px-6 lg:px-8 pb-20">
         <div className="max-w-5xl mx-auto">
-          {/* Desktop: Interactive Dashboard Preview */}
-          <div className="hidden md:block">
-            <HeroDashboardPreview />
-          </div>
-
-          {/* Mobile: Video Fallback */}
-          <div className="md:hidden">
-            <HeroVideoFallback
-              title="See TaskQuadrant in Action"
-              description="Watch how to prioritize tasks in 30 seconds"
-            />
-          </div>
+          <HeroDashboardPreview />
         </div>
       </section>
 
