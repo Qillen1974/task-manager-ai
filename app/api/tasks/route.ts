@@ -304,7 +304,9 @@ export async function POST(request: NextRequest) {
 
       // Calculate next generation date
       if (recurringStartDate && recurringConfig) {
-        const nextDate = calculateNextOccurrenceDate(recurringStartDate, recurringConfig);
+        // For initial creation, calculate next occurrence from TODAY (or now)
+        // so recurring tasks appear immediately if they're scheduled for today
+        const nextDate = calculateNextOccurrenceDate(new Date(), recurringConfig);
         calculatedNextGenerationDate = nextDate;
       }
 

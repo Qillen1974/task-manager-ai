@@ -55,6 +55,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Handle reset-next-dates - recalculate nextGenerationDate for all recurring tasks
+    if (action === "reset-next-dates") {
+      const recurringTasks = await db.task.findMany({
+        where: {
+          isRecurring: true,
+          parentTaskId: null,
+        },
+      });
+
+      const { calculateNextOccurrenceDate } = await import("@/lib/utils");
+      let resetCount = 0;
+
+      for (const task of recurringTasks) {
+        try {
+          // Recalculate next generation date from today
+          const newNextDate = calculateNextOccurrenceDate(new Date(), task.recurringConfig);
+          await db.task.update({
+            where: { id: task.id },
+            data: { nextGenerationDate: newNextDate },
+          });
+          resetCount++;
+        } catch (err) {
+          console.error(`Failed to reset nextGenerationDate for task ${task.id}:`, err);
+        }
+      }
+
+      return success({
+        action: "reset-next-dates",
+        message: `Reset nextGenerationDate for ${resetCount} recurring tasks`,
+        tasksReset: resetCount,
+      });
+    }
+
     // Handle status - get all recurring tasks with their status
     if (action === "list-status") {
       const recurringTasks = await db.task.findMany({
