@@ -95,7 +95,16 @@ export default function MindMapEditor({
   const loadMindMap = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`/mindmaps/${mindMapId}`);
+      let response: any;
+
+      // If teamId is provided, load from team endpoint
+      if (teamId) {
+        response = await api.get(`/teams/${teamId}/mindmaps/${mindMapId}`);
+      } else {
+        // Try loading from personal endpoint first
+        response = await api.get(`/mindmaps/${mindMapId}`);
+      }
+
       if (response.data) {
         const mindMap = response.data;
         setTitle(mindMap.title);
@@ -104,7 +113,37 @@ export default function MindMapEditor({
         setEdges(mindMap.edges);
         setIsConverted(mindMap.isConverted || false);
       }
-    } catch (err) {
+    } catch (err: any) {
+      // If personal endpoint fails with 403/404, it might be a team mind map
+      // Try loading as team mind map by checking all user's teams
+      if (!teamId && (err.response?.status === 403 || err.response?.status === 404)) {
+        try {
+          // Get all teams to find the right one
+          const teamsResponse = await api.get("/teams");
+          if (teamsResponse.data && Array.isArray(teamsResponse.data)) {
+            // Try each team
+            for (const team of teamsResponse.data) {
+              try {
+                const teamResponse = await api.get(`/teams/${team.id}/mindmaps/${mindMapId}`);
+                if (teamResponse.data) {
+                  const mindMap = teamResponse.data;
+                  setTitle(mindMap.title);
+                  setDescription(mindMap.description || "");
+                  setNodes(mindMap.nodes);
+                  setEdges(mindMap.edges);
+                  setIsConverted(mindMap.isConverted || false);
+                  return; // Success, found the team mind map
+                }
+              } catch {
+                // Try next team
+                continue;
+              }
+            }
+          }
+        } catch {
+          // Fallback error
+        }
+      }
       setError("Failed to load mind map");
     } finally {
       setIsLoading(false);
