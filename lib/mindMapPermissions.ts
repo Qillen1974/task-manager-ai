@@ -13,7 +13,7 @@ interface MindMapPermission {
 /**
  * Check if user can view a mind map
  * - Owner of personal mind map: YES
- * - Team member of team mind map: YES (if VIEWER+ role)
+ * - Team member of team mind map: YES (all roles: ADMIN, EDITOR, VIEWER)
  */
 export async function canViewMindMap(
   userId: string,
@@ -38,12 +38,13 @@ export async function canViewMindMap(
     // Personal mind map - owner only
     if (mindMap.userId && !mindMap.teamId) {
       if (mindMap.userId === userId) {
+        console.log(`[canViewMindMap] Personal mind map - user is owner, allowing view`);
         return { allowed: true };
       }
       return { allowed: false, reason: "You do not have access to this mind map" };
     }
 
-    // Team mind map - check team membership
+    // Team mind map - check team membership (all roles can view)
     if (mindMap.teamId) {
       const teamMember = mindMap.team?.members.find(
         (m) => m.userId === userId && m.acceptedAt !== null
@@ -52,6 +53,7 @@ export async function canViewMindMap(
       console.log(`[canViewMindMap] Team mind map check: teamMember found:`, teamMember);
 
       if (teamMember) {
+        console.log(`[canViewMindMap] Team mind map - user is member with role ${teamMember.role}, allowing view`);
         return { allowed: true };
       }
       return {

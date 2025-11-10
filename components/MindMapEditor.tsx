@@ -73,6 +73,7 @@ export default function MindMapEditor({
   const [existingProjects, setExistingProjects] = useState<any[]>([]);
   const [isConverted, setIsConverted] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
   const [checkingPermissions, setCheckingPermissions] = useState(false);
 
   // Load existing mind map and projects
@@ -96,28 +97,39 @@ export default function MindMapEditor({
   };
 
   const checkEditPermissions = async () => {
-    if (!mindMapId) return;
+    if (!mindMapId || !teamId) {
+      // For personal mind maps, assume user can edit (they own it)
+      setCanEdit(true);
+      setPermissionsChecked(true);
+      return;
+    }
 
     try {
       setCheckingPermissions(true);
 
-      // Try to check permissions by attempting a PATCH request
-      // This will be rejected at the backend if user doesn't have permission
-      // We'll do a dry-run by sending only the title unchanged
-      if (teamId) {
-        // For team mind maps, we can't directly check without a dedicated endpoint
-        // Instead, we'll rely on the backend to reject the PATCH if user lacks permission
-        // For now, assume they can edit if they can view
-        setCanEdit(true);
-      } else {
-        // For personal mind maps, owner can always edit
-        setCanEdit(true);
+      // For team mind maps, check if user can edit by trying to get team info
+      // We'll check the user's role in the team via the team members endpoint
+      const teamsResponse = await api.get("/teams");
+      if (teamsResponse.data && Array.isArray(teamsResponse.data)) {
+        const team = teamsResponse.data.find((t: any) => t.id === teamId);
+        if (team && team.members) {
+          // Find the current user in the team members list
+          const currentUserInTeam = team.members.find((m: any) => m.role);
+          if (currentUserInTeam) {
+            const isEditable = ["ADMIN", "EDITOR"].includes(currentUserInTeam.role);
+            setCanEdit(isEditable);
+            if (!isEditable) {
+              setError("You do not have permission to edit this mind map. Only team admins and editors can make changes.");
+            }
+          }
+        }
       }
+      setPermissionsChecked(true);
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        setCanEdit(false);
-        setError("You do not have permission to edit this mind map");
-      }
+      console.error("Error checking edit permissions:", err);
+      // On error, be permissive and let the backend validation catch it
+      setCanEdit(true);
+      setPermissionsChecked(true);
     } finally {
       setCheckingPermissions(false);
     }
