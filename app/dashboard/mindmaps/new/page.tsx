@@ -71,12 +71,12 @@ export default function NewMindMapPage() {
             Choose whether to create a personal or team mind map:
           </p>
 
-          {isLoadingTeams ? (
+          {isLoadingTeams || userPlan === null ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin">
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
               </div>
-              <p className="text-gray-600 mt-2">Loading teams...</p>
+              <p className="text-gray-600 mt-2">Loading...</p>
             </div>
           ) : (
             <div className="space-y-3">
