@@ -29,6 +29,12 @@ export async function canViewMindMap(
       return { allowed: false, reason: "Mind map not found" };
     }
 
+    console.log(`[canViewMindMap] Checking view permission for user ${userId} on mindmap ${mindMapId}`, {
+      mindMapUserId: mindMap.userId,
+      mindMapTeamId: mindMap.teamId,
+      teamMembers: mindMap.team?.members?.map(m => ({ userId: m.userId, role: m.role, acceptedAt: m.acceptedAt })),
+    });
+
     // Personal mind map - owner only
     if (mindMap.userId && !mindMap.teamId) {
       if (mindMap.userId === userId) {
@@ -42,6 +48,8 @@ export async function canViewMindMap(
       const teamMember = mindMap.team?.members.find(
         (m) => m.userId === userId && m.acceptedAt !== null
       );
+
+      console.log(`[canViewMindMap] Team mind map check: teamMember found:`, teamMember);
 
       if (teamMember) {
         return { allowed: true };
@@ -82,6 +90,12 @@ export async function canEditMindMap(
       return { allowed: false, reason: "Mind map not found" };
     }
 
+    console.log(`[canEditMindMap] Checking edit permission for user ${userId} on mindmap ${mindMapId}`, {
+      mindMapUserId: mindMap.userId,
+      mindMapTeamId: mindMap.teamId,
+      teamMembers: mindMap.team?.members?.map(m => ({ userId: m.userId, role: m.role })),
+    });
+
     // Personal mind map - owner only
     if (mindMap.userId && !mindMap.teamId) {
       if (mindMap.userId === userId) {
@@ -96,15 +110,19 @@ export async function canEditMindMap(
         (m) => m.userId === userId && m.acceptedAt !== null
       );
 
+      console.log(`[canEditMindMap] Team mind map check: teamMember found:`, teamMember);
+
       if (!teamMember) {
         return { allowed: false, reason: "You are not a member of this team" };
       }
 
       const editableRoles = ["ADMIN", "EDITOR"];
       if (editableRoles.includes(teamMember.role)) {
+        console.log(`[canEditMindMap] User has editable role: ${teamMember.role}`);
         return { allowed: true };
       }
 
+      console.log(`[canEditMindMap] User role ${teamMember.role} is not in editable roles`);
       return {
         allowed: false,
         reason: "You must be a team admin or editor to modify mind maps",
