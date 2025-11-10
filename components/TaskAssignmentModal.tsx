@@ -284,7 +284,7 @@ export function TaskAssignmentModal({
                         </button>
                       </div>
                     ) : (
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-1 items-center">
                         <span className={`inline-block px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                           assignment.role === "OWNER"
                             ? "bg-red-100 text-red-800"
@@ -295,14 +295,24 @@ export function TaskAssignmentModal({
                           {assignment.role}
                         </span>
                         {canEditAssignments && (
-                          <button
-                            onClick={() => setEditingRoles(new Map(editingRoles).set(assignment.id, assignment.role))}
-                            disabled={isUpdatingRole}
-                            className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded disabled:cursor-not-allowed transition"
-                            title="Edit role"
-                          >
-                            ✎
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setEditingRoles(new Map(editingRoles).set(assignment.id, assignment.role))}
+                              disabled={isUpdatingRole}
+                              className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded disabled:cursor-not-allowed transition"
+                              title="Edit role"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              onClick={() => handleRemoveAssignment(assignment.id)}
+                              disabled={isUpdatingRole}
+                              className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded disabled:cursor-not-allowed transition"
+                              title="Remove assignment"
+                            >
+                              ✕
+                            </button>
+                          </>
                         )}
                       </div>
                     )}
