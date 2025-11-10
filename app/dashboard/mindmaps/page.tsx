@@ -18,12 +18,19 @@ interface MindMap {
   rootProjectId?: string;
   createdAt: string;
   updatedAt: string;
+  ownershipType?: "personal" | "team";
+  teamId?: string;
+  userId?: string;
+  createdByUser?: { email: string; firstName?: string; lastName?: string };
+  lastModifiedByUser?: { email: string; firstName?: string; lastName?: string };
 }
 
 export default function MindMapsPage() {
   const router = useRouter();
   const api = useApi();
   const [mindMaps, setMindMaps] = useState<MindMap[]>([]);
+  const [personalMaps, setPersonalMaps] = useState<MindMap[]>([]);
+  const [teamMaps, setTeamMaps] = useState<MindMap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string | null>(null);
@@ -49,7 +56,14 @@ export default function MindMapsPage() {
       setIsLoading(true);
       // Load all mind maps (including converted ones)
       const mindmapsResponse = await api.get("/mindmaps?includeConverted=true");
-      setMindMaps(mindmapsResponse.data || []);
+      const allMaps = mindmapsResponse.data || [];
+      setMindMaps(allMaps);
+
+      // Separate personal and team mind maps
+      const personal = allMaps.filter((m: MindMap) => m.ownershipType === "personal" || !m.teamId);
+      const team = allMaps.filter((m: MindMap) => m.ownershipType === "team" || m.teamId);
+      setPersonalMaps(personal);
+      setTeamMaps(team);
 
       // Load projects for navigation
       try {
@@ -198,62 +212,107 @@ export default function MindMapsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mindMaps.map((mindMap) => (
-              <div
-                key={mindMap.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {mindMap.title}
-                </h3>
-                {mindMap.description && (
-                  <p className="text-gray-600 text-sm mb-3">{mindMap.description}</p>
-                )}
-
-                <div className="space-y-2 mb-4">
-                  <div className="text-sm text-gray-500">
-                    <span className="font-medium">Nodes:</span> {mindMap.nodeCount}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    <span className="font-medium">Created:</span>{" "}
-                    {new Date(mindMap.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-
-                {mindMap.isConverted && mindMap.convertedAt && (
-                  <div className="mb-4 p-2 bg-green-50 border border-green-200 rounded">
-                    <p className="text-xs text-green-700 font-medium">
-                      ✓ Converted to projects
-                    </p>
-                    <p className="text-xs text-green-600">
-                      {new Date(mindMap.convertedAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      You can still edit and convert again if needed
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(mindMap.id)}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-medium text-sm hover:bg-blue-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(mindMap.id)}
-                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-medium text-sm hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
+          <div className="space-y-12">
+            {/* Personal Mind Maps Section */}
+            {personalMaps.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Personal Mind Maps</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {personalMaps.map((mindMap) => (
+                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Team Mind Maps Section */}
+            {teamMaps.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Team Mind Maps</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {teamMaps.map((mindMap) => (
+                    <MindMapCard key={mindMap.id} mindMap={mindMap} onEdit={handleEdit} onDelete={handleDelete} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// Mind Map Card Component
+function MindMapCard({ mindMap, onEdit, onDelete }: { mindMap: MindMap; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+  const isTeam = mindMap.ownershipType === "team";
+  const createdByName = mindMap.createdByUser?.firstName || mindMap.createdByUser?.lastName
+    ? `${mindMap.createdByUser?.firstName || ""} ${mindMap.createdByUser?.lastName || ""}`.trim()
+    : mindMap.createdByUser?.email;
+
+  return (
+    <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+      {/* Ownership Badge */}
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900 flex-1">
+          {mindMap.title}
+        </h3>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-2 ${
+          isTeam
+            ? "bg-purple-100 text-purple-700"
+            : "bg-blue-100 text-blue-700"
+        }`}>
+          {isTeam ? "Team" : "Personal"}
+        </span>
+      </div>
+
+      {mindMap.description && (
+        <p className="text-gray-600 text-sm mb-3">{mindMap.description}</p>
+      )}
+
+      <div className="space-y-2 mb-4">
+        <div className="text-sm text-gray-500">
+          <span className="font-medium">Nodes:</span> {mindMap.nodeCount}
+        </div>
+        <div className="text-sm text-gray-500">
+          <span className="font-medium">Created:</span>{" "}
+          {new Date(mindMap.createdAt).toLocaleDateString()}
+        </div>
+        {isTeam && createdByName && (
+          <div className="text-sm text-gray-500">
+            <span className="font-medium">Created by:</span> {createdByName}
+          </div>
+        )}
+      </div>
+
+      {mindMap.isConverted && mindMap.convertedAt && (
+        <div className="mb-4 p-2 bg-green-50 border border-green-200 rounded">
+          <p className="text-xs text-green-700 font-medium">
+            ✓ Converted to projects
+          </p>
+          <p className="text-xs text-green-600">
+            {new Date(mindMap.convertedAt).toLocaleDateString()}
+          </p>
+          <p className="text-xs text-green-600 mt-1">
+            You can still edit and convert again if needed
+          </p>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => onEdit(mindMap.id)}
+          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-medium text-sm hover:bg-blue-700"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => onDelete(mindMap.id)}
+          className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-medium text-sm hover:bg-red-700"
+        >
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
