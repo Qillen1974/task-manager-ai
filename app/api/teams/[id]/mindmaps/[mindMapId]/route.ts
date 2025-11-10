@@ -43,7 +43,11 @@ export async function GET(
       return error(canView.reason || "Permission denied", 403, "FORBIDDEN");
     }
 
-    return success(mindMap);
+    return success({
+      ...mindMap,
+      nodes: JSON.parse(mindMap.nodes),
+      edges: JSON.parse(mindMap.edges),
+    });
   });
 }
 
@@ -100,22 +104,38 @@ export async function PATCH(
     }
 
     if (nodes !== undefined) {
-      try {
-        const nodesArray = JSON.parse(nodes);
-        updateData.nodes = nodes;
-        updateData.nodeCount = Array.isArray(nodesArray) ? nodesArray.length : 0;
-      } catch (e) {
-        return error("Invalid nodes JSON format", 400, "INVALID_FORMAT");
+      // If nodes is a string (from client), stringify it. If it's an array, stringify it first.
+      let nodesArray;
+      if (typeof nodes === "string") {
+        try {
+          nodesArray = JSON.parse(nodes);
+        } catch (e) {
+          return error("Invalid nodes JSON format", 400, "INVALID_FORMAT");
+        }
+      } else if (Array.isArray(nodes)) {
+        nodesArray = nodes;
+      } else {
+        return ApiErrors.INVALID_INPUT({ message: "Nodes must be an array or valid JSON string" });
       }
+      updateData.nodes = JSON.stringify(nodesArray);
+      updateData.nodeCount = Array.isArray(nodesArray) ? nodesArray.length : 0;
     }
 
     if (edges !== undefined) {
-      try {
-        JSON.parse(edges);
-        updateData.edges = edges;
-      } catch (e) {
-        return error("Invalid edges JSON format", 400, "INVALID_FORMAT");
+      // If edges is a string (from client), stringify it. If it's an array, stringify it first.
+      let edgesArray;
+      if (typeof edges === "string") {
+        try {
+          edgesArray = JSON.parse(edges);
+        } catch (e) {
+          return error("Invalid edges JSON format", 400, "INVALID_FORMAT");
+        }
+      } else if (Array.isArray(edges)) {
+        edgesArray = edges;
+      } else {
+        return ApiErrors.INVALID_INPUT({ message: "Edges must be an array or valid JSON string" });
       }
+      updateData.edges = JSON.stringify(edgesArray);
     }
 
     // Track who modified it
@@ -128,7 +148,11 @@ export async function PATCH(
       data: updateData,
     });
 
-    return success(updated);
+    return success({
+      ...updated,
+      nodes: JSON.parse(updated.nodes),
+      edges: JSON.parse(updated.edges),
+    });
   });
 }
 
