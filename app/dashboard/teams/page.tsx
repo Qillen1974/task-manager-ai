@@ -55,8 +55,17 @@ export default function TeamsPage() {
   const [acceptingInvitation, setAcceptingInvitation] = useState<string | null>(null);
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState<string>("User");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
+    // Load user data from localStorage (browser-side only)
+    if (typeof window !== 'undefined') {
+      const email = localStorage.getItem("userEmail") || "";
+      setUserName(email);
+      setUserEmail(email);
+      setIsAdmin(localStorage.getItem("isAdmin") === "true");
+    }
     checkAuth();
   }, []);
 
@@ -70,7 +79,6 @@ export default function TeamsPage() {
       if (authRes.data) {
         setAuthenticated(true);
         setSubscription(subRes.data);
-        setIsAdmin(localStorage.getItem("isAdmin") === "true");
         loadTeams();
       }
     } catch (err) {
@@ -173,8 +181,8 @@ export default function TeamsPage() {
         onViewChange={() => {}}
         onProjectSelect={() => {}}
         pendingTaskCount={0}
-        userName={localStorage.getItem("userEmail") || "User"}
-        userEmail={localStorage.getItem("userEmail") || ""}
+        userName={userName}
+        userEmail={userEmail}
         isAdmin={isAdmin}
         onLogout={handleLogout}
         onSettingsClick={() => setShowUserSettings(true)}

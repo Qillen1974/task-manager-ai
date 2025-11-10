@@ -30,8 +30,17 @@ export default function MindMapsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState<string>("User");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
+    // Load user data from localStorage (browser-side only)
+    if (typeof window !== 'undefined') {
+      const email = localStorage.getItem("userEmail") || "";
+      setUserName(email);
+      setUserEmail(email);
+      setIsAdmin(localStorage.getItem("isAdmin") === "true");
+    }
     loadData();
   }, []);
 
@@ -60,8 +69,6 @@ export default function MindMapsPage() {
         // Subscription endpoint might not exist or user is on free plan
       }
 
-      // Load admin status
-      setIsAdmin(localStorage.getItem("isAdmin") === "true");
     } catch (err) {
       setError("Failed to load mind maps");
     } finally {
@@ -122,8 +129,8 @@ export default function MindMapsPage() {
         onViewChange={handleViewChange}
         onProjectSelect={() => {}}
         pendingTaskCount={0}
-        userName={localStorage.getItem("userEmail") || "User"}
-        userEmail={localStorage.getItem("userEmail") || ""}
+        userName={userName}
+        userEmail={userEmail}
         isAdmin={isAdmin}
         onLogout={handleLogout}
         onSettingsClick={() => setShowUserSettings(true)}
