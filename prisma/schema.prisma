@@ -30,6 +30,7 @@ model User {
   sessions      Session[]
   settings      UserSettings?
   mindMaps      MindMap[]
+  assignments   TaskAssignment[]
 
   @@index([email])
 }
@@ -239,7 +240,7 @@ model TaskAssignment {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   userId    String   // User assigned to this task
-  // Note: We don't create a User relation here to maintain flexibility
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   role      TaskAssignmentRole @default(COLLABORATOR)
 

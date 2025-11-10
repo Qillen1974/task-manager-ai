@@ -118,7 +118,8 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign
               <span className="text-xs text-gray-600 font-medium">Assigned to:</span>
               <div className="flex gap-2 flex-wrap">
                 {task.assignments.map((assignment) => {
-                  const displayName = assignment.user?.name || assignment.user?.firstName || assignment.user?.email || assignment.userId;
+                  // Prefer firstName/email over name
+                  const displayName = assignment.user?.firstName || assignment.user?.email || assignment.user?.name || assignment.userId;
                   const tooltipText = `${displayName} - ${assignment.role}`;
 
                   return (
