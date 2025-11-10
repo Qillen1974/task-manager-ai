@@ -177,7 +177,12 @@ export default function NewMindMapPage() {
         teamId={selectedTeamId || undefined}
         onSave={(mindMapId) => {
           // After saving, redirect to the mind map editor
-          router.push(`/dashboard/mindmaps/${mindMapId}`);
+          // Pass teamId as query param so the editor knows which endpoint to use
+          if (selectedTeamId) {
+            router.push(`/dashboard/mindmaps/${mindMapId}?teamId=${selectedTeamId}`);
+          } else {
+            router.push(`/dashboard/mindmaps/${mindMapId}`);
+          }
         }}
       />
     </div>

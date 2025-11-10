@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import MindMapEditor from "@/components/MindMapEditor";
 import { ArrowLeft } from "lucide-react";
 
@@ -13,7 +13,9 @@ interface PageParams {
 
 export default function MindMapEditorPage({ params }: PageParams) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { id } = params;
+  const teamId = searchParams.get("teamId") || undefined;
   const isNewMap = id === "new";
 
   return (
@@ -32,11 +34,16 @@ export default function MindMapEditorPage({ params }: PageParams) {
       {/* Editor */}
       <MindMapEditor
         mindMapId={isNewMap ? undefined : id}
+        teamId={teamId}
         initialTitle={isNewMap ? "New Mind Map" : undefined}
         onSave={(mindMapId) => {
           // After saving, redirect to the mind map editor
           if (isNewMap) {
-            router.push(`/dashboard/mindmaps/${mindMapId}`);
+            if (teamId) {
+              router.push(`/dashboard/mindmaps/${mindMapId}?teamId=${teamId}`);
+            } else {
+              router.push(`/dashboard/mindmaps/${mindMapId}`);
+            }
           }
         }}
         onConvert={(mindMapId) => {
