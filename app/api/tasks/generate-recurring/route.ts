@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { success, error, handleApiError } from "@/lib/apiResponse";
-import { generateRecurringTaskInstances, generateInstanceForTask, countPendingGenerations } from "@/lib/recurringTaskGenerator";
+import { generateRecurringTaskInstances, generateInstanceForTask, countPendingGenerations, getGenerationStatus } from "@/lib/recurringTaskGenerator";
 import { verifyAuth } from "@/lib/middleware";
+import { db } from "@/lib/db";
 
 /**
  * POST /api/tasks/generate-recurring
@@ -51,6 +52,48 @@ export async function POST(request: NextRequest) {
         action: "count",
         pendingGenerations: pendingCount,
         message: `${pendingCount} recurring task${pendingCount !== 1 ? "s" : ""} pending generation`,
+      });
+    }
+
+    // Handle status - get all recurring tasks with their status
+    if (action === "list-status") {
+      const recurringTasks = await db.task.findMany({
+        where: {
+          isRecurring: true,
+          parentTaskId: null,
+        },
+        select: {
+          id: true,
+          title: true,
+          isRecurring: true,
+          recurringConfig: true,
+          recurringStartDate: true,
+          recurringEndDate: true,
+          nextGenerationDate: true,
+          lastGeneratedDate: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      const now = new Date();
+      const taskStatuses = recurringTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        recurringConfig: task.recurringConfig,
+        nextGenerationDate: task.nextGenerationDate,
+        lastGeneratedDate: task.lastGeneratedDate,
+        isDueNow: task.nextGenerationDate ? now >= task.nextGenerationDate : false,
+        daysUntilNext: task.nextGenerationDate
+          ? Math.ceil((task.nextGenerationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          : null,
+        recurringEndDate: task.recurringEndDate,
+        hasEnded: task.recurringEndDate ? now > task.recurringEndDate : false,
+      }));
+
+      return success({
+        action: "list-status",
+        recurringTasks: taskStatuses,
+        total: taskStatuses.length,
       });
     }
 
