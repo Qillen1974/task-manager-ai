@@ -27,10 +27,10 @@ export function HeroVideoFallback({
           <iframe
             src={videoUrl}
             title="TaskQuadrant Demo"
-            className="w-full h-full"
+            className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            frameBorder="0"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-presentation"
           />
         ) : (
           <>
