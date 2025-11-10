@@ -119,6 +119,15 @@ export default function Home() {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        // Generate any due recurring task instances
+        try {
+          await api.post("/tasks/generate-recurring?action=generate-all", {});
+          console.log("[Dashboard] Recurring tasks generation triggered");
+        } catch (err) {
+          console.warn("[Dashboard] Recurring task generation failed:", err);
+          // Don't block task loading if generation fails
+        }
+
         // Fetch projects with hierarchy
         const projectsResponse = await api.getProjects();
         if (projectsResponse.success && projectsResponse.data) {
@@ -188,6 +197,15 @@ export default function Home() {
       // Immediately reload the data
       const loadData = async () => {
         try {
+          // Generate any due recurring task instances
+          try {
+            await api.post("/tasks/generate-recurring?action=generate-all", {});
+            console.log("[Dashboard] Recurring tasks generation triggered on auth");
+          } catch (err) {
+            console.warn("[Dashboard] Recurring task generation failed on auth:", err);
+            // Don't block task loading if generation fails
+          }
+
           const projectsResponse = await api.getProjects();
           if (projectsResponse.success && projectsResponse.data) {
             setProjects(projectsResponse.data);
