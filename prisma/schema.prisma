@@ -286,6 +286,7 @@ model Team {
   members      TeamMember[]
   invitations  TeamInvitation[]         // Pending team invitations
   projects     Project[]                // Projects owned by this team
+  mindMaps     MindMap[]                // Mind maps created by this team (ENTERPRISE feature)
 
   @@index([ownerId])
   @@index([slug])
@@ -385,8 +386,13 @@ model SchedulerState {
 // MindMap model - stores user-created mind maps before conversion to projects/tasks
 model MindMap {
   id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ownership: Either user-owned (userId set) OR team-owned (teamId set), not both
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  teamId        String?
+  team          Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   title         String
   description   String?
@@ -403,11 +409,19 @@ model MindMap {
   // Node to project/task mapping for smart re-conversion
   nodeToResourceMap String? // JSON object mapping node IDs to { type: "project"|"task", id: string }
 
+  // Audit fields for team collaboration
+  createdBy     String?  // User ID who created this mind map (useful for team maps)
+  lastModifiedBy String? // User ID who last modified this mind map
+
+  // Visibility: PRIVATE (owner only) or TEAM (team members)
+  visibility    String   @default("PRIVATE")
+
   // Metadata
   nodeCount     Int      @default(0)  // For quick validation against limits
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
+  @@index([teamId])
   @@index([isConverted])
 }

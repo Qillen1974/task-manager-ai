@@ -3,9 +3,10 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { canCreateMindMap, canCreateMindMapWithNodes } from "@/lib/projectLimits";
+import { getUserTeamIds } from "@/lib/mindMapPermissions";
 
 /**
- * GET /api/mindmaps - List all mind maps for the user
+ * GET /api/mindmaps - List all mind maps for the user (personal + team)
  */
 export async function GET(request: NextRequest) {
   return handleApiError(async () => {
@@ -16,10 +17,34 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const includeConverted = searchParams.get("includeConverted") === "true";
+    const type = searchParams.get("type") || "all"; // all, personal, team
 
-    const where: any = {
-      userId: auth.userId,
-    };
+    // Get user's team IDs
+    const userTeamIds = await getUserTeamIds(auth.userId);
+
+    // Build where clause based on filter type
+    let where: any;
+
+    if (type === "personal") {
+      // Personal mind maps only
+      where = {
+        userId: auth.userId,
+        teamId: null,
+      };
+    } else if (type === "team") {
+      // Team mind maps only
+      where = {
+        teamId: { in: userTeamIds },
+      };
+    } else {
+      // All mind maps (personal + team)
+      where = {
+        OR: [
+          { userId: auth.userId, teamId: null }, // Personal maps
+          { teamId: { in: userTeamIds } }, // Team maps
+        ],
+      };
+    }
 
     // Filter out converted mind maps by default
     if (!includeConverted) {
@@ -31,18 +56,54 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        teamId: true,
+        userId: true,
         title: true,
         description: true,
         nodeCount: true,
         isConverted: true,
         convertedAt: true,
         rootProjectId: true,
+        visibility: true,
+        createdBy: true,
+        lastModifiedBy: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    return success(mindMaps);
+    // Fetch user data for createdBy and lastModifiedBy (team maps)
+    const userIds = [
+      ...new Set(
+        mindMaps
+          .flatMap((m) => [m.createdBy, m.lastModifiedBy])
+          .filter((id) => id !== null)
+      ),
+    ];
+
+    const users = userIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: userIds as string[] } },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        })
+      : [];
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    // Format response
+    const formattedMaps = mindMaps.map((m) => ({
+      ...m,
+      ownershipType: m.userId ? "personal" : "team",
+      createdByUser: m.createdBy ? userMap.get(m.createdBy) : null,
+      lastModifiedByUser: m.lastModifiedBy ? userMap.get(m.lastModifiedBy) : null,
+    }));
+
+    return success(formattedMaps);
   });
 }
 
