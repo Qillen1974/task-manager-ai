@@ -57,6 +57,7 @@ export default function TeamsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState<string>("User");
   const [userEmail, setUserEmail] = useState<string>("");
+  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
     // Load user data from localStorage (browser-side only)
@@ -79,6 +80,17 @@ export default function TeamsPage() {
       if (authRes.data) {
         setAuthenticated(true);
         setSubscription(subRes.data);
+
+        // Load projects for navigation
+        try {
+          const projectsResponse = await api.getProjects();
+          if (projectsResponse.success && projectsResponse.data) {
+            setProjects(projectsResponse.data);
+          }
+        } catch (err) {
+          console.warn("Failed to load projects:", err);
+        }
+
         loadTeams();
       }
     } catch (err) {
@@ -176,7 +188,7 @@ export default function TeamsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
-        projects={[]}
+        projects={projects}
         activeView="teams"
         onViewChange={() => {}}
         onProjectSelect={() => {}}
