@@ -129,21 +129,22 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { title, description, nodes = "[]", edges = "[]" } = body;
+    const { title, description, nodes, edges } = body;
 
     // Validation
-    if (!title || title.trim().length === 0) {
-      return ApiErrors.MISSING_REQUIRED_FIELD("title");
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      return ApiErrors.INVALID_INPUT({ message: "Title is required" });
     }
 
-    // Parse nodes to count them
-    let nodeCount = 0;
-    try {
-      const nodesArray = JSON.parse(nodes);
-      nodeCount = Array.isArray(nodesArray) ? nodesArray.length : 0;
-    } catch (e) {
-      return error("Invalid nodes JSON format", 400, "INVALID_FORMAT");
+    if (!Array.isArray(nodes)) {
+      return ApiErrors.INVALID_INPUT({ message: "Nodes must be an array" });
     }
+
+    if (!Array.isArray(edges)) {
+      return ApiErrors.INVALID_INPUT({ message: "Edges must be an array" });
+    }
+
+    const nodeCount = nodes.length;
 
     // Check mind map count limit for team (ENTERPRISE: unlimited)
     // Currently no limit for ENTERPRISE, but can be added later
@@ -154,29 +155,23 @@ export async function POST(
         teamId,
         userId: null, // Team-owned, not user-owned
         title: title.trim(),
-        description: description?.trim(),
-        nodes,
-        edges,
+        description: description?.trim() || null,
+        nodes: JSON.stringify(nodes),
+        edges: JSON.stringify(edges),
         nodeCount,
         createdBy: auth.userId,
         lastModifiedBy: auth.userId,
         visibility: "TEAM",
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        nodeCount: true,
-        isConverted: true,
-        convertedAt: true,
-        createdBy: true,
-        lastModifiedBy: true,
-        visibility: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
-    return success(mindMap, 201);
+    return success(
+      {
+        ...mindMap,
+        nodes: JSON.parse(mindMap.nodes),
+        edges: JSON.parse(mindMap.edges),
+      },
+      201
+    );
   });
 }
