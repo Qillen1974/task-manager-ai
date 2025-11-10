@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader, AlertCircle, ArrowLeft } from "lucide-react";
+import { Plus, Loader, AlertCircle } from "lucide-react";
 import { useApi } from "@/lib/useApi";
+import { Navigation } from "@/components/Navigation";
+import { Project } from "@/lib/types";
 import Link from "next/link";
 
 interface MindMap {
@@ -25,6 +27,9 @@ export default function MindMapsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showUserSettings, setShowUserSettings] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -37,6 +42,16 @@ export default function MindMapsPage() {
       const mindmapsResponse = await api.get("/mindmaps?includeConverted=true");
       setMindMaps(mindmapsResponse.data || []);
 
+      // Load projects for navigation
+      try {
+        const projectsResponse = await api.getProjects();
+        if (projectsResponse.success && projectsResponse.data) {
+          setProjects(projectsResponse.data);
+        }
+      } catch {
+        // Projects not available
+      }
+
       // Load subscription to check plan
       try {
         const subscriptionResponse = await api.get("/subscriptions/current");
@@ -44,6 +59,9 @@ export default function MindMapsPage() {
       } catch {
         // Subscription endpoint might not exist or user is on free plan
       }
+
+      // Load admin status
+      setIsAdmin(localStorage.getItem("isAdmin") === "true");
     } catch (err) {
       setError("Failed to load mind maps");
     } finally {
@@ -81,25 +99,42 @@ export default function MindMapsPage() {
     }
   };
 
+  const handleLogout = () => {
+    api.logout();
+    router.push("/");
+  };
+
+  const handleViewChange = (view: string) => {
+    if (view === "dashboard") {
+      router.push("/dashboard");
+    } else if (view === "projects") {
+      router.push("/dashboard?view=projects");
+    } else if (view === "all-tasks") {
+      router.push("/dashboard?view=all-tasks");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Simple header */}
-      <div className="bg-white border-b border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="hover:bg-gray-100 rounded p-2 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mind Maps</h1>
-            <p className="text-sm text-gray-600">Create visual mind maps and convert to projects</p>
-          </div>
-        </div>
-      </div>
+      <Navigation
+        projects={projects}
+        activeView="mindmaps"
+        onViewChange={handleViewChange}
+        onProjectSelect={() => {}}
+        pendingTaskCount={0}
+        userName={localStorage.getItem("userEmail") || "User"}
+        userEmail={localStorage.getItem("userEmail") || ""}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        onSettingsClick={() => setShowUserSettings(true)}
+      />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Mind Maps</h1>
+          <p className="text-gray-600 mt-2">Create visual mind maps and convert to projects</p>
+        </div>
         {/* Error message */}
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg flex items-start gap-3">

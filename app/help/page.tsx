@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Mail, HelpCircle, Send } from "lucide-react";
+import { Navigation } from "@/components/Navigation";
+import { useApi } from "@/lib/useApi";
+import { Project } from "@/lib/types";
 
 interface FAQItem {
   id: string;
@@ -74,6 +78,8 @@ const faqItems: FAQItem[] = [
 ];
 
 export default function HelpPage() {
+  const router = useRouter();
+  const api = useApi();
   const [expandedFAQId, setExpandedFAQId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -83,6 +89,32 @@ export default function HelpPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showUserSettings, setShowUserSettings] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      // Load projects for navigation
+      try {
+        const projectsResponse = await api.getProjects();
+        if (projectsResponse.success && projectsResponse.data) {
+          setProjects(projectsResponse.data);
+        }
+      } catch {
+        // Projects not available
+      }
+
+      // Load admin status
+      setIsAdmin(localStorage.getItem("isAdmin") === "true");
+    } catch (err) {
+      console.error("Failed to load data:", err);
+    }
+  };
 
   const toggleFAQ = (id: string) => {
     setExpandedFAQId(expandedFAQId === id ? null : id);
@@ -96,6 +128,21 @@ export default function HelpPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    router.push("/");
+  };
+
+  const handleViewChange = (view: string) => {
+    if (view === "dashboard") {
+      router.push("/dashboard");
+    } else if (view === "projects") {
+      router.push("/dashboard?view=projects");
+    } else if (view === "all-tasks") {
+      router.push("/dashboard?view=all-tasks");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,25 +185,18 @@ export default function HelpPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">Q</span>
-              </div>
-              <span className="font-bold text-xl text-gray-900">TaskQuadrant</span>
-            </Link>
-            <Link
-              href="/dashboard"
-              className="text-gray-600 hover:text-gray-900 font-medium"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navigation
+        projects={projects}
+        activeView="help"
+        onViewChange={handleViewChange}
+        onProjectSelect={() => {}}
+        pendingTaskCount={0}
+        userName={localStorage.getItem("userEmail") || "User"}
+        userEmail={localStorage.getItem("userEmail") || ""}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        onSettingsClick={() => setShowUserSettings(true)}
+      />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
