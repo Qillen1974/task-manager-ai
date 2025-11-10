@@ -30,22 +30,14 @@ interface NodeToResourceMap {
 }
 
 /**
- * POST /api/mindmaps/[id]/convert - Convert a mind map to projects and tasks
+ * POST /api/teams/[id]/mindmaps/[mindMapId]/convert - Convert a team mind map to team projects and tasks
  *
- * This endpoint converts a saved mind map into:
- * - A root project (from the mind map root)
- * - Subprojects (from mind map branches)
- * - Tasks (from mind map leaf nodes)
- * - Task dependencies (from mind map connections)
- *
- * On re-conversion (when mind map is already converted), it:
- * - Deletes projects/tasks for nodes that were removed
- * - Updates projects/tasks for nodes that were modified
- * - Creates projects/tasks only for new nodes
+ * Similar to personal mind map conversion, but creates team-owned projects and tasks.
+ * Team members with ADMIN/EDITOR role can convert.
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string; mindMapId: string } }
 ) {
   return handleApiError(async () => {
     const auth = await verifyAuth(request);
@@ -53,26 +45,39 @@ export async function POST(
       return auth.error;
     }
 
-    const { id } = params;
+    const { id: teamId, mindMapId } = params;
 
     // Get the mind map
     const mindMap = await db.mindMap.findUnique({
-      where: { id },
+      where: { id: mindMapId },
     });
 
     if (!mindMap) {
       return ApiErrors.NOT_FOUND("Mind map");
     }
 
+    // Verify it belongs to the team
+    if (mindMap.teamId !== teamId) {
+      return ApiErrors.NOT_FOUND("Mind map");
+    }
+
     // Check conversion permission
-    const canConvert = await canConvertMindMap(auth.userId, id);
+    const canConvert = await canConvertMindMap(auth.userId, mindMapId);
     if (!canConvert.allowed) {
       return error(canConvert.reason || "Permission denied", 403, "FORBIDDEN");
     }
 
-    // Only personal mind maps can be converted from this endpoint
-    if (mindMap.teamId) {
-      return error("Use team mind map conversion endpoint for team-owned mind maps", 400, "INVALID_REQUEST");
+    // Check subscription - team mind maps require ENTERPRISE
+    const subscription = await db.subscription.findUnique({
+      where: { userId: auth.userId },
+    });
+
+    if (!subscription || subscription.plan !== "ENTERPRISE") {
+      return error(
+        "Team mind map conversion requires ENTERPRISE subscription",
+        403,
+        "SUBSCRIPTION_REQUIRED"
+      );
     }
 
     // Parse nodes and edges
@@ -88,15 +93,6 @@ export async function POST(
 
     if (nodes.length === 0) {
       return ApiErrors.INVALID_INPUT({ message: "Mind map must have at least one node" });
-    }
-
-    // Get subscription
-    const subscription = await db.subscription.findUnique({
-      where: { userId: auth.userId },
-    });
-
-    if (!subscription) {
-      return ApiErrors.NOT_FOUND("Subscription");
     }
 
     // Load previous conversion mapping if this is a re-conversion
@@ -147,7 +143,7 @@ export async function POST(
 
       // Get current project count to validate limits for new projects
       const rootProjectCount = await db.project.count({
-        where: { userId: auth.userId, parentProjectId: null },
+        where: { teamId, parentProjectId: null },
       });
 
       const canCreateRoot = canCreateRootProject(
@@ -193,7 +189,7 @@ export async function POST(
             return ApiErrors.NOT_FOUND("Parent project");
           }
 
-          if (parentProject.userId !== auth.userId) {
+          if (parentProject.teamId !== teamId) {
             return ApiErrors.FORBIDDEN();
           }
 
@@ -205,7 +201,8 @@ export async function POST(
           rootProjectLevel = parentProject.projectLevel + 1;
           rootProject = await db.project.create({
             data: {
-              userId: auth.userId,
+              userId: auth.userId, // Still track who created it, but it's team-owned
+              teamId,
               name: rootNode.label,
               description: rootNode.description || null,
               color: rootNode.color || "blue",
@@ -214,10 +211,11 @@ export async function POST(
             },
           });
         } else {
-          // Create as root project
+          // Create as root project (team-owned)
           rootProject = await db.project.create({
             data: {
               userId: auth.userId,
+              teamId,
               name: rootNode.label,
               description: rootNode.description || null,
               color: rootNode.color || "blue",
@@ -285,10 +283,11 @@ export async function POST(
             });
             nodeToIdMap[branchNode.id] = previousNodeMap[branchNode.id];
           } else {
-            // Create new subproject
+            // Create new subproject (team-owned)
             const subproject = await db.project.create({
               data: {
                 userId: auth.userId,
+                teamId,
                 name: branchNode.label,
                 description: branchNode.description || null,
                 color: branchNode.color || "blue",
@@ -390,7 +389,7 @@ export async function POST(
 
       // Update mind map with conversion metadata
       const updatedMindMap = await db.mindMap.update({
-        where: { id },
+        where: { id: mindMapId },
         data: {
           isConverted: true,
           convertedAt: new Date(),
@@ -409,7 +408,7 @@ export async function POST(
 
       return success({
         success: true,
-        mindMapId: id,
+        mindMapId: mindMapId,
         rootProjectId: rootProject.id,
         rootProjectName: rootProject.name,
         isReConversion: mindMap.isConverted,
@@ -419,13 +418,13 @@ export async function POST(
         projectsDeleted: removedNodeIds.length,
         edgesProcessed: edges.length,
         message: mindMap.isConverted
-          ? `Successfully re-converted mind map. Created ${createdTasks.length} new tasks, deleted ${removedNodeIds.length} removed items.`
-          : `Successfully converted mind map to ${newTaskCount} tasks and ${newProjectCount} projects`,
+          ? `Successfully re-converted team mind map. Created ${createdTasks.length} new tasks, deleted ${removedNodeIds.length} removed items.`
+          : `Successfully converted team mind map to ${newTaskCount} tasks and ${newProjectCount} projects`,
       });
     } catch (error) {
-      console.error("Error converting mind map:", error);
+      console.error("Error converting team mind map:", error);
       return ApiErrors.INTERNAL_SERVER_ERROR(
-        "Failed to convert mind map to projects and tasks"
+        "Failed to convert team mind map to projects and tasks"
       );
     }
   });
