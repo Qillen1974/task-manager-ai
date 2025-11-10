@@ -145,6 +145,26 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Fetch all user data for all assignments in all tasks
+    const allAssignmentUserIds = tasks
+      .flatMap(task => task.assignments?.map(a => a.userId) || [])
+      .filter((id, index, arr) => arr.indexOf(id) === index); // Deduplicate
+
+    const assignmentUsers = allAssignmentUserIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: allAssignmentUserIds } },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+          },
+        })
+      : [];
+
+    const userMap = new Map(assignmentUsers.map(u => [u.id, u]));
+
     // Format tasks to match frontend expectations
     const formattedTasks = tasks.map((task: any) => ({
       id: task.id,
@@ -176,7 +196,10 @@ export async function GET(request: NextRequest) {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
-      assignments: task.assignments,
+      assignments: task.assignments?.map((a: any) => ({
+        ...a,
+        user: userMap.get(a.userId),
+      })),
     }));
 
     return success(formattedTasks);
