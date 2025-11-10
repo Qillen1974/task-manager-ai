@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { canCreateRecurringTask, TASK_LIMITS } from "@/lib/projectLimits";
-import { calculateNextOccurrenceDate } from "@/lib/utils";
+import { calculateNextOccurrenceDate, calculateInitialNextGenerationDate } from "@/lib/utils";
 
 /**
  * GET /api/tasks - List all tasks for the user
@@ -304,9 +304,9 @@ export async function POST(request: NextRequest) {
 
       // Calculate next generation date
       if (recurringStartDate && recurringConfig) {
-        // For initial creation, calculate next occurrence from TODAY (or now)
-        // so recurring tasks appear immediately if they're scheduled for today
-        const nextDate = calculateNextOccurrenceDate(new Date(), recurringConfig);
+        // For initial creation, use special logic that accounts for missed occurrences
+        // E.g., if it's Tuesday and task is scheduled for Monday, generate today (it's overdue)
+        const nextDate = calculateInitialNextGenerationDate(recurringConfig);
         calculatedNextGenerationDate = nextDate;
       }
 

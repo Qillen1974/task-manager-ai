@@ -227,6 +227,77 @@ export function calculateNextOccurrenceDate(
 }
 
 /**
+ * Calculate the initial nextGenerationDate for a new recurring task
+ * For tasks that should have run before today (e.g., Monday task on Tuesday),
+ * set the generation date to today so it generates immediately
+ */
+export function calculateInitialNextGenerationDate(
+  config: RecurringConfig | string | null
+): Date | null {
+  const parsedConfig = parseRecurringConfig(config);
+  if (!parsedConfig) return null;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const currentDayOfWeek = today.getDay();
+  const { pattern, interval, daysOfWeek, dayOfMonth } = parsedConfig;
+
+  if (pattern === "DAILY") {
+    // Daily tasks generate today
+    return today;
+  } else if (pattern === "WEEKLY" && daysOfWeek && daysOfWeek.length > 0) {
+    const sortedDays = daysOfWeek.sort();
+
+    // Check if any scheduled day already passed this week
+    const dayThatPassedThisWeek = sortedDays.find((d) => d < currentDayOfWeek);
+    if (dayThatPassedThisWeek !== undefined) {
+      // A scheduled day already passed this week, generate today (it's overdue)
+      return today;
+    }
+
+    // Check if today is a scheduled day
+    const isTodayScheduled = sortedDays.includes(currentDayOfWeek);
+    if (isTodayScheduled) {
+      // Today is a scheduled day, generate today
+      return today;
+    }
+
+    // Find next scheduled day this week
+    const nextDayThisWeek = sortedDays.find((d) => d > currentDayOfWeek);
+    if (nextDayThisWeek !== undefined) {
+      // Next occurrence is later this week
+      const daysToAdd = nextDayThisWeek - currentDayOfWeek;
+      const nextDate = new Date(today);
+      nextDate.setDate(nextDate.getDate() + daysToAdd);
+      return nextDate;
+    }
+
+    // Next occurrence is next week
+    const firstDayNextWeek = sortedDays[0];
+    const daysToAdd = 7 - currentDayOfWeek + firstDayNextWeek;
+    const nextDate = new Date(today);
+    nextDate.setDate(nextDate.getDate() + daysToAdd);
+    return nextDate;
+  } else if (pattern === "MONTHLY" && dayOfMonth) {
+    const currentDate = today.getDate();
+    if (dayOfMonth >= currentDate) {
+      // Scheduled day hasn't passed this month yet
+      const nextDate = new Date(today);
+      nextDate.setDate(dayOfMonth);
+      return nextDate;
+    } else {
+      // Scheduled day already passed, schedule for next month
+      const nextDate = new Date(today);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate.setDate(dayOfMonth);
+      return nextDate;
+    }
+  }
+
+  return calculateNextOccurrenceDate(today, config);
+}
+
+/**
  * Check if we should generate a new instance of a recurring task
  * @param lastGeneratedDate - When the last instance was generated
  * @param nextGenerationDate - When the next instance should be generated

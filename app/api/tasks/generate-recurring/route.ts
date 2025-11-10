@@ -3,6 +3,7 @@ import { success, error, handleApiError } from "@/lib/apiResponse";
 import { generateRecurringTaskInstances, generateInstanceForTask, countPendingGenerations, getGenerationStatus } from "@/lib/recurringTaskGenerator";
 import { verifyAuth } from "@/lib/middleware";
 import { db } from "@/lib/db";
+import { calculateInitialNextGenerationDate } from "@/lib/utils";
 
 /**
  * POST /api/tasks/generate-recurring
@@ -69,8 +70,8 @@ export async function POST(request: NextRequest) {
 
       for (const task of recurringTasks) {
         try {
-          // Recalculate next generation date from today
-          const newNextDate = calculateNextOccurrenceDate(new Date(), task.recurringConfig);
+          // Recalculate next generation date with logic that handles missed occurrences
+          const newNextDate = calculateInitialNextGenerationDate(task.recurringConfig);
           await db.task.update({
             where: { id: task.id },
             data: { nextGenerationDate: newNextDate },
