@@ -24,6 +24,7 @@ interface MindMapEdge {
 
 interface MindMapEditorProps {
   mindMapId?: string;
+  teamId?: string;
   initialTitle?: string;
   initialDescription?: string;
   onSave?: (mindMapId: string) => void;
@@ -38,6 +39,7 @@ const NODE_PADDING = 20;
 
 export default function MindMapEditor({
   mindMapId,
+  teamId,
   initialTitle = "New Mind Map",
   initialDescription = "",
   onSave,
@@ -484,15 +486,37 @@ export default function MindMapEditor({
 
       if (mindMapId) {
         // Update existing mind map
-        await api.patch(`/mindmaps/${mindMapId}`, {
-          title,
-          description,
-          nodes,
-          edges,
-        });
+        if (teamId) {
+          // Team mind map update
+          await api.patch(`/teams/${teamId}/mindmaps/${mindMapId}`, {
+            title,
+            description,
+            nodes,
+            edges,
+          });
+        } else {
+          // Personal mind map update
+          await api.patch(`/mindmaps/${mindMapId}`, {
+            title,
+            description,
+            nodes,
+            edges,
+          });
+        }
       } else {
         // Create new mind map
-        const response = await api.post("/mindmaps", {
+        let endpoint: string;
+        let response: any;
+
+        if (teamId) {
+          // Create team mind map
+          endpoint = `/teams/${teamId}/mindmaps`;
+        } else {
+          // Create personal mind map
+          endpoint = `/mindmaps`;
+        }
+
+        response = await api.post(endpoint, {
           title,
           description,
           nodes,
@@ -523,7 +547,11 @@ export default function MindMapEditor({
       setIsLoading(true);
       setError(null);
 
-      await api.post(`/mindmaps/${mindMapId}/convert`);
+      const endpoint = teamId
+        ? `/teams/${teamId}/mindmaps/${mindMapId}/convert`
+        : `/mindmaps/${mindMapId}/convert`;
+
+      await api.post(endpoint);
       setSuccessMessage(
         isConverted
           ? "Mind map re-converted to projects and tasks successfully!"
