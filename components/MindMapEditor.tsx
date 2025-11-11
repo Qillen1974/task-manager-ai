@@ -108,8 +108,8 @@ export default function MindMapEditor({
     try {
       setCheckingPermissions(true);
 
-      // For team mind maps, check if user can edit by trying to get team info
-      // We'll check the user's role in the team via the team members endpoint
+      // For team mind maps, check if user can edit by checking their role in the team
+      // The /teams endpoint returns userRole which is the current user's role
       console.log(`[MindMapEditor] Checking edit permissions for team mind map in team ${teamId}`);
       const teamsResponse = await api.get("/teams");
       console.log(`[MindMapEditor] Teams response:`, {
@@ -121,20 +121,21 @@ export default function MindMapEditor({
         const team = teamsResponse.data.find((t: any) => t.id === teamId);
         console.log(`[MindMapEditor] Found team ${teamId}?`, !!team);
 
-        if (team && team.members) {
-          console.log(`[MindMapEditor] Team members:`, team.members.map((m: any) => ({ userId: m.userId, role: m.role })));
-          // Find the current user in the team members list
-          const currentUserInTeam = team.members.find((m: any) => m.role);
-          console.log(`[MindMapEditor] Current user in team:`, currentUserInTeam);
+        if (team) {
+          // The userRole field is set by the backend to indicate the current user's role
+          const userRole = team.userRole;
+          console.log(`[MindMapEditor] Current user's role in team: ${userRole}`);
 
-          if (currentUserInTeam) {
-            const isEditable = ["ADMIN", "EDITOR"].includes(currentUserInTeam.role);
-            console.log(`[MindMapEditor] User role ${currentUserInTeam.role} is editable?`, isEditable);
-            setCanEdit(isEditable);
-            if (!isEditable) {
-              setError("You do not have permission to edit this mind map. Only team admins and editors can make changes.");
-            }
+          const isEditable = ["ADMIN", "EDITOR"].includes(userRole);
+          console.log(`[MindMapEditor] User role ${userRole} is editable?`, isEditable);
+          setCanEdit(isEditable);
+          if (!isEditable) {
+            setError("You do not have permission to edit this mind map. Only team admins and editors can make changes.");
           }
+        } else {
+          console.error(`[MindMapEditor] Team ${teamId} not found in user's teams`);
+          setCanEdit(false);
+          setError("Team not found or you are not a member of this team.");
         }
       }
       setPermissionsChecked(true);
