@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/lib/useApi";
+import { getAdminToken } from "@/lib/adminAuth";
 import { Plus, Edit, Trash2, Search, X } from "lucide-react";
 
 interface KnowledgeBaseArticle {
@@ -39,6 +40,39 @@ const CATEGORY_LABELS: Record<string, string> = {
   "troubleshooting": "🔧 Troubleshooting",
 };
 
+/**
+ * Make an API call with admin token if available, otherwise use regular user API
+ */
+async function makeAuthenticatedCall<T = any>(
+  method: string,
+  endpoint: string,
+  body?: any
+): Promise<{ success: boolean; data?: T; error?: { message: string } }> {
+  const adminToken = getAdminToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(adminToken && { "Authorization": `Bearer ${adminToken}` }),
+  };
+
+  try {
+    const response = await fetch(`/api${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : "Network error",
+      },
+    };
+  }
+}
+
 export function AdminKnowledgeBase() {
   const api = useApi();
   const [articles, setArticles] = useState<KnowledgeBaseArticle[]>([]);
@@ -66,14 +100,14 @@ export function AdminKnowledgeBase() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get("/admin/knowledge-base?limit=100");
-      if (response.success) {
+      const response = await makeAuthenticatedCall("GET", "/admin/knowledge-base?limit=100");
+      if (response.success && response.data) {
         setArticles(response.data.articles || []);
       } else {
-        setError("Failed to load articles");
+        setError(response.error?.message || "Failed to load articles");
       }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to load articles");
+      setError(err instanceof Error ? err.message : "Failed to load articles");
     } finally {
       setIsLoading(false);
     }
@@ -113,15 +147,20 @@ export function AdminKnowledgeBase() {
 
     try {
       setError(null);
+      let response;
       if (editingId) {
-        await api.patch(`/admin/knowledge-base/${editingId}`, formData);
+        response = await makeAuthenticatedCall("PATCH", `/admin/knowledge-base/${editingId}`, formData);
       } else {
-        await api.post("/admin/knowledge-base", formData);
+        response = await makeAuthenticatedCall("POST", "/admin/knowledge-base", formData);
       }
-      setIsFormOpen(false);
-      loadArticles();
+      if (response.success) {
+        setIsFormOpen(false);
+        loadArticles();
+      } else {
+        setError(response.error?.message || "Failed to save article");
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to save article");
+      setError(err instanceof Error ? err.message : "Failed to save article");
     }
   };
 
@@ -130,10 +169,14 @@ export function AdminKnowledgeBase() {
 
     try {
       setError(null);
-      await api.delete(`/admin/knowledge-base/${id}`);
-      loadArticles();
+      const response = await makeAuthenticatedCall("DELETE", `/admin/knowledge-base/${id}`);
+      if (response.success) {
+        loadArticles();
+      } else {
+        setError(response.error?.message || "Failed to delete article");
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to delete article");
+      setError(err instanceof Error ? err.message : "Failed to delete article");
     }
   };
 
