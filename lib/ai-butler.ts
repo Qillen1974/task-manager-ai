@@ -24,12 +24,59 @@ export async function getAIConfig() {
 }
 
 /**
+ * Check if a message is TaskQuadrant-related
+ */
+export function isTaskQuadrantRelated(message: string): boolean {
+  const messageLower = message.toLowerCase();
+
+  // TaskQuadrant-related keywords
+  const taskQuadrantKeywords = [
+    // App names
+    "taskquadrant", "task", "project", "team", "sprint",
+    // Features
+    "eisenhower", "matrix", "mind map", "recurring", "dependency",
+    "subproject", "budget", "timeline", "progress", "priority",
+    // Concepts
+    "workflow", "collaboration", "planning", "deadline", "assignment",
+    "resource", "tracking", "status", "completion",
+    // Management
+    "manage", "organize", "prioritize", "track", "plan",
+    // User types
+    "admin", "editor", "viewer", "permission", "role",
+    // Plans
+    "subscription", "plan", "free", "pro", "enterprise",
+    // General help
+    "help", "how to", "guide", "tutorial", "setup", "start",
+    "feature", "documentation", "bug", "error", "issue", "problem"
+  ];
+
+  // Check if message contains TaskQuadrant-related keywords
+  return taskQuadrantKeywords.some(keyword => messageLower.includes(keyword));
+}
+
+/**
  * Generate AI response using the configured model
  */
 export async function generateAIResponseWithLLM(
   userMessage: string
 ): Promise<string> {
   try {
+    // Check if message is TaskQuadrant-related
+    if (!isTaskQuadrantRelated(userMessage)) {
+      return `I'm specialized for TaskQuadrant task management help. Your question doesn't seem related to TaskQuadrant.
+
+I can help you with:
+• Projects and task management
+• Team collaboration features
+• Using the Eisenhower Matrix
+• Mind Maps and planning
+• Recurring tasks and automation
+• Subscription plans and features
+• Troubleshooting issues
+
+What TaskQuadrant question can I help you with?`;
+    }
+
     const config = await getAIConfig();
 
     if (config.activeModel === "openai") {
@@ -173,23 +220,29 @@ async function generateKnowledgeBaseResponse(
  * Default system prompt for AI Butler
  */
 export function getDefaultSystemPrompt(): string {
-  return `You are TaskQuadrant's AI Butler, a helpful assistant for an advanced task management and project planning application.
+  return `You are TaskQuadrant's AI Butler, a specialized assistant for task management only.
 
-Your role is to:
-1. Help users understand and use features of TaskQuadrant
-2. Answer questions about projects, tasks, teams, and workflows
+SCOPE & CONSTRAINTS:
+- ONLY answer questions related to TaskQuadrant or task management
+- REFUSE requests for general topics (coding, math, news, creative writing, etc.)
+- If asked something unrelated, politely say: "I'm specialized for TaskQuadrant. I can only help with task management."
+- Do NOT pretend to be a general-purpose AI
+- Do NOT help with tasks outside TaskQuadrant scope
+
+Your role:
+1. Help users understand and use TaskQuadrant features
+2. Answer questions about projects, tasks, teams, workflows
 3. Guide users through common workflows
-4. Suggest helpful features based on user needs
-5. Detect when users report issues and suggest bug reporting
-6. Provide context-aware help
-7. Be friendly, professional, and concise
+4. Suggest helpful TaskQuadrant features
+5. Detect issues and suggest bug reporting
+6. Provide context-aware help within TaskQuadrant
 
-Key information about TaskQuadrant:
+Key TaskQuadrant Information:
 - FREE Plan: 3 projects, 50 tasks, basic features
 - PRO Plan: 5 projects, unlimited tasks, advanced features, recurring tasks, subprojects
 - ENTERPRISE Plan: Unlimited everything, team collaboration, custom features
 
-Features include:
+Features:
 - Eisenhower Matrix for task prioritization (Important/Urgent)
 - Mind Maps for brainstorming and planning (can be converted to projects)
 - Recurring tasks with Daily/Weekly/Monthly/Custom patterns
@@ -199,6 +252,6 @@ Features include:
 - Budget and timeline tracking
 - Progress tracking (0-100%)
 
-When users ask questions not in the knowledge base, provide helpful guidance based on your understanding of task management and productivity tools.
-Always be helpful, accurate, and friendly.`;
+IMPORTANT: You must stay focused on TaskQuadrant. Be friendly, professional, and concise.
+If unsure, redirect to TaskQuadrant topics.`;
 }
