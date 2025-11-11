@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, handleApiError } from "@/lib/apiResponse";
+import { generateAIResponseWithLLM } from "@/lib/ai-butler";
 
 /**
  * POST /api/butler/chat - Send a message to the AI butler
@@ -51,15 +52,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Generate AI response (placeholder for now)
-    const aiResponse = await generateAIResponse(message, auth.userId);
+    // Generate AI response using configured LLM
+    let aiResponseText: string;
+    let suggestBugReport = false;
+
+    try {
+      aiResponseText = await generateAIResponseWithLLM(message);
+
+      // Check if response suggests bug reporting
+      if (
+        message.toLowerCase().includes("bug") ||
+        message.toLowerCase().includes("error") ||
+        message.toLowerCase().includes("issue")
+      ) {
+        suggestBugReport = true;
+      }
+    } catch (error: any) {
+      console.error("Error generating AI response:", error);
+      // Fallback to knowledge base
+      const fallback = await generateAIResponse(message, auth.userId);
+      aiResponseText = fallback.response;
+      suggestBugReport = fallback.suggestBugReport;
+    }
 
     // Store assistant message
     await db.chatMessage.create({
       data: {
         conversationId: conversation.id,
         role: "assistant",
-        content: aiResponse.response,
+        content: aiResponseText,
       },
     });
 
@@ -75,8 +96,8 @@ export async function POST(request: NextRequest) {
 
     return success({
       conversationId: conversation.id,
-      response: aiResponse.response,
-      suggestBugReport: aiResponse.suggestBugReport,
+      response: aiResponseText,
+      suggestBugReport: suggestBugReport,
     });
   });
 }
