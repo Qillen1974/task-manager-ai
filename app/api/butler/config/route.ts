@@ -31,6 +31,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Mask API keys for security - only show that they exist
+    const maskedApiKeys: Record<string, string | undefined> = {};
+    if (config.openaiApiKey) {
+      maskedApiKeys.openaiApiKey = maskApiKey(config.openaiApiKey);
+    }
+    if (config.anthropicApiKey) {
+      maskedApiKeys.anthropicApiKey = maskApiKey(config.anthropicApiKey);
+    }
+    if (config.geminiApiKey) {
+      maskedApiKeys.geminiApiKey = maskApiKey(config.geminiApiKey);
+    }
+
     return success({
       config: {
         activeModel: config.activeModel,
@@ -38,7 +50,9 @@ export async function GET(request: NextRequest) {
         temperature: config.temperature,
         enableBugReporting: config.enableBugReporting,
         enableKBSuggestions: config.enableKBSuggestions,
+        systemPrompt: config.systemPrompt,
       },
+      apiKeys: maskedApiKeys,
     });
   });
 }
@@ -118,6 +132,16 @@ export async function PATCH(request: NextRequest) {
       message: "AI Butler configuration updated successfully",
     });
   });
+}
+
+/**
+ * Mask API key for display - shows only first 4 and last 4 characters
+ */
+function maskApiKey(key: string): string {
+  if (key.length <= 8) {
+    return "****";
+  }
+  return `${key.substring(0, 4)}****...****${key.substring(key.length - 4)}`;
 }
 
 /**

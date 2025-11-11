@@ -53,6 +53,7 @@ export function AdminAIButlerConfig() {
   });
 
   const [apiKeys, setApiKeys] = useState<ApiKeyConfig>({});
+  const [maskedApiKeys, setMaskedApiKeys] = useState<ApiKeyConfig>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +73,13 @@ export function AdminAIButlerConfig() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get("/api/butler/config");
+      const response = await api.get("/butler/config");
       if (response.success) {
         setConfig(response.data.config);
+        // Store masked keys separately - don't overwrite user input with masked versions
+        if (response.data.apiKeys) {
+          setMaskedApiKeys(response.data.apiKeys);
+        }
         // Load system prompt separately
         if (response.data.config.systemPrompt) {
           setConfig((prev) => ({
@@ -105,21 +110,26 @@ export function AdminAIButlerConfig() {
         systemPrompt: config.systemPrompt,
       };
 
-      // Add API keys if they have values
-      if (apiKeys.openaiApiKey) {
+      // Add API keys if they have values and are not masked (i.e., user actually entered something)
+      // Masked keys look like "sk****...****" - don't send those back
+      if (apiKeys.openaiApiKey && !apiKeys.openaiApiKey.includes("****")) {
         payload.openaiApiKey = apiKeys.openaiApiKey;
       }
-      if (apiKeys.anthropicApiKey) {
+      if (apiKeys.anthropicApiKey && !apiKeys.anthropicApiKey.includes("****")) {
         payload.anthropicApiKey = apiKeys.anthropicApiKey;
       }
-      if (apiKeys.geminiApiKey) {
+      if (apiKeys.geminiApiKey && !apiKeys.geminiApiKey.includes("****")) {
         payload.geminiApiKey = apiKeys.geminiApiKey;
       }
       if (apiKeys.customEndpoint) {
         payload.customEndpoint = apiKeys.customEndpoint;
       }
 
-      await api.patch("/api/butler/config", payload);
+      await api.patch("/butler/config", payload);
+      // Reload config to ensure API keys are persisted
+      await loadConfig();
+      // Clear local API keys state after successful save to show masked versions
+      setApiKeys({});
       setSuccess("Configuration saved successfully!");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
@@ -389,6 +399,11 @@ export function AdminAIButlerConfig() {
                   platform.openai.com/api-keys
                 </a>
               </p>
+              {maskedApiKeys.openaiApiKey && !apiKeys.openaiApiKey && (
+                <p className="text-xs text-green-600 mb-2">
+                  API key is set: {maskedApiKeys.openaiApiKey}
+                </p>
+              )}
               <div className="relative">
                 <input
                   type={showKeys.openai ? "text" : "password"}
@@ -396,7 +411,7 @@ export function AdminAIButlerConfig() {
                   onChange={(e) =>
                     setApiKeys({ ...apiKeys, openaiApiKey: e.target.value })
                   }
-                  placeholder="sk-..."
+                  placeholder={maskedApiKeys.openaiApiKey ? "Leave empty to keep current key" : "sk-..."}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
@@ -428,6 +443,11 @@ export function AdminAIButlerConfig() {
                   console.anthropic.com/api-keys
                 </a>
               </p>
+              {maskedApiKeys.anthropicApiKey && !apiKeys.anthropicApiKey && (
+                <p className="text-xs text-green-600 mb-2">
+                  API key is set: {maskedApiKeys.anthropicApiKey}
+                </p>
+              )}
               <div className="relative">
                 <input
                   type={showKeys.anthropic ? "text" : "password"}
@@ -435,7 +455,7 @@ export function AdminAIButlerConfig() {
                   onChange={(e) =>
                     setApiKeys({ ...apiKeys, anthropicApiKey: e.target.value })
                   }
-                  placeholder="sk-ant-..."
+                  placeholder={maskedApiKeys.anthropicApiKey ? "Leave empty to keep current key" : "sk-ant-..."}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
@@ -469,6 +489,11 @@ export function AdminAIButlerConfig() {
                   aistudio.google.com/app/apikey
                 </a>
               </p>
+              {maskedApiKeys.geminiApiKey && !apiKeys.geminiApiKey && (
+                <p className="text-xs text-green-600 mb-2">
+                  API key is set: {maskedApiKeys.geminiApiKey}
+                </p>
+              )}
               <div className="relative">
                 <input
                   type={showKeys.gemini ? "text" : "password"}
@@ -476,7 +501,7 @@ export function AdminAIButlerConfig() {
                   onChange={(e) =>
                     setApiKeys({ ...apiKeys, geminiApiKey: e.target.value })
                   }
-                  placeholder="AIzaSy..."
+                  placeholder={maskedApiKeys.geminiApiKey ? "Leave empty to keep current key" : "AIzaSy..."}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
