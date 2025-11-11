@@ -99,6 +99,7 @@ export default function MindMapEditor({
   const checkEditPermissions = async () => {
     if (!mindMapId || !teamId) {
       // For personal mind maps, assume user can edit (they own it)
+      console.log(`[MindMapEditor] Personal mind map - allowing edit`);
       setCanEdit(true);
       setPermissionsChecked(true);
       return;
@@ -109,14 +110,26 @@ export default function MindMapEditor({
 
       // For team mind maps, check if user can edit by trying to get team info
       // We'll check the user's role in the team via the team members endpoint
+      console.log(`[MindMapEditor] Checking edit permissions for team mind map in team ${teamId}`);
       const teamsResponse = await api.get("/teams");
+      console.log(`[MindMapEditor] Teams response:`, {
+        teamCount: teamsResponse.data?.length,
+        teamIds: teamsResponse.data?.map((t: any) => t.id),
+      });
+
       if (teamsResponse.data && Array.isArray(teamsResponse.data)) {
         const team = teamsResponse.data.find((t: any) => t.id === teamId);
+        console.log(`[MindMapEditor] Found team ${teamId}?`, !!team);
+
         if (team && team.members) {
+          console.log(`[MindMapEditor] Team members:`, team.members.map((m: any) => ({ userId: m.userId, role: m.role })));
           // Find the current user in the team members list
           const currentUserInTeam = team.members.find((m: any) => m.role);
+          console.log(`[MindMapEditor] Current user in team:`, currentUserInTeam);
+
           if (currentUserInTeam) {
             const isEditable = ["ADMIN", "EDITOR"].includes(currentUserInTeam.role);
+            console.log(`[MindMapEditor] User role ${currentUserInTeam.role} is editable?`, isEditable);
             setCanEdit(isEditable);
             if (!isEditable) {
               setError("You do not have permission to edit this mind map. Only team admins and editors can make changes.");
@@ -142,14 +155,21 @@ export default function MindMapEditor({
 
       // If teamId is provided, load from team endpoint
       if (teamId) {
+        console.log(`[MindMapEditor] Loading team mind map ${mindMapId} from team ${teamId}`);
         response = await api.get(`/teams/${teamId}/mindmaps/${mindMapId}`);
       } else {
         // Try loading from personal endpoint first
+        console.log(`[MindMapEditor] Loading personal mind map ${mindMapId}`);
         response = await api.get(`/mindmaps/${mindMapId}`);
       }
 
       if (response.data) {
         const mindMap = response.data;
+        console.log(`[MindMapEditor] Mind map loaded successfully:`, {
+          title: mindMap.title,
+          nodeCount: mindMap.nodes?.length,
+          edgeCount: mindMap.edges?.length,
+        });
         setTitle(mindMap.title);
         setDescription(mindMap.description || "");
         setNodes(mindMap.nodes);
@@ -157,6 +177,12 @@ export default function MindMapEditor({
         setIsConverted(mindMap.isConverted || false);
       }
     } catch (err: any) {
+      console.error(`[MindMapEditor] Load error:`, {
+        status: err.response?.status,
+        teamId,
+        mindMapId,
+        message: err.response?.data?.error?.message || err.message,
+      });
       // If personal endpoint fails with 403/404, it might be a team mind map
       // Try loading as team mind map by checking all user's teams
       if (!teamId && (err.response?.status === 403 || err.response?.status === 404)) {
@@ -167,9 +193,11 @@ export default function MindMapEditor({
             // Try each team
             for (const team of teamsResponse.data) {
               try {
+                console.log(`[MindMapEditor] Trying to load from team ${team.id}`);
                 const teamResponse = await api.get(`/teams/${team.id}/mindmaps/${mindMapId}`);
                 if (teamResponse.data) {
                   const mindMap = teamResponse.data;
+                  console.log(`[MindMapEditor] Found mind map in team ${team.id}`);
                   setTitle(mindMap.title);
                   setDescription(mindMap.description || "");
                   setNodes(mindMap.nodes);
@@ -570,20 +598,24 @@ export default function MindMapEditor({
         // Update existing mind map
         if (teamId) {
           // Team mind map update
-          await api.patch(`/teams/${teamId}/mindmaps/${mindMapId}`, {
+          console.log(`[MindMapEditor] Attempting to update team mind map ${mindMapId} in team ${teamId}`);
+          const response = await api.patch(`/teams/${teamId}/mindmaps/${mindMapId}`, {
             title,
             description,
             nodes,
             edges,
           });
+          console.log(`[MindMapEditor] Update response status:`, response.status);
         } else {
           // Personal mind map update
-          await api.patch(`/mindmaps/${mindMapId}`, {
+          console.log(`[MindMapEditor] Attempting to update personal mind map ${mindMapId}`);
+          const response = await api.patch(`/mindmaps/${mindMapId}`, {
             title,
             description,
             nodes,
             edges,
           });
+          console.log(`[MindMapEditor] Update response status:`, response.status);
         }
       } else {
         // Create new mind map
@@ -598,6 +630,7 @@ export default function MindMapEditor({
           endpoint = `/mindmaps`;
         }
 
+        console.log(`[MindMapEditor] Creating new mind map at ${endpoint}`);
         response = await api.post(endpoint, {
           title,
           description,
@@ -606,6 +639,7 @@ export default function MindMapEditor({
         });
 
         if (response.data?.id) {
+          console.log(`[MindMapEditor] Created mind map with ID: ${response.data.id}`);
           setSuccessMessage("Mind map saved successfully");
           onSave?.(response.data.id);
         }
@@ -613,6 +647,11 @@ export default function MindMapEditor({
 
       setSuccessMessage("Mind map saved successfully");
     } catch (err: any) {
+      console.error(`[MindMapEditor] Save error:`, {
+        status: err.response?.status,
+        message: err.response?.data?.error?.message || err.message,
+        data: err.response?.data,
+      });
       // Check if it's a permission error
       if (err.response?.status === 403) {
         setCanEdit(false);
