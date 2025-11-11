@@ -72,6 +72,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Optimize build for production
+  productionBrowserSourceMaps: false,
+  swcMinify: true,
+  compress: true,
+  // Optimize for Railway memory constraints
+  experimental: {
+    optimizePackageImports: ["@prisma/client"],
+  },
   headers: async () => {
     return [
       {
