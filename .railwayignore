@@ -1,0 +1,42 @@
+# Git files
+.git
+.gitignore
+
+# Environment files (Railway will use project variables)
+.env
+.env.local
+.env.*.local
+
+# Node/npm files
+node_modules
+package-lock.json
+npm-debug.log
+yarn.lock
+yarn-error.log
+
+# Build files
+.next
+.turbo
+dist
+build
+out
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Test files
+coverage
+.jest-cache
+
+# Documentation
+docs
+README.md
