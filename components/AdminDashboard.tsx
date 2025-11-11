@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Admin, getAdminToken } from "@/lib/adminAuth";
 import { AdminUserManagement } from "./AdminUserManagement";
 import { AdminStaffManagement } from "./AdminStaffManagement";
+import { AdminKnowledgeBase } from "./AdminKnowledgeBase";
 
 interface DatabaseUser {
   id: string;
@@ -37,7 +38,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type ActiveTab = "overview" | "users" | "staff" | "system-settings";
+type ActiveTab = "overview" | "users" | "staff" | "knowledge-base" | "system-settings";
 
 export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
@@ -167,6 +168,7 @@ export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
             {[
               { id: "overview" as const, label: "Overview", icon: "📊" },
               { id: "users" as const, label: "Manage Users", icon: "👥" },
+              { id: "knowledge-base" as const, label: "Knowledge Base", icon: "📚" },
               { id: "staff" as const, label: "Admin Staff", icon: "🔐", restricted: "super_admin" },
               { id: "system-settings" as const, label: "System", icon: "⚙️", restricted: "super_admin" },
             ].map(
@@ -313,6 +315,8 @@ export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
         ) : (
           <>
             {activeTab === "users" && <AdminUserManagement users={users} onUsersChange={setUsers} />}
+
+            {activeTab === "knowledge-base" && <AdminKnowledgeBase />}
 
             {activeTab === "staff" && admin.role === "super_admin" && <AdminStaffManagement admin={admin} />}
 
