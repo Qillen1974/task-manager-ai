@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/lib/useApi";
+import { getAdminToken } from "@/lib/adminAuth";
 import { Save, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
 interface AIConfig {
@@ -41,6 +42,39 @@ const MODEL_OPTIONS = [
   },
 ];
 
+/**
+ * Make an API call with admin token if available, otherwise use regular user API
+ */
+async function makeAuthenticatedCall<T = any>(
+  method: string,
+  endpoint: string,
+  body?: any
+): Promise<{ success: boolean; data?: T; error?: { message: string } }> {
+  const adminToken = getAdminToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(adminToken && { "Authorization": `Bearer ${adminToken}` }),
+  };
+
+  try {
+    const response = await fetch(`/api${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : "Network error",
+      },
+    };
+  }
+}
+
 export function AdminAIButlerConfig() {
   const api = useApi();
   const [config, setConfig] = useState<AIConfig>({
@@ -73,23 +107,25 @@ export function AdminAIButlerConfig() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get("/butler/config");
-      if (response.success) {
+      const response = await makeAuthenticatedCall("GET", "/butler/config");
+      if (response.success && response.data) {
         setConfig(response.data.config);
         // Store masked keys separately - don't overwrite user input with masked versions
         if (response.data.apiKeys) {
           setMaskedApiKeys(response.data.apiKeys);
         }
         // Load system prompt separately
-        if (response.data.config.systemPrompt) {
+        if (response.data.config?.systemPrompt) {
           setConfig((prev) => ({
             ...prev,
             systemPrompt: response.data.config.systemPrompt,
           }));
         }
+      } else {
+        setError(response.error?.message || "Failed to load configuration");
       }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to load configuration");
+      setError(err instanceof Error ? err.message : "Failed to load configuration");
     } finally {
       setIsLoading(false);
     }
@@ -125,15 +161,19 @@ export function AdminAIButlerConfig() {
         payload.customEndpoint = apiKeys.customEndpoint;
       }
 
-      await api.patch("/butler/config", payload);
-      // Reload config to ensure API keys are persisted
-      await loadConfig();
-      // Clear local API keys state after successful save to show masked versions
-      setApiKeys({});
-      setSuccess("Configuration saved successfully!");
-      setTimeout(() => setSuccess(null), 3000);
+      const response = await makeAuthenticatedCall("PATCH", "/butler/config", payload);
+      if (response.success) {
+        // Reload config to ensure API keys are persisted
+        await loadConfig();
+        // Clear local API keys state after successful save to show masked versions
+        setApiKeys({});
+        setSuccess("Configuration saved successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(response.error?.message || "Failed to save configuration");
+      }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || "Failed to save configuration");
+      setError(err instanceof Error ? err.message : "Failed to save configuration");
     } finally {
       setIsSaving(false);
     }
