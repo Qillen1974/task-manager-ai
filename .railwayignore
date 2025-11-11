@@ -9,7 +9,6 @@
 
 # Node/npm files
 node_modules
-package-lock.json
 npm-debug.log
 yarn.lock
 yarn-error.log
@@ -38,5 +37,7 @@ coverage
 .jest-cache
 
 # Documentation
+RAILWAY_DEPLOYMENT.md
+RAILWAY_FIX_CHECKLIST.md
 docs
 README.md
