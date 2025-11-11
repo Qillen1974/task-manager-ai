@@ -1,12 +1,6 @@
 [build]
-builder = "nixpacks"
-
-[build.nixpacks]
-# Ensure we use Node 22.21.1
-node_version = "22.21.1"
-# Install devDependencies needed for build (tailwindcss, etc)
-install = ["npm install --legacy-peer-deps"]
-build = ["npm run build"]
+builder = "dockerfile"
+dockerfile = "Dockerfile"
 
 [deploy]
 startCommand = "npm run start"
