@@ -274,16 +274,16 @@ export default function TeamDetailsPage() {
   const isAdmin = team.userRole === "ADMIN";
 
   const handleNavViewChange = (view: string) => {
-    if (view === "dashboard") {
-      router.push("/dashboard");
-    } else if (view === "all-tasks") {
-      router.push("/dashboard/tasks");
-    } else if (view === "projects") {
-      router.push("/dashboard/projects");
-    } else if (view === "mindmaps") {
+    // Navigate to the main dashboard which defaults to "dashboard" view
+    // The Navigation component on dashboard will handle switching between views (dashboard, all-tasks, projects)
+    // with the onViewChange callback
+    if (view === "mindmaps") {
       router.push("/dashboard/mindmaps");
     } else if (view === "teams") {
       router.push("/dashboard/teams");
+    } else {
+      // For dashboard, all-tasks, and projects views - navigate to main dashboard
+      router.push("/dashboard");
     }
   };
 
