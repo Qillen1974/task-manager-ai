@@ -5,7 +5,6 @@
 # Node modules (will be reinstalled)
 node_modules
 .npm
-.npmrc
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -19,6 +18,7 @@ out
 .eslintcache
 
 # Development files
+.env
 .env.local
 .env.*.local
 .vscode
@@ -40,11 +40,58 @@ __tests__
 *.spec.ts
 *.spec.tsx
 
+# Setup scripts
+add_admin.js
+check_admin.js
+make_admin.js
+make_admin_temp.js
+make_test_admin.js
+setup_postgres_database.bat
+fix_postgresql_path.bat
+fix_permissions.bat
+init-scheduler.sql
+next.config.mjs
+vercel.json
+
 # Documentation
-docs/
 RAILWAY_DEPLOYMENT.md
 RAILWAY_FIX_CHECKLIST.md
 README.md
+docs/
+ADD_POSTGRESQL_TO_PATH.md
+ADMIN_GUIDE.md
+ARCHITECTURE.md
+CODEBASE_ANALYSIS.md
+DATABASE_SETUP_COMPLETE.md
+ENTERPRISE_ANALYSIS.md
+FEATURE_SUMMARY.md
+FEATURES_CHECKLIST.md
+FINAL_DATABASE_SETUP.md
+GETTING_STARTED.md
+HIERARCHICAL_PROJECTS.md
+MIGRATION_GUIDE.md
+MINDMAP_FEATURE.md
+PRODUCTION_SETUP.md
+PROJECT_SUMMARY.md
+PWA_IMPLEMENTATION_SUMMARY.md
+PWA_QUICK_START.md
+PWA_TESTING_GUIDE.md
+QUICK_DATABASE_SETUP.txt
+QUICK_START_PRODUCTION.md
+QUICKSTART.md
+RECURRING_TASKS_AUTO_GENERATION.md
+RECURRING_TASKS_FEATURE.md
+RECURRING_TASKS_IMPLEMENTATION.md
+SAAS_TRANSFORMATION.md
+SCHEDULER_QUICK_START.md
+SCHEDULER_SETUP_GUIDE.md
+SETUP_DATABASE_GUIDE.md
+SETUP_POSTGRESQL_WINDOWS.md
+START_HERE.md
+TESTING_GUIDE.md
+TRANSFORMATION_COMPLETE.txt
+VERSION_CONTROL.md
+POSTGRESQL_PATH_FIX_QUICK.txt
 .github/
 .husky/
 
@@ -52,3 +99,4 @@ README.md
 .turboignore
 .pnp
 .pnp.js
+version\ 1
