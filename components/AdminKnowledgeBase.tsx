@@ -66,7 +66,7 @@ export function AdminKnowledgeBase() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get("/api/admin/knowledge-base?limit=100");
+      const response = await api.get("/admin/knowledge-base?limit=100");
       if (response.success) {
         setArticles(response.data.articles || []);
       } else {
@@ -114,9 +114,9 @@ export function AdminKnowledgeBase() {
     try {
       setError(null);
       if (editingId) {
-        await api.patch(`/api/admin/knowledge-base/${editingId}`, formData);
+        await api.patch(`/admin/knowledge-base/${editingId}`, formData);
       } else {
-        await api.post("/api/admin/knowledge-base", formData);
+        await api.post("/admin/knowledge-base", formData);
       }
       setIsFormOpen(false);
       loadArticles();
@@ -130,7 +130,7 @@ export function AdminKnowledgeBase() {
 
     try {
       setError(null);
-      await api.delete(`/api/admin/knowledge-base/${id}`);
+      await api.delete(`/admin/knowledge-base/${id}`);
       loadArticles();
     } catch (err: any) {
       setError(err.response?.data?.error?.message || "Failed to delete article");
