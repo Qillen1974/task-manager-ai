@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
+import { ProjectTabs } from "@/components/ProjectTabs";
 import { useApi } from "@/lib/useApi";
 import { AuthPage } from "@/components/AuthPage";
 import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus } from "lucide-react";
@@ -293,7 +294,7 @@ export default function TeamDetailsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
-        projects={[]}
+        projects={teamProjects}
         activeView="teams"
         onViewChange={handleNavViewChange}
         onProjectSelect={handleNavProjectSelect}
@@ -301,6 +302,19 @@ export default function TeamDetailsPage() {
         userName={localStorage.getItem("userName") || localStorage.getItem("userEmail") || "User"}
         userEmail={localStorage.getItem("userEmail") || ""}
       />
+
+      {/* Project Tabs Navigation */}
+      {teamProjects.length > 0 && (
+        <ProjectTabs
+          projects={teamProjects}
+          onSelectProject={handleNavProjectSelect}
+          onCreateProject={() => setShowCreateProjectModal(true)}
+          onEditProject={() => {}}
+          onDeleteProject={() => {}}
+          onCreateSubproject={() => {}}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link href="/dashboard/teams" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
