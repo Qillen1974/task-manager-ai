@@ -15,6 +15,13 @@ interface TeamMember {
   acceptedAt: string | null;
   invitedAt: string;
   invitedBy: string | null;
+  user: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    name: string | null;
+  };
 }
 
 interface Team {
@@ -265,6 +272,8 @@ export default function TeamDetailsPage() {
         onViewChange={() => {}}
         onProjectSelect={() => {}}
         pendingTaskCount={0}
+        userName={localStorage.getItem("userName") || localStorage.getItem("userEmail") || "User"}
+        userEmail={localStorage.getItem("userEmail") || ""}
       />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
@@ -337,7 +346,10 @@ export default function TeamDetailsPage() {
               team.members.map((member) => (
               <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div>
-                  <p className="text-sm text-gray-600">{member.userId}</p>
+                  <p className="font-medium text-gray-900">
+                    {member.user?.name || `${member.user?.firstName || ''} ${member.user?.lastName || ''}`.trim() || member.user?.email || member.userId}
+                  </p>
+                  <p className="text-sm text-gray-600">{member.user?.email || member.userId}</p>
                   {!member.acceptedAt && (
                     <p className="text-xs text-yellow-600 mt-1">Invitation pending</p>
                   )}

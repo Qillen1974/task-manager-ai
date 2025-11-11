@@ -61,13 +61,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       where: { id },
       include: {
         members: {
-          select: {
-            id: true,
-            userId: true,
-            role: true,
-            acceptedAt: true,
-            invitedAt: true,
-            invitedBy: true,
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
           },
           orderBy: { createdAt: "asc" },
         },
