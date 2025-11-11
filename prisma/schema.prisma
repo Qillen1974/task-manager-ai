@@ -31,6 +31,7 @@ model User {
   settings      UserSettings?
   mindMaps      MindMap[]
   assignments   TaskAssignment[]
+  teamMemberships TeamMember[]
 
   @@index([email])
 }
@@ -305,8 +306,7 @@ model TeamMember {
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   userId    String
-  // We don't create a relation to User here to maintain flexibility
-  // but in production, you'd add: user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   role      TeamRole @default(VIEWER)   // Role within the team
 
