@@ -88,17 +88,26 @@ export default function TeamDetailsPage() {
   const loadTeamDetails = async () => {
     try {
       setLoading(true);
-      const [teamRes, invitationsRes, projectsRes] = await Promise.all([
+      const [teamRes, projectsRes] = await Promise.all([
         api.get(`/teams/${teamId}`),
-        api.get(`/teams/${teamId}/invitations`).catch(() => ({ data: [] })),
         api.get(`/projects?includeChildren=true`).catch(() => ({ data: [] })),
       ]);
 
       if (teamRes.data) {
         setTeam(teamRes.data);
-      }
-      if (invitationsRes.data) {
-        setInvitations(invitationsRes.data);
+
+        // Only load invitations if user is admin
+        if (teamRes.data.userRole === "ADMIN") {
+          try {
+            const invitationsRes = await api.get(`/teams/${teamId}/invitations`);
+            if (invitationsRes.data) {
+              setInvitations(invitationsRes.data);
+            }
+          } catch (err) {
+            // Silently ignore invitation load errors
+            console.error("Failed to load invitations:", err);
+          }
+        }
       }
       // Filter projects for this team
       if (projectsRes.data) {
@@ -264,13 +273,31 @@ export default function TeamDetailsPage() {
 
   const isAdmin = team.userRole === "ADMIN";
 
+  const handleNavViewChange = (view: string) => {
+    if (view === "dashboard") {
+      router.push("/dashboard");
+    } else if (view === "all-tasks") {
+      router.push("/dashboard/tasks");
+    } else if (view === "projects") {
+      router.push("/dashboard/projects");
+    } else if (view === "mindmaps") {
+      router.push("/dashboard/mindmaps");
+    } else if (view === "teams") {
+      router.push("/dashboard/teams");
+    }
+  };
+
+  const handleNavProjectSelect = (projectId: string) => {
+    router.push(`/dashboard?projectId=${projectId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
         projects={[]}
         activeView="teams"
-        onViewChange={() => {}}
-        onProjectSelect={() => {}}
+        onViewChange={handleNavViewChange}
+        onProjectSelect={handleNavProjectSelect}
         pendingTaskCount={0}
         userName={localStorage.getItem("userName") || localStorage.getItem("userEmail") || "User"}
         userEmail={localStorage.getItem("userEmail") || ""}
