@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Task, Project, TaskAssignmentRole } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
@@ -62,6 +62,22 @@ function getProjectAndSubprojectIds(projects: Project[], projectId: string): str
 
 export default function Home() {
   const api = useApi();
+  const router = useRouter();
+
+  // Get search params safely - they might be null during server-side rendering
+  let initialView = "dashboard";
+  let initialProjectId = "";
+
+  try {
+    const searchParams = useSearchParams();
+    if (searchParams) {
+      initialView = searchParams.get("view") || "dashboard";
+      initialProjectId = searchParams.get("projectId") || "";
+    }
+  } catch (e) {
+    // searchParams not available, use defaults
+  }
+
   const [hydrated, setHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -71,8 +87,8 @@ export default function Home() {
   const wizardTriggeredRef = useRef(false);
 
   // Navigation and UI state
-  const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>("dashboard");
-  const [activeProjectId, setActiveProjectId] = useState<string>("");
+  const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>(initialView);
+  const [activeProjectId, setActiveProjectId] = useState<string>(initialProjectId);
   const [dashboardProjectFilter, setDashboardProjectFilter] = useState<string>(""); // "" means all projects
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -709,9 +725,6 @@ export default function Home() {
       }
     }
   };
-
-
-  const router = useRouter();
 
   const handleLogout = () => {
     api.logout();
