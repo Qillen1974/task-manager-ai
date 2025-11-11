@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
-import { ProjectTabs } from "@/components/ProjectTabs";
 import { useApi } from "@/lib/useApi";
 import { AuthPage } from "@/components/AuthPage";
 import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus } from "lucide-react";
@@ -291,6 +290,16 @@ export default function TeamDetailsPage() {
     router.push(`/dashboard?projectId=${projectId}`);
   };
 
+  const handleLogout = () => {
+    // Clear auth data
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('isAdmin');
+    // Redirect to login
+    router.push('/auth');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
@@ -301,19 +310,8 @@ export default function TeamDetailsPage() {
         pendingTaskCount={0}
         userName={localStorage.getItem("userName") || localStorage.getItem("userEmail") || "User"}
         userEmail={localStorage.getItem("userEmail") || ""}
+        onLogout={handleLogout}
       />
-
-      {/* Project Tabs Navigation */}
-      {teamProjects.length > 0 && (
-        <ProjectTabs
-          projects={teamProjects}
-          onSelectProject={handleNavProjectSelect}
-          onCreateProject={() => setShowCreateProjectModal(true)}
-          onEditProject={() => {}}
-          onDeleteProject={() => {}}
-          onCreateSubproject={() => {}}
-        />
-      )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
