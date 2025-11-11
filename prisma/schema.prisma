@@ -32,6 +32,8 @@ model User {
   mindMaps      MindMap[]
   assignments   TaskAssignment[]
   teamMemberships TeamMember[]
+  chatConversations ChatConversation[]
+  bugReports    BugReport[]
 
   @@index([email])
 }
@@ -424,4 +426,99 @@ model MindMap {
   @@index([userId])
   @@index([teamId])
   @@index([isConverted])
+}
+
+// AI Butler Knowledge Base - stores documentation and FAQs
+model KnowledgeBase {
+  id          String   @id @default(cuid())
+  category    String   // "user-guide", "faq", "feature-doc", "troubleshooting"
+  title       String
+  content     String   @db.Text  // Markdown content
+  keywords    String?  // Comma-separated keywords for search
+  priority    Int      @default(0)  // Higher priority = shows up more in searches
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// AI Butler Configuration - admin settings
+model AIButlerConfig {
+  id                String   @id @default(cuid())
+  activeModel       String   @default("openai")  // "openai", "anthropic", "gemini", "custom"
+  openaiApiKey      String?  // Encrypted - will store encrypted value
+  anthropicApiKey   String?  // Encrypted
+  geminiApiKey      String?  // Encrypted
+  customEndpoint    String?  // For self-hosted models
+  systemPrompt      String   @db.Text  // Instructions for the AI butler
+  maxTokens         Int      @default(1000)
+  temperature       Float    @default(0.7)  // 0-1, controls randomness
+
+  // Feature flags
+  enableBugReporting Boolean @default(true)
+  enableKBSuggestions Boolean @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Chat Conversation - stores chat sessions
+model ChatConversation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String?  // Auto-generated title from first message
+  messages    ChatMessage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Chat Message - individual messages in conversation
+model ChatMessage {
+  id              String   @id @default(cuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role            String   // "user" or "assistant"
+  content         String   @db.Text
+  modelUsed       String?  // "gpt-4", "gpt-3.5-turbo", "claude-3", "gemini-pro", etc.
+  tokensUsed      Int?     // For tracking costs
+
+  createdAt       DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([role])
+}
+
+// Bug Report - submitted by user via AI butler
+model BugReport {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String   @db.Text
+  userContext     String   @db.Text  // Browser, page URL, OS, error details
+  screenshot      String?  // URL to uploaded screenshot
+
+  status          String   @default("open")  // "open", "assigned", "in-progress", "resolved"
+  resolution      String?  @db.Text  // How it was resolved
+
+  emailSent       Boolean  @default(false)
+  sentAt          DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
