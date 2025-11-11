@@ -63,7 +63,7 @@ export function ChatPanel({ onClose, conversationId }: ChatPanelProps) {
 
     try {
       // Call API endpoint
-      const response = await api.post("/api/butler/chat", {
+      const response = await api.post("/butler/chat", {
         conversationId,
         message: input,
       });
@@ -242,7 +242,7 @@ function BugReportForm({
 
     setIsSubmitting(true);
     try {
-      await api.post("/api/butler/bug-report", {
+      await api.post("/butler/bug-report", {
         title,
         description,
       });
