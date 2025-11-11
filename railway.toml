@@ -4,6 +4,8 @@ builder = "nixpacks"
 [build.nixpacks]
 # Ensure we use Node 22.21.1
 node_version = "22.21.1"
+# Use npm 10.x which handles permissions better
+npm_version = "10"
 
 [deploy]
 startCommand = "npm run start"
