@@ -1,0 +1,54 @@
+# Version control
+.git
+.gitignore
+
+# Node modules (will be reinstalled)
+node_modules
+.npm
+.npmrc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (will be regenerated)
+.next
+.turbo
+dist
+build
+out
+.eslintcache
+
+# Development files
+.env.local
+.env.*.local
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.jest-cache
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation
+docs/
+RAILWAY_DEPLOYMENT.md
+RAILWAY_FIX_CHECKLIST.md
+README.md
+.github/
+.husky/
+
+# Other
+.turboignore
+.pnp
+.pnp.js
