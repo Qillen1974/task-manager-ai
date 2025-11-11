@@ -17,6 +17,7 @@ import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
 import { OnboardingWizard } from "@/components/Wizard/OnboardingWizard";
+import { ChatBubble } from "@/components/AIButler";
 import { getPendingTaskCount, getAutoPriority } from "@/lib/utils";
 import { canCreateRecurringTask, canCreateRootProject, TASK_LIMITS } from "@/lib/projectLimits";
 
@@ -1184,6 +1185,9 @@ export default function Home() {
           isLoading={assignmentIsLoading}
         />
       )}
+
+      {/* AI Butler Chat */}
+      <ChatBubble isAuthenticated={hasToken} />
     </div>
   );
 }
