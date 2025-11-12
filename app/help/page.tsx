@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Metadata } from "next";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Mail, HelpCircle, Send } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Help & FAQ - TaskQuadrant Support",
+  description: "Find answers to frequently asked questions about TaskQuadrant features, account management, and get support from our team.",
+};
 import { Navigation } from "@/components/Navigation";
 import { useApi } from "@/lib/useApi";
 import { Project } from "@/lib/types";

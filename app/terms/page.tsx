@@ -1,6 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service - TaskQuadrant",
+  description: "Review TaskQuadrant's terms of service, including user accounts, content rights, billing, and service availability.",
+};
 
 export default function TermsPage() {
   return (

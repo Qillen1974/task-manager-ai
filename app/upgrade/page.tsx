@@ -2,9 +2,15 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { Metadata } from "next";
 import axios from "axios";
 import UpgradeMembership from "@/components/UpgradeMembership";
 import { trackSubscriptionConversion } from "@/lib/gtagUtils";
+
+export const metadata: Metadata = {
+  title: "Upgrade Your Plan - TaskQuadrant Pro & Enterprise",
+  description: "Upgrade to TaskQuadrant Pro or Enterprise plan for unlimited projects, advanced features, and dedicated support.",
+};
 
 export const dynamic = "force-dynamic";
 

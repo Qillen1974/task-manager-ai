@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { Metadata } from "next";
 import { Lock, Shield, Server, Eye } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Security - TaskQuadrant Data Protection & Privacy",
+  description: "TaskQuadrant uses HTTPS encryption, secure password handling, and AWS infrastructure to protect your data. Learn about our security measures.",
+};
 
 export default function SecurityPage() {
   return (

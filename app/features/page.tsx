@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { Metadata } from "next";
 import { CheckCircle, Zap, BarChart3, Clock, RefreshCw, Download, Smartphone } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "TaskQuadrant Features - Eisenhower Matrix, Projects & Analytics",
+  description: "Discover TaskQuadrant's powerful features: Eisenhower Matrix, project management, recurring tasks, analytics, exports, and more for productivity.",
+};
 
 export default function FeaturesPage() {
   return (

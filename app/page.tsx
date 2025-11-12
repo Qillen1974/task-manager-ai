@@ -4,10 +4,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, CheckCircle, BarChart3, Clock, Zap, Brain, Map, Lightbulb } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Metadata } from "next";
 import { HeroDashboardPreview } from "@/components/HeroDashboardPreview";
 import { HeroRecurringTasksPreview } from "@/components/HeroRecurringTasksPreview";
 import { HeroExportPreview } from "@/components/HeroExportPreview";
 import { HeroGanttChartPreview } from "@/components/HeroGanttChartPreview";
+
+export const metadata: Metadata = {
+  title: "TaskQuadrant - Professional Task Management with Eisenhower Matrix",
+  description: "Prioritize what matters most with TaskQuadrant's Eisenhower Matrix. Manage tasks, projects, and goals efficiently. Start free today, no credit card required.",
+};
 
 export default function LandingPage() {
   const [email, setEmail] = useState("");

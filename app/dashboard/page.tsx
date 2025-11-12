@@ -2,7 +2,13 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Metadata } from "next";
 import { Task, Project, TaskAssignmentRole } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Dashboard - TaskQuadrant Task Management",
+  description: "Manage your tasks, projects, and goals with TaskQuadrant's powerful Eisenhower Matrix dashboard.",
+};
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
 import { TaskForm } from "@/components/TaskForm";
@@ -1021,7 +1027,7 @@ export default function Home() {
                         Visualize your project timeline with our interactive Gantt chart. Available on Pro and Enterprise plans.
                       </p>
                       <a
-                        href="/dashboard/upgrade"
+                        href="/upgrade"
                         className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
                       >
                         Upgrade to Pro

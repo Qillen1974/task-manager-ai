@@ -207,7 +207,7 @@ export default function TeamsPage() {
             <p className="mt-2 text-gray-600">Collaborate with your team members</p>
             {subscription && subscription.plan !== "ENTERPRISE" && (
               <p className="mt-2 text-sm text-blue-600">
-                💡 Creating teams requires ENTERPRISE plan. You can accept team invitations on any plan. <Link href="/dashboard/settings" className="font-semibold hover:underline">Upgrade to create teams</Link>
+                💡 Creating teams requires ENTERPRISE plan. You can accept team invitations on any plan. <Link href="/upgrade" className="font-semibold hover:underline">Upgrade to create teams</Link>
               </p>
             )}
           </div>
@@ -404,7 +404,7 @@ export default function TeamsPage() {
               </button>
             ) : (
               <Link
-                href="/dashboard/settings"
+                href="/upgrade"
                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 Upgrade to ENTERPRISE

@@ -1,6 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About TaskQuadrant - Our Mission & Values",
+  description: "Learn about TaskQuadrant's mission to help professionals master their priorities using the proven Eisenhower Matrix framework.",
+};
 
 export default function AboutPage() {
   return (
