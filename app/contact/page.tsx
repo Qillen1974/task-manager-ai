@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Metadata } from "next";
 import { Mail, Send } from "lucide-react";
 import { useState } from "react";
 
-export const metadata: Metadata = {
-  title: "Contact TaskQuadrant - Get Support & Send Feedback",
-  description: "Have questions about TaskQuadrant? Contact our support team or send feedback. We typically respond within 24 business hours.",
-};
+// Note: Metadata export removed because this component uses "use client"
+// The metadata from root layout will be used for this page instead
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({

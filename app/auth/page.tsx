@@ -1,13 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
-import { Metadata } from "next";
 import AuthPageContent from "./auth-content";
 
-export const metadata: Metadata = {
-  title: "Login & Sign Up - TaskQuadrant",
-  description: "Create your free TaskQuadrant account or log in to access your tasks, projects, and Eisenhower Matrix.",
-};
+// Note: Metadata export removed because this component uses "use client"
+// The metadata from root layout will be used for this page instead
 
 export default function AuthPageRoute() {
   return (

@@ -2,13 +2,10 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Metadata } from "next";
 import { Task, Project, TaskAssignmentRole } from "@/lib/types";
 
-export const metadata: Metadata = {
-  title: "Dashboard - TaskQuadrant Task Management",
-  description: "Manage your tasks, projects, and goals with TaskQuadrant's powerful Eisenhower Matrix dashboard.",
-};
+// Note: Metadata export removed because this component uses "use client"
+// The metadata from root layout will be used for this page instead
 import { useApi } from "@/lib/useApi";
 import { Navigation } from "@/components/Navigation";
 import { TaskForm } from "@/components/TaskForm";

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Metadata } from "next";
 import { CheckCircle, Zap, BarChart3, Clock, RefreshCw, Download, Smartphone } from "lucide-react";

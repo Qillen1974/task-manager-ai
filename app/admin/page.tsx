@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Metadata } from "next";
 import { isAdminLoggedIn, getCurrentAdmin, adminLogout } from "@/lib/adminAuth";
 import { AdminLoginPage } from "@/components/AdminLoginPage";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { Admin } from "@/lib/adminAuth";
 
-export const metadata: Metadata = {
-  title: "Admin Dashboard - TaskQuadrant Administration",
-  description: "TaskQuadrant admin panel for managing users, subscriptions, and system settings.",
-};
+// Note: Metadata export removed because this component uses "use client"
+// The metadata from root layout will be used for this page instead
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Metadata } from "next";
 import { Lock, Shield, Server, Eye } from "lucide-react";
