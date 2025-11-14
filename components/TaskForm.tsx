@@ -430,7 +430,11 @@ export function TaskForm({
               </label>
               <button
                 type="button"
-                onClick={() => setShowCalculator(!showCalculator)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCalculator(!showCalculator);
+                }}
                 className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-full transition-colors"
               >
                 {showCalculator ? '✕ Hide' : '🧮 Calculator'}

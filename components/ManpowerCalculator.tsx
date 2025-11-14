@@ -241,7 +241,11 @@ export default function ManpowerCalculator({
       {/* Advanced Options */}
       <div className="mb-6">
         <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            setShowAdvanced(!showAdvanced);
+          }}
           className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-2"
         >
           {showAdvanced ? '▼' : '▶'} Advanced Options
