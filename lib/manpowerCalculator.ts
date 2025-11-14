@@ -3,7 +3,7 @@
  * Helps users estimate hours and resources needed for tasks
  */
 
-export type TaskType = 'development' | 'design' | 'testing' | 'documentation' | 'management' | 'research';
+export type TaskType = 'development' | 'design' | 'testing' | 'documentation' | 'management' | 'research' | 'requirements';
 export type Complexity = 'simple' | 'medium' | 'complex';
 
 interface ManpowerInput {
@@ -47,6 +47,7 @@ const BASE_HOURS_BY_TYPE: Record<TaskType, number> = {
   documentation: 30, // Less intensive
   management: 35,
   research: 35,
+  requirements: 40, // Intensive stakeholder engagement
 };
 
 /**
@@ -297,6 +298,12 @@ export function getDefaultsForTaskType(taskType: TaskType): Partial<ManpowerInpu
       meetingsPerWeek: 1,
       codeReviewPercentage: 0,
       documentationPercentage: 20,
+      adminPercentage: 10,
+    },
+    requirements: {
+      meetingsPerWeek: 3,
+      codeReviewPercentage: 0,
+      documentationPercentage: 30,
       adminPercentage: 10,
     },
   };

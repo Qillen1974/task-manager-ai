@@ -22,6 +22,7 @@ const TASK_TYPES: { value: TaskType; label: string; description: string }[] = [
   { value: 'documentation', label: 'Documentation', description: 'Writing docs' },
   { value: 'management', label: 'Management', description: 'Project management' },
   { value: 'research', label: 'Research', description: 'Research & analysis' },
+  { value: 'requirements', label: 'Requirements Gathering', description: 'Requirements & analysis' },
 ];
 
 const COMPLEXITIES: { value: Complexity; label: string; icon: string }[] = [
@@ -132,7 +133,11 @@ export default function ManpowerCalculator({
           {TASK_TYPES.map((type) => (
             <button
               key={type.value}
-              onClick={() => handleTaskTypeChange(type.value)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                handleTaskTypeChange(type.value);
+              }}
               className={`p-3 rounded-lg border-2 transition-all text-left ${
                 taskType === type.value
                   ? 'border-blue-600 bg-blue-50'
@@ -153,7 +158,11 @@ export default function ManpowerCalculator({
           {COMPLEXITIES.map((c) => (
             <button
               key={c.value}
-              onClick={() => setComplexity(c.value)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setComplexity(c.value);
+              }}
               className={`flex-1 p-3 rounded-lg border-2 transition-all text-center font-semibold ${
                 complexity === c.value
                   ? 'border-blue-600 bg-blue-50 text-gray-900'
