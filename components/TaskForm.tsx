@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Task, Project, Priority, RecurringPattern, RecurringConfig } from "@/lib/types";
 import { generateId, getPriorityLabel, formatRecurringDescription } from "@/lib/utils";
 import { ProgressSlider } from "./ProgressSlider";
+import ManpowerCalculator from "./ManpowerCalculator";
 
 interface TaskFormProps {
   projects: Project[];
@@ -94,6 +95,8 @@ export function TaskForm({
   const [showRecurringEndDate, setShowRecurringEndDate] = useState(
     !!editingTask?.recurringEndDate
   );
+
+  const [showCalculator, setShowCalculator] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -420,35 +423,64 @@ export function TaskForm({
           </div>
 
           {/* Resource Allocation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="resourceCount" className="block text-sm font-medium text-gray-700 mb-1">
-                Resource Count (Optional)
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Resource Allocation (Optional)
               </label>
-              <input
-                id="resourceCount"
-                type="number"
-                min="0"
-                value={resourceCount || ""}
-                onChange={(e) => setResourceCount(e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Number of people assigned"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              />
+              <button
+                type="button"
+                onClick={() => setShowCalculator(!showCalculator)}
+                className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-full transition-colors"
+              >
+                {showCalculator ? '✕ Hide' : '🧮 Calculator'}
+              </button>
             </div>
-            <div>
-              <label htmlFor="manhours" className="block text-sm font-medium text-gray-700 mb-1">
-                Manhours (Optional)
-              </label>
-              <input
-                id="manhours"
-                type="number"
-                min="0"
-                step="0.5"
-                value={manhours || ""}
-                onChange={(e) => setManhours(e.target.value ? parseFloat(e.target.value) : undefined)}
-                placeholder="Total manhours allocated"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              />
+
+            {showCalculator && (
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <ManpowerCalculator
+                  onCalculate={(manHours, resourceCount) => {
+                    setManhours(manHours);
+                    setResourceCount(Math.ceil(resourceCount)); // Round up to get whole number of people
+                    setShowCalculator(false);
+                  }}
+                  initialManHours={manhours}
+                  initialResourceCount={resourceCount}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="resourceCount" className="block text-sm font-medium text-gray-700 mb-1">
+                  Resource Count (Optional)
+                </label>
+                <input
+                  id="resourceCount"
+                  type="number"
+                  min="0"
+                  value={resourceCount || ""}
+                  onChange={(e) => setResourceCount(e.target.value ? parseInt(e.target.value) : undefined)}
+                  placeholder="Number of people assigned"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+              </div>
+              <div>
+                <label htmlFor="manhours" className="block text-sm font-medium text-gray-700 mb-1">
+                  Manhours (Optional)
+                </label>
+                <input
+                  id="manhours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={manhours || ""}
+                  onChange={(e) => setManhours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  placeholder="Total manhours allocated"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+              </div>
             </div>
           </div>
 
