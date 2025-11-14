@@ -447,7 +447,8 @@ export function TaskForm({
                   onCalculate={(manHours, resourceCount) => {
                     setManhours(manHours);
                     setResourceCount(Math.ceil(resourceCount)); // Round up to get whole number of people
-                    setShowCalculator(false);
+                    // Auto-close after applying
+                    setTimeout(() => setShowCalculator(false), 300);
                   }}
                   initialManHours={manhours}
                   initialResourceCount={resourceCount}

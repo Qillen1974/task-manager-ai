@@ -85,12 +85,9 @@ export default function ManpowerCalculator({
     adminPercentage,
   ]);
 
-  // Call callback when calculation changes
-  useEffect(() => {
-    if (onCalculate && errors.length === 0) {
-      onCalculate(result.totalManHours, result.totalResourceCount);
-    }
-  }, [result, onCalculate, errors]);
+  // Note: We do NOT call the callback automatically on every change
+  // The user must explicitly click "Apply to Task" button
+  // This prevents the calculator from closing when user interacts with it
 
   const handleTaskTypeChange = (type: TaskType) => {
     setTaskType(type);
