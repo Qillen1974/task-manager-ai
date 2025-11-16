@@ -11,7 +11,8 @@ interface ManpowerInput {
   complexity: Complexity;
   meetingsPerWeek: number;
   meetingDurationMinutes: number;
-  numberOfTeamMembers: number;
+  operationalStaff: number; // People doing the actual work (100% allocation)
+  managementStaff: number;  // Managers/leads providing oversight (variable allocation)
   taskDurationWeeks: number;
   codeReviewPercentage: number;
   documentationPercentage: number;
@@ -27,6 +28,12 @@ interface ManpowerOutput {
     codeReviewHours: number;
     documentationHours: number;
     adminHours: number;
+  };
+  roleBreakdown: {
+    operationalManHours: number;
+    managementManHours: number;
+    operationalResourceCount: number;
+    managementResourceCount: number;
   };
   weeklyBreakdown: {
     week: number;
@@ -78,6 +85,25 @@ function calculateMeetingHours(
 ): number {
   const hoursPerMeeting = meetingDurationMinutes / 60;
   return meetingsPerWeek * hoursPerMeeting * weeks;
+}
+
+/**
+ * Get management staff utilization rate based on task type
+ * Different task types require different levels of management oversight
+ */
+function getManagementUtilizationRate(taskType: TaskType): number {
+  // Management utilization as percentage of base hours
+  // How much time managers/leads spend on this type of work
+  const rates: Record<TaskType, number> = {
+    development: 0.35, // 35%: Code reviews, technical decisions, mentoring
+    design: 0.4, // 40%: Design reviews, feedback, stakeholder communication
+    testing: 0.3, // 30%: QA oversight, bug triage, process management
+    documentation: 0.15, // 15%: Minimal management needed for pure documentation
+    management: 1.0, // 100%: This IS the manager's primary work
+    research: 0.35, // 35%: Research oversight, stakeholder collaboration
+    requirements: 0.5, // 50%: High involvement in stakeholder meetings and docs
+  };
+  return rates[taskType] || 0.35;
 }
 
 /**
@@ -143,6 +169,7 @@ function calculateActivityHours(
 
 /**
  * Calculate total manpower requirements
+ * Now differentiates between operational staff (doing the work) and management staff (oversight)
  */
 export function calculateManpower(input: ManpowerInput): ManpowerOutput {
   const baseHours = calculateBaseHours(input.taskType, input.complexity, input.taskDurationWeeks);
@@ -163,26 +190,43 @@ export function calculateManpower(input: ManpowerInput): ManpowerOutput {
   const totalManHours =
     baseHours + meetingHours + activityHours.codeReview + activityHours.documentation + activityHours.admin;
 
-  // Calculate hours per person per week
-  // This shows how many hours each team member would work per week if effort is distributed evenly
-  const hoursPerPersonPerWeek = input.numberOfTeamMembers > 0 ? totalManHours / (input.taskDurationWeeks * input.numberOfTeamMembers) : 0;
+  // Calculate role-based hours allocation
+  const managementUtilizationRate = getManagementUtilizationRate(input.taskType);
 
-  // Calculate total resource count (in person-weeks)
-  // This represents how many person-weeks of effort are required
-  // (assuming 40 hours per week standard work week)
-  const totalResourceCount = totalManHours / (40 * input.taskDurationWeeks);
+  // Operational staff: Full allocation of base hours + activities, partial meetings
+  const operationalBaseHours = baseHours * input.operationalStaff;
+  const operationalActivityHours = (activityHours.codeReview + activityHours.documentation + activityHours.admin) * input.operationalStaff;
+  const operationalMeetingHours = meetingHours * input.operationalStaff;
+  const operationalManHours = operationalBaseHours + operationalActivityHours + operationalMeetingHours;
+
+  // Management staff: Partial allocation (oversight), plus coordinating meetings
+  const managementBaseHours = baseHours * input.managementStaff * managementUtilizationRate;
+  const managementMeetingHours = meetingHours * input.managementStaff;
+  const managementManHours = managementBaseHours + managementMeetingHours;
+
+  // Total across all staff
+  const totalAllManHours = operationalManHours + managementManHours;
+
+  // Calculate resource counts
+  const operationalResourceCount = operationalManHours / (40 * input.taskDurationWeeks);
+  const managementResourceCount = managementManHours / (40 * input.taskDurationWeeks);
+  const totalResourceCount = (operationalManHours + managementManHours) / (40 * input.taskDurationWeeks);
+
+  // Calculate hours per person per week
+  const totalTeamSize = input.operationalStaff + input.managementStaff;
+  const hoursPerPersonPerWeek = totalTeamSize > 0 ? totalAllManHours / (input.taskDurationWeeks * totalTeamSize) : 0;
 
   // Generate weekly breakdown
   const weeklyBreakdown = generateWeeklyBreakdown(
     baseHours,
     meetingHours,
     input.taskDurationWeeks,
-    input.numberOfTeamMembers
+    input.operationalStaff + input.managementStaff
   );
 
   return {
-    totalManHours: Math.round(totalManHours * 10) / 10, // Round to 1 decimal
-    totalResourceCount: Math.round(totalResourceCount * 100) / 100, // Round to 2 decimals
+    totalManHours: Math.round(totalAllManHours * 10) / 10,
+    totalResourceCount: Math.round(totalResourceCount * 100) / 100,
     breakdown: {
       baseHours: Math.round(baseHours * 10) / 10,
       meetingHours: Math.round(meetingHours * 10) / 10,
@@ -190,13 +234,21 @@ export function calculateManpower(input: ManpowerInput): ManpowerOutput {
       documentationHours: Math.round(activityHours.documentation * 10) / 10,
       adminHours: Math.round(activityHours.admin * 10) / 10,
     },
+    roleBreakdown: {
+      operationalManHours: Math.round(operationalManHours * 10) / 10,
+      managementManHours: Math.round(managementManHours * 10) / 10,
+      operationalResourceCount: Math.round(operationalResourceCount * 100) / 100,
+      managementResourceCount: Math.round(managementResourceCount * 100) / 100,
+    },
     weeklyBreakdown,
     hoursPerPersonPerWeek: Math.round(hoursPerPersonPerWeek * 10) / 10,
     summary: generateSummary(
       baseHours,
       meetingHours,
-      totalManHours,
-      input.numberOfTeamMembers,
+      totalAllManHours,
+      input.operationalStaff,
+      input.managementStaff,
+      managementUtilizationRate,
       input.taskDurationWeeks
     ),
   };
@@ -233,23 +285,29 @@ function generateSummary(
   baseHours: number,
   meetingHours: number,
   totalHours: number,
-  teamMembers: number,
+  operationalStaff: number,
+  managementStaff: number,
+  managementUtilizationRate: number,
   weeks: number
 ): string {
-  const resourceCount = totalHours / (40 * weeks);
   const hoursPerWeek = totalHours / weeks;
-  const hoursPerMember = teamMembers > 0 ? totalHours / teamMembers : totalHours;
+  const totalTeamSize = operationalStaff + managementStaff;
 
   let summary = `Total effort: ${totalHours.toFixed(1)} hours`;
 
-  if (teamMembers > 0) {
-    summary += ` (${teamMembers} person-weeks)`;
+  if (totalTeamSize > 0) {
+    summary += ` over ${weeks} week${weeks !== 1 ? 's' : ''}`;
   }
 
   summary += `. This breaks down to ${hoursPerWeek.toFixed(1)} hours/week`;
 
-  if (teamMembers > 1) {
-    summary += ` across ${teamMembers} team members (${(hoursPerMember / weeks).toFixed(1)} hours/person/week)`;
+  if (totalTeamSize > 0) {
+    const hoursPerPersonPerWeek = totalHours / (weeks * totalTeamSize);
+    summary += ` across ${totalTeamSize} team member${totalTeamSize !== 1 ? 's' : ''} (${hoursPerPersonPerWeek.toFixed(1)} hours/person/week)`;
+
+    if (managementStaff > 0) {
+      summary += `, with ${operationalStaff} operational and ${managementStaff} management at ~${(managementUtilizationRate * 100).toFixed(0)}% utilization`;
+    }
   }
 
   if (meetingHours > 0) {
@@ -278,8 +336,16 @@ export function validateManpowerInput(input: Partial<ManpowerInput>): string[] {
     errors.push('Task duration must be greater than 0');
   }
 
-  if (input.numberOfTeamMembers === undefined || input.numberOfTeamMembers <= 0) {
-    errors.push('Number of team members must be at least 1');
+  if (input.operationalStaff === undefined || input.operationalStaff < 0) {
+    errors.push('Operational staff cannot be negative');
+  }
+
+  if (input.managementStaff === undefined || input.managementStaff < 0) {
+    errors.push('Management staff cannot be negative');
+  }
+
+  if ((input.operationalStaff || 0) + (input.managementStaff || 0) <= 0) {
+    errors.push('At least 1 team member (operational or management) is required');
   }
 
   if (input.meetingsPerWeek === undefined || input.meetingsPerWeek < 0) {

@@ -40,7 +40,8 @@ export default function ManpowerCalculator({
   const [complexity, setComplexity] = useState<Complexity>('medium');
   const [meetingsPerWeek, setMeetingsPerWeek] = useState(2);
   const [meetingDurationMinutes, setMeetingDurationMinutes] = useState(60);
-  const [numberOfTeamMembers, setNumberOfTeamMembers] = useState(1);
+  const [operationalStaff, setOperationalStaff] = useState(1);
+  const [managementStaff, setManagementStaff] = useState(0);
   const [taskDurationWeeks, setTaskDurationWeeks] = useState(2);
   const [codeReviewPercentage, setCodeReviewPercentage] = useState(10);
   const [documentationPercentage, setDocumentationPercentage] = useState(5);
@@ -53,7 +54,8 @@ export default function ManpowerCalculator({
     complexity,
     meetingsPerWeek,
     meetingDurationMinutes,
-    numberOfTeamMembers,
+    operationalStaff,
+    managementStaff,
     taskDurationWeeks,
     codeReviewPercentage,
     documentationPercentage,
@@ -67,7 +69,8 @@ export default function ManpowerCalculator({
       complexity,
       meetingsPerWeek,
       meetingDurationMinutes,
-      numberOfTeamMembers,
+      operationalStaff,
+      managementStaff,
       taskDurationWeeks,
       codeReviewPercentage,
       documentationPercentage,
@@ -79,7 +82,8 @@ export default function ManpowerCalculator({
     complexity,
     meetingsPerWeek,
     meetingDurationMinutes,
-    numberOfTeamMembers,
+    operationalStaff,
+    managementStaff,
     taskDurationWeeks,
     codeReviewPercentage,
     documentationPercentage,
@@ -194,20 +198,38 @@ export default function ManpowerCalculator({
           </div>
         </div>
 
-        {/* Team Members */}
+        {/* Operational Staff */}
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Team Members</label>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">Operational Staff</label>
           <div className="flex gap-2">
             <input
               type="number"
-              min="1"
+              min="0"
               max="20"
-              value={numberOfTeamMembers}
-              onChange={(e) => setNumberOfTeamMembers(Math.max(1, parseInt(e.target.value) || 1))}
+              value={operationalStaff}
+              onChange={(e) => setOperationalStaff(Math.max(0, parseInt(e.target.value) || 0))}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <span className="py-2 text-gray-600 font-medium">people</span>
           </div>
+          <p className="text-xs text-gray-500 mt-1">Doing the actual work (100% allocation)</p>
+        </div>
+
+        {/* Management Staff */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">Management Staff</label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min="0"
+              max="20"
+              value={managementStaff}
+              onChange={(e) => setManagementStaff(Math.max(0, parseInt(e.target.value) || 0))}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <span className="py-2 text-gray-600 font-medium">people</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Providing oversight (variable allocation)</p>
         </div>
 
         {/* Meetings per Week */}
@@ -379,6 +401,29 @@ export default function ManpowerCalculator({
             )}
           </div>
         </div>
+
+        {/* Role Breakdown */}
+        {(operationalStaff > 0 || managementStaff > 0) && (
+          <div className="bg-white rounded p-4 mb-4">
+            <div className="text-sm font-semibold text-gray-900 mb-3">Role Breakdown:</div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {operationalStaff > 0 && (
+                <div className="border-l-4 border-green-500 pl-3">
+                  <div className="text-gray-600 text-xs mb-1">Operational Staff</div>
+                  <div className="font-semibold text-gray-900">{result.roleBreakdown.operationalManHours} hrs</div>
+                  <div className="text-xs text-gray-500">{result.roleBreakdown.operationalResourceCount} person-weeks</div>
+                </div>
+              )}
+              {managementStaff > 0 && (
+                <div className="border-l-4 border-purple-500 pl-3">
+                  <div className="text-gray-600 text-xs mb-1">Management Staff</div>
+                  <div className="font-semibold text-gray-900">{result.roleBreakdown.managementManHours} hrs</div>
+                  <div className="text-xs text-gray-500">{result.roleBreakdown.managementResourceCount} person-weeks</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Summary */}
         <p className="text-sm text-gray-700 italic bg-white rounded p-3 border-l-4 border-blue-400">
