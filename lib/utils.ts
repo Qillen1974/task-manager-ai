@@ -195,14 +195,16 @@ export function calculateNextOccurrenceDate(
   if (pattern === "DAILY") {
     nextDate.setDate(nextDate.getDate() + interval);
   } else if (pattern === "WEEKLY") {
+    // For weekly tasks, add the interval in weeks
     nextDate.setDate(nextDate.getDate() + interval * 7);
-    // If specific days of week are set, find the next matching day
+    // If specific days of week are set, adjust to the correct day of the week
     if (parsedConfig.daysOfWeek && parsedConfig.daysOfWeek.length > 0) {
       const daysOfWeek = parsedConfig.daysOfWeek.sort();
       const currentDayOfWeek = nextDate.getDay();
-      const nextMatchingDay = daysOfWeek.find((d) => d >= currentDayOfWeek) || daysOfWeek[0];
+      // Find the next matching day from the current day (not necessarily this week)
+      const nextMatchingDay = daysOfWeek.find((d) => d > currentDayOfWeek) || daysOfWeek[0];
       const daysToAdd =
-        nextMatchingDay >= currentDayOfWeek ? nextMatchingDay - currentDayOfWeek : 7 - currentDayOfWeek + nextMatchingDay;
+        nextMatchingDay > currentDayOfWeek ? nextMatchingDay - currentDayOfWeek : 7 - currentDayOfWeek + nextMatchingDay;
       nextDate.setDate(nextDate.getDate() + daysToAdd);
     }
   } else if (pattern === "MONTHLY") {
