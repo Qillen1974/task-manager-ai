@@ -103,8 +103,10 @@ export async function generateInstanceIfDue(parentTask: Task): Promise<boolean> 
   // Generate the new instance
   const newInstance = await generateTaskInstance(parentTask);
 
-  // Calculate next generation date
-  const nextDate = calculateNextOccurrenceDate(parentTask.recurringStartDate || new Date(), parentTask.recurringConfig);
+  // Calculate next generation date based on the current nextGenerationDate (not the start date)
+  // This ensures we increment from when the task was just generated, not from the original start date
+  const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
+  const nextDate = calculateNextOccurrenceDate(baseDate, parentTask.recurringConfig);
 
   // Update parent task with new generation info
   await db.task.update({

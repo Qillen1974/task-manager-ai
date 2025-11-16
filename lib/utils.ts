@@ -208,7 +208,9 @@ export function calculateNextOccurrenceDate(
   } else if (pattern === "MONTHLY") {
     nextDate.setMonth(nextDate.getMonth() + interval);
     if (parsedConfig.dayOfMonth) {
-      nextDate.setDate(Math.min(parsedConfig.dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
+      // Set to the desired day of month, ensuring it doesn't exceed the max days in that month
+      const maxDayInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(parsedConfig.dayOfMonth, maxDayInMonth));
     }
   } else if (pattern === "CUSTOM") {
     const customType = parsedConfig.customType || "DAILY";
