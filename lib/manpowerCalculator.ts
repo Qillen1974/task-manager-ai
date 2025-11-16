@@ -81,11 +81,32 @@ function calculateMeetingHours(
 }
 
 /**
+ * Get activity cap percentage based on task type
+ * Different task types have different overhead expectations
+ */
+function getActivityCapPercentage(taskType: TaskType): number {
+  // Activity cap as percentage of base hours
+  // Different task types have different expected overhead
+  const caps: Record<TaskType, number> = {
+    development: 0.5, // 50%: Code review, documentation, admin
+    design: 0.6, // 60%: Design review, documentation, stakeholder feedback
+    testing: 0.55, // 55%: Test review, documentation, bug analysis
+    documentation: 0.3, // 30%: Minimal overhead for pure documentation work
+    management: 0.8, // 80%: High overhead for coordination and communication
+    research: 0.6, // 60%: Documentation and stakeholder collaboration
+    requirements: 0.9, // 90%: Very high overhead for meetings and documentation
+  };
+  return caps[taskType] || 0.5;
+}
+
+/**
  * Calculate additional activity hours
- * Total additional activities are capped at 50% of base hours combined
+ * Total additional activities are capped based on task type
+ * Different task types have different overhead expectations
  */
 function calculateActivityHours(
   baseHours: number,
+  taskType: TaskType,
   codeReviewPercentage: number,
   documentationPercentage: number,
   adminPercentage: number
@@ -98,9 +119,16 @@ function calculateActivityHours(
   const totalActivityPercentage = codeReviewPercentage + documentationPercentage + adminPercentage;
   const rawActivityHours = (baseHours * totalActivityPercentage) / 100;
 
-  // Cap total additional activities at 50% of base hours
-  // This ensures people don't have unrealistic overhead on top of base work
-  const maxAdditionalHours = baseHours * 0.5;
+  // Get task-type-specific cap
+  // Requirements gathering: 90% (meetings, stakeholder docs)
+  // Management: 80% (coordination overhead)
+  // Design: 60% (design reviews, feedback)
+  // Development: 50% (code review, docs)
+  // Testing: 55% (test review, documentation)
+  // Research: 60% (documentation, analysis)
+  // Documentation: 30% (minimal overhead)
+  const capPercentage = getActivityCapPercentage(taskType);
+  const maxAdditionalHours = baseHours * capPercentage;
   const cappedActivityHours = Math.min(rawActivityHours, maxAdditionalHours);
 
   // If capped, scale down each activity proportionally
@@ -126,6 +154,7 @@ export function calculateManpower(input: ManpowerInput): ManpowerOutput {
 
   const activityHours = calculateActivityHours(
     baseHours,
+    input.taskType,
     input.codeReviewPercentage,
     input.documentationPercentage,
     input.adminPercentage
