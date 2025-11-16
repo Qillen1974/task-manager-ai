@@ -82,6 +82,7 @@ function calculateMeetingHours(
 
 /**
  * Calculate additional activity hours
+ * Total additional activities are capped at 50% of base hours combined
  */
 function calculateActivityHours(
   baseHours: number,
@@ -93,14 +94,22 @@ function calculateActivityHours(
   documentation: number;
   admin: number;
 } {
-  // Ensure percentages don't exceed 100%
-  const totalPercentage = codeReviewPercentage + documentationPercentage + adminPercentage;
-  const factor = Math.min(totalPercentage / 100, 0.5); // Cap additional work at 50% of base
+  // Calculate total activity hours before cap
+  const totalActivityPercentage = codeReviewPercentage + documentationPercentage + adminPercentage;
+  const rawActivityHours = (baseHours * totalActivityPercentage) / 100;
+
+  // Cap total additional activities at 50% of base hours
+  // This ensures people don't have unrealistic overhead on top of base work
+  const maxAdditionalHours = baseHours * 0.5;
+  const cappedActivityHours = Math.min(rawActivityHours, maxAdditionalHours);
+
+  // If capped, scale down each activity proportionally
+  const scaleFactor = totalActivityPercentage > 0 ? cappedActivityHours / rawActivityHours : 0;
 
   return {
-    codeReview: (baseHours * codeReviewPercentage) / 100,
-    documentation: (baseHours * documentationPercentage) / 100,
-    admin: (baseHours * adminPercentage) / 100,
+    codeReview: (baseHours * codeReviewPercentage / 100) * scaleFactor,
+    documentation: (baseHours * documentationPercentage / 100) * scaleFactor,
+    admin: (baseHours * adminPercentage / 100) * scaleFactor,
   };
 }
 
@@ -126,10 +135,13 @@ export function calculateManpower(input: ManpowerInput): ManpowerOutput {
     baseHours + meetingHours + activityHours.codeReview + activityHours.documentation + activityHours.admin;
 
   // Calculate hours per person per week
+  // This shows how many hours each team member would work per week if effort is distributed evenly
   const hoursPerPersonPerWeek = input.numberOfTeamMembers > 0 ? totalManHours / (input.taskDurationWeeks * input.numberOfTeamMembers) : 0;
 
   // Calculate total resource count (in person-weeks)
-  const totalResourceCount = input.numberOfTeamMembers > 0 ? totalManHours / (40 * input.taskDurationWeeks) : 0;
+  // This represents how many person-weeks of effort are required
+  // (assuming 40 hours per week standard work week)
+  const totalResourceCount = totalManHours / (40 * input.taskDurationWeeks);
 
   // Generate weekly breakdown
   const weeklyBreakdown = generateWeeklyBreakdown(
