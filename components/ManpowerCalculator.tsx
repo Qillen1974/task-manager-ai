@@ -5,6 +5,7 @@ import {
   calculateManpower,
   validateManpowerInput,
   getDefaultsForTaskType,
+  getDefaultBaseHours,
   type TaskType,
   type Complexity,
 } from '@/lib/manpowerCalculator';
@@ -46,8 +47,12 @@ export default function ManpowerCalculator({
   const [codeReviewPercentage, setCodeReviewPercentage] = useState(10);
   const [documentationPercentage, setDocumentationPercentage] = useState(5);
   const [adminPercentage, setAdminPercentage] = useState(5);
+  const [customBaseHoursPerWeek, setCustomBaseHoursPerWeek] = useState<number | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const defaultBaseHours = getDefaultBaseHours(taskType);
+  const baseHoursPerWeek = customBaseHoursPerWeek !== undefined ? customBaseHoursPerWeek : defaultBaseHours;
 
   const result = calculateManpower({
     taskType,
@@ -60,6 +65,7 @@ export default function ManpowerCalculator({
     codeReviewPercentage,
     documentationPercentage,
     adminPercentage,
+    customBaseHoursPerWeek,
   });
 
   // Validate and update errors
@@ -75,6 +81,7 @@ export default function ManpowerCalculator({
       codeReviewPercentage,
       documentationPercentage,
       adminPercentage,
+      customBaseHoursPerWeek,
     });
     setErrors(validationErrors);
   }, [
@@ -88,6 +95,7 @@ export default function ManpowerCalculator({
     codeReviewPercentage,
     documentationPercentage,
     adminPercentage,
+    customBaseHoursPerWeek,
   ]);
 
   // Note: We do NOT call the callback automatically on every change
@@ -96,6 +104,7 @@ export default function ManpowerCalculator({
 
   const handleTaskTypeChange = (type: TaskType) => {
     setTaskType(type);
+    setCustomBaseHoursPerWeek(undefined); // Reset to default when task type changes
     const defaults = getDefaultsForTaskType(type);
     if (defaults.meetingsPerWeek !== undefined) setMeetingsPerWeek(defaults.meetingsPerWeek);
     if (defaults.codeReviewPercentage !== undefined) setCodeReviewPercentage(defaults.codeReviewPercentage);
@@ -178,6 +187,47 @@ export default function ManpowerCalculator({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Base Work Hours per Week */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-semibold text-gray-900">
+            Base Work Hours per Week
+          </label>
+          <span className="text-xs text-gray-600">
+            Default: {defaultBaseHours} hours
+          </span>
+        </div>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="number"
+            min="1"
+            max="60"
+            value={baseHoursPerWeek}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || defaultBaseHours;
+              setCustomBaseHoursPerWeek(value !== defaultBaseHours ? value : undefined);
+            }}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <span className="py-2 text-gray-600 font-medium">hours/week</span>
+        </div>
+        <p className="text-xs text-gray-600">
+          Adjust the base hours per week for this task type. This is multiplied by complexity and duration.
+        </p>
+        {customBaseHoursPerWeek !== undefined && customBaseHoursPerWeek !== defaultBaseHours && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setCustomBaseHoursPerWeek(undefined);
+            }}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            ↺ Reset to default ({defaultBaseHours} hours)
+          </button>
+        )}
       </div>
 
       {/* Basic Inputs */}

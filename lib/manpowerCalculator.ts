@@ -17,6 +17,7 @@ interface ManpowerInput {
   codeReviewPercentage: number;
   documentationPercentage: number;
   adminPercentage: number;
+  customBaseHoursPerWeek?: number; // Optional: override default base hours per week
 }
 
 interface ManpowerOutput {
@@ -69,8 +70,8 @@ const COMPLEXITY_MULTIPLIERS: Record<Complexity, number> = {
 /**
  * Calculate base hours based on task type and complexity
  */
-function calculateBaseHours(taskType: TaskType, complexity: Complexity, weeks: number): number {
-  const baseRate = BASE_HOURS_BY_TYPE[taskType];
+function calculateBaseHours(taskType: TaskType, complexity: Complexity, weeks: number, customBaseHoursPerWeek?: number): number {
+  const baseRate = customBaseHoursPerWeek !== undefined ? customBaseHoursPerWeek : BASE_HOURS_BY_TYPE[taskType];
   const multiplier = COMPLEXITY_MULTIPLIERS[complexity];
   return baseRate * multiplier * weeks;
 }
@@ -172,7 +173,7 @@ function calculateActivityHours(
  * Now differentiates between operational staff (doing the work) and management staff (oversight)
  */
 export function calculateManpower(input: ManpowerInput): ManpowerOutput {
-  const baseHours = calculateBaseHours(input.taskType, input.complexity, input.taskDurationWeeks);
+  const baseHours = calculateBaseHours(input.taskType, input.complexity, input.taskDurationWeeks, input.customBaseHoursPerWeek);
   const meetingHours = calculateMeetingHours(
     input.meetingsPerWeek,
     input.meetingDurationMinutes,
@@ -416,4 +417,11 @@ export function getDefaultsForTaskType(taskType: TaskType): Partial<ManpowerInpu
   };
 
   return defaults[taskType] || {};
+}
+
+/**
+ * Get default base hours per week for a task type
+ */
+export function getDefaultBaseHours(taskType: TaskType): number {
+  return BASE_HOURS_BY_TYPE[taskType] || 40;
 }
