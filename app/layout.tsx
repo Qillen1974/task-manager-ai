@@ -17,8 +17,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "TaskQuadrant - Professional Task Management",
-  description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
+  title: "TaskQuadrant - Professional Task Management with Eisenhower Matrix",
+  description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance. Free task management tool for individuals and teams.",
+  keywords: "task management, Eisenhower Matrix, productivity, prioritization, project management, time management",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -36,6 +37,26 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180" },
     ],
   },
+  openGraph: {
+    title: "TaskQuadrant - Professional Task Management",
+    description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance",
+    type: "website",
+    url: "https://taskquadrant.io",
+    images: [
+      {
+        url: "https://taskquadrant.io/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "TaskQuadrant - Eisenhower Matrix Task Management",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TaskQuadrant - Task Management",
+    description: "Manage your tasks with the Eisenhower Matrix",
+  },
+  metadataBase: new URL("https://taskquadrant.io"),
 };
 
 export const viewport: Viewport = {
