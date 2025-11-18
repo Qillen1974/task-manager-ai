@@ -62,11 +62,12 @@ export async function GET(
       );
     }
 
-    // Get documents in folder
+    // Get documents in folder (normalize folder parameter)
+    const normalizedFolder = folder === "root" ? null : folder;
     const documents = await db.workspaceDocument.findMany({
       where: {
         workspaceId: workspace.id,
-        folder: folder,
+        folder: normalizedFolder,
       },
       include: {
         uploadedByUser: {
@@ -137,7 +138,8 @@ export async function POST(
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const folder = (formData.get("folder") as string) || "root";
+    const folderInput = (formData.get("folder") as string) || "root";
+    const folder = folderInput === "root" ? null : folderInput;
     const description = (formData.get("description") as string) || "";
     const tags = (formData.get("tags") as string) || "";
 
