@@ -94,11 +94,7 @@ export default function DocumentUploader({
       if (description.trim()) formData.append("description", description.trim());
       if (tags.trim()) formData.append("tags", tags.trim());
 
-      await api.post(`/teams/${teamId}/workspace/documents`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.post(`/teams/${teamId}/workspace/documents`, formData);
 
       setSelectedFile(null);
       setFolder("root");
