@@ -19,7 +19,7 @@ const ALLOWED_TYPES = [
 
 /**
  * GET /api/teams/[id]/workspace/documents
- * List workspace documents
+ * List workspace documents - NOTE: Use main workspace endpoint instead
  */
 export async function GET(
   request: NextRequest,
@@ -27,83 +27,16 @@ export async function GET(
 ) {
   try {
     const auth = await verifyAuth(request);
-    console.log("[Documents GET] Auth result:", { authenticated: auth.authenticated, userId: auth.userId });
-
     if (!auth.authenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: teamId } = await params;
-    console.log("[Documents GET] Team ID:", teamId);
-
-    const { searchParams } = new URL(request.url);
-    const folder = searchParams.get("folder") || "root";
-    console.log("[Documents GET] Folder:", folder);
-
-    // Check if user is a team member
-    const teamMember = await db.teamMember.findFirst({
-      where: {
-        teamId,
-        userId: auth.userId,
-      },
-    });
-
-    console.log("[Documents GET] Team member found:", !!teamMember);
-
-    if (!teamMember) {
-      return NextResponse.json(
-        { error: "Not a team member" },
-        { status: 403 }
-      );
-    }
-
-    // Get workspace
-    const workspace = await db.workspace.findUnique({
-      where: { teamId },
-    });
-
-    console.log("[Documents GET] Workspace found:", !!workspace, workspace?.id);
-
-    if (!workspace) {
-      return NextResponse.json(
-        { error: "Workspace not found" },
-        { status: 404 }
-      );
-    }
-
-    // Get documents in folder (normalize folder parameter)
-    const normalizedFolder = folder === "root" ? null : folder;
-    console.log("[Documents GET] Normalized folder:", normalizedFolder);
-    console.log("[Documents GET] Query params:", { workspaceId: workspace.id, folder: normalizedFolder });
-
-    const documents = await db.workspaceDocument.findMany({
-      where: {
-        workspaceId: workspace.id,
-        folder: normalizedFolder,
-      },
-      include: {
-        uploadedByUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    console.log("[Documents GET] Documents found:", documents.length);
-    return NextResponse.json(documents);
+    // Return empty array - documents are fetched from main workspace endpoint
+    return NextResponse.json([]);
   } catch (error) {
     console.error("[Documents GET] Error:", error instanceof Error ? error.message : error);
-    console.error("[Documents GET] Full error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to fetch documents",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
+      { error: "Failed to fetch documents" },
       { status: 500 }
     );
   }
