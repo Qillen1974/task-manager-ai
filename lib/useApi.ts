@@ -79,13 +79,21 @@ export function useApi() {
         // Always get fresh token from localStorage to ensure we have the latest token
         const currentToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
+        // Check if body is FormData
+        const isFormData = body instanceof FormData;
+
+        // Build headers - don't set Content-Type for FormData (let fetch handle it)
+        const headers: HeadersInit = {
+          ...(currentToken && { 'Authorization': `Bearer ${currentToken}` }),
+        };
+        if (!isFormData) {
+          headers['Content-Type'] = 'application/json';
+        }
+
         const response = await fetch(`/api${endpoint}`, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(currentToken && { 'Authorization': `Bearer ${currentToken}` }),
-          },
-          body: body ? JSON.stringify(body) : undefined,
+          headers,
+          body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         });
 
         const data: ApiResponse<T> = await response.json();
@@ -98,13 +106,17 @@ export function useApi() {
             const updatedToken = localStorage.getItem('accessToken');
             if (updatedToken) {
               // Retry the original request with new token
+              const retryHeaders: HeadersInit = {
+                'Authorization': `Bearer ${updatedToken}`,
+              };
+              if (!isFormData) {
+                retryHeaders['Content-Type'] = 'application/json';
+              }
+
               const retryResponse = await fetch(`/api${endpoint}`, {
                 method,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${updatedToken}`,
-                },
-                body: body ? JSON.stringify(body) : undefined,
+                headers: retryHeaders,
+                body: isFormData ? body : body ? JSON.stringify(body) : undefined,
               });
               return retryResponse.json();
             }
