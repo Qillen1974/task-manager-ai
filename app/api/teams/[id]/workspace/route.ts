@@ -38,12 +38,40 @@ export async function GET(
       where: { teamId },
       include: {
         documents: {
+          include: {
+            uploadedByUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
           orderBy: { createdAt: "desc" },
           take: 50,
         },
         stickyNotes: {
           where: {
             OR: [{ toUserId: userId }, { fromUserId: userId }],
+          },
+          include: {
+            fromUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            toUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
           take: 50,

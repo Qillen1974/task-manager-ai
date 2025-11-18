@@ -27,13 +27,18 @@ export async function GET(
 ) {
   try {
     const auth = await verifyAuth(request);
+    console.log("[Documents GET] Auth result:", { authenticated: auth.authenticated, userId: auth.userId });
+
     if (!auth.authenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: teamId } = await params;
+    console.log("[Documents GET] Team ID:", teamId);
+
     const { searchParams } = new URL(request.url);
     const folder = searchParams.get("folder") || "root";
+    console.log("[Documents GET] Folder:", folder);
 
     // Check if user is a team member
     const teamMember = await db.teamMember.findFirst({
@@ -42,6 +47,8 @@ export async function GET(
         userId: auth.userId,
       },
     });
+
+    console.log("[Documents GET] Team member found:", !!teamMember);
 
     if (!teamMember) {
       return NextResponse.json(
@@ -55,6 +62,8 @@ export async function GET(
       where: { teamId },
     });
 
+    console.log("[Documents GET] Workspace found:", !!workspace, workspace?.id);
+
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -64,6 +73,9 @@ export async function GET(
 
     // Get documents in folder (normalize folder parameter)
     const normalizedFolder = folder === "root" ? null : folder;
+    console.log("[Documents GET] Normalized folder:", normalizedFolder);
+    console.log("[Documents GET] Query params:", { workspaceId: workspace.id, folder: normalizedFolder });
+
     const documents = await db.workspaceDocument.findMany({
       where: {
         workspaceId: workspace.id,
@@ -82,6 +94,7 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    console.log("[Documents GET] Documents found:", documents.length);
     return NextResponse.json(documents);
   } catch (error) {
     console.error("[Documents GET] Error:", error instanceof Error ? error.message : error);
@@ -106,11 +119,14 @@ export async function POST(
 ) {
   try {
     const auth = await verifyAuth(request);
+    console.log("[Documents POST] Auth result:", { authenticated: auth.authenticated, userId: auth.userId });
+
     if (!auth.authenticated) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: teamId } = await params;
+    console.log("[Documents POST] Team ID:", teamId);
 
     // Check if user can edit
     const teamMember = await db.teamMember.findFirst({
