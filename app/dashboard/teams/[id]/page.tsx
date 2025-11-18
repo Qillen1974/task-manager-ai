@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { useApi } from "@/lib/useApi";
 import { AuthPage } from "@/components/AuthPage";
+import WorkspacePanel from "@/components/WorkspacePanel";
 import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus } from "lucide-react";
 import Link from "next/link";
 
@@ -547,6 +548,11 @@ export default function TeamDetailsPage() {
             )}
           </div>
         )}
+
+        {/* Workspace Section */}
+        <div className="mt-6">
+          <WorkspacePanel teamId={teamId} />
+        </div>
 
         {/* Invite Modal */}
         {showInviteModal && isAdmin && (
