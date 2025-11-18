@@ -34,6 +34,10 @@ model User {
   teamMemberships TeamMember[]
   chatConversations ChatConversation[]
   bugReports    BugReport[]
+  workspaceDocuments WorkspaceDocument[]  // Documents uploaded by user
+  stickyNotesFrom    StickyNote[]  @relation("StickyNotesFrom")  // Notes sent by user
+  stickyNotesTo      StickyNote[]  @relation("StickyNotesTo")    // Notes received by user
+  workspaceActivities WorkspaceActivity[]  // Activities performed by user
 
   @@index([email])
 }
@@ -290,6 +294,7 @@ model Team {
   invitations  TeamInvitation[]         // Pending team invitations
   projects     Project[]                // Projects owned by this team
   mindMaps     MindMap[]                // Mind maps created by this team (ENTERPRISE feature)
+  workspace    Workspace?               // Collaborative workspace for this team
 
   @@index([ownerId])
   @@index([slug])
@@ -520,5 +525,106 @@ model BugReport {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// Workspace - collaborative space for teams to share documents and notes
+model Workspace {
+  id              String   @id @default(cuid())
+  teamId          String
+  team            Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?  @db.Text
+
+  // Relations
+  documents       WorkspaceDocument[]
+  stickyNotes     StickyNote[]
+  activities      WorkspaceActivity[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([teamId])  // One workspace per team
+  @@index([teamId])
+}
+
+// WorkspaceDocument - files uploaded to workspace
+model WorkspaceDocument {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  fileName        String
+  originalName    String   // Original filename as uploaded
+  fileType        String   // pdf, xlsx, txt, jpg, png, etc.
+  fileUrl         String   // URL to stored file
+  fileSize        Int      // File size in bytes
+
+  uploadedBy      String
+  uploadedByUser  User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  folder          String?  @default("root")  // Folder path: "root", "folder1", "folder1/subfolder"
+  tags            String?  // Comma-separated tags
+  description     String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([uploadedBy])
+  @@index([folder])
+  @@index([createdAt])
+}
+
+// StickyNote - member-to-member messages/reminders
+model StickyNote {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  fromUserId      String
+  fromUser        User     @relation("StickyNotesFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  toUserId        String
+  toUser          User     @relation("StickyNotesTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  content         String   @db.Text
+  color           String   @default("yellow")  // yellow, pink, blue, green, purple, orange
+
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+
+  expiresAt       DateTime?  // Optional expiration date
+  isArchived      Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// WorkspaceActivity - audit log of workspace actions
+model WorkspaceActivity {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  actorId         String
+  actor           User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  type            String   // "document_uploaded", "sticky_note_added", "document_deleted", etc.
+  description     String
+  metadata        Json?    // Additional context
+
+  createdAt       DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([actorId])
+  @@index([type])
   @@index([createdAt])
 }
