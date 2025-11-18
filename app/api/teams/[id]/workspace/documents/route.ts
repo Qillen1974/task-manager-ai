@@ -70,6 +70,8 @@ export async function POST(
       },
     });
 
+    console.log("[Documents POST] Team member check:", !!teamMember);
+
     if (!teamMember) {
       return NextResponse.json(
         { error: "You don't have permission to upload documents" },
@@ -81,6 +83,8 @@ export async function POST(
     const workspace = await db.workspace.findUnique({
       where: { teamId },
     });
+
+    console.log("[Documents POST] Workspace found:", !!workspace, workspace?.id);
 
     if (!workspace) {
       return NextResponse.json(
@@ -95,6 +99,13 @@ export async function POST(
     const folder = folderInput === "root" ? null : folderInput;
     const description = (formData.get("description") as string) || "";
     const tags = (formData.get("tags") as string) || "";
+
+    console.log("[Documents POST] File info:", {
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+      folder,
+    });
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -123,6 +134,14 @@ export async function POST(
     const fileName = `${fileHash}.${fileExtension}`;
     const fileUrl = `/uploads/${teamId}/${fileName}`;
 
+    console.log("[Documents POST] Creating document with data:", {
+      workspaceId: workspace.id,
+      fileName,
+      originalName: file.name,
+      uploadedBy: auth.userId,
+      folder,
+    });
+
     // Create document record
     const document = await db.workspaceDocument.create({
       data: {
@@ -149,6 +168,11 @@ export async function POST(
       },
     });
 
+    console.log("[Documents POST] Document created:", {
+      id: document.id,
+      originalName: document.originalName,
+    });
+
     // Log activity
     await db.workspaceActivity.create({
       data: {
@@ -164,6 +188,7 @@ export async function POST(
       },
     });
 
+    console.log("[Documents POST] Activity logged");
     return NextResponse.json(document, { status: 201 });
   } catch (error) {
     console.error("[Documents POST]", error);
