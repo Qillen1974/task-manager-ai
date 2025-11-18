@@ -222,7 +222,7 @@ export default function MindMapEditor({
     }
   };
 
-  // Draw canvas
+  // Draw canvas with professional graphics
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -230,13 +230,17 @@ export default function MindMapEditor({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = "#f9fafb";
+    // Clear canvas with gradient background
+    const bgGradient = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    bgGradient.addColorStop(0, "#f8fafc");
+    bgGradient.addColorStop(1, "#f1f5f9");
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw grid
-    ctx.strokeStyle = "#e5e7eb";
+    // Draw subtle grid
+    ctx.strokeStyle = "#e2e8f0";
     ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.4;
     for (let i = 0; i < CANVAS_WIDTH; i += 50) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
@@ -249,28 +253,67 @@ export default function MindMapEditor({
       ctx.lineTo(CANVAS_WIDTH, i);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1.0;
 
-    // Draw edges (connections)
+    // Draw edges (connections) with bezier curves
     edges.forEach((edge) => {
       const source = nodes.find((n) => n.id === edge.source);
       const target = nodes.find((n) => n.id === edge.target);
       if (source?.x && source?.y && target?.x && target?.y) {
-        // Highlight selected edge
-        ctx.strokeStyle = selectedEdge === edge.id ? "#ef4444" : "#9ca3af";
-        ctx.lineWidth = selectedEdge === edge.id ? 3 : 2;
+        const isSelected = selectedEdge === edge.id;
+
+        // Draw edge shadow for selected edges
+        if (isSelected) {
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+          ctx.lineWidth = 6;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+
+          // Bezier curve for smooth connections
+          const cpx = (source.x + target.x) / 2;
+          const cpy = (source.y + target.y) / 2 + 30;
+          ctx.moveTo(source.x, source.y);
+          ctx.quadraticCurveTo(cpx, cpy, target.x, target.y);
+          ctx.stroke();
+        }
+
+        // Draw edge line
+        ctx.strokeStyle = isSelected ? "#ef4444" : "#cbd5e1";
+        ctx.lineWidth = isSelected ? 3 : 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
+
+        // Bezier curve for smooth connections
+        const cpx = (source.x + target.x) / 2;
+        const cpy = (source.y + target.y) / 2 + 30;
         ctx.moveTo(source.x, source.y);
-        ctx.lineTo(target.x, target.y);
+        ctx.quadraticCurveTo(cpx, cpy, target.x, target.y);
         ctx.stroke();
+
+        // Draw arrow head if selected
+        if (isSelected) {
+          const angle = Math.atan2(target.y - source.y, target.x - source.x);
+          const arrowSize = 10;
+
+          ctx.fillStyle = "#ef4444";
+          ctx.beginPath();
+          ctx.moveTo(target.x, target.y);
+          ctx.lineTo(target.x - arrowSize * Math.cos(angle - Math.PI / 6), target.y - arrowSize * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(target.x - arrowSize * Math.cos(angle + Math.PI / 6), target.y - arrowSize * Math.sin(angle + Math.PI / 6));
+          ctx.closePath();
+          ctx.fill();
+        }
       }
     });
 
-    // Draw nodes
+    // Draw nodes with enhanced visuals
     nodes.forEach((node) => {
       const x = node.x || CANVAS_WIDTH / 2;
       const y = node.y || CANVAS_HEIGHT / 2;
 
-      // Determine node color based on selection and connection mode
+      // Determine node state
       let isSelected = false;
       let isPartOfConnection = false;
 
@@ -281,20 +324,57 @@ export default function MindMapEditor({
         isSelected = selectedNode === node.id;
       }
 
-      // Circle background
-      ctx.fillStyle = isSelected ? "#3b82f6" : getColorHex(node.color || "blue");
+      const baseColor = getColorHex(node.color || "blue");
+
+      // Draw node shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+      ctx.shadowBlur = isSelected ? 15 : 8;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = isSelected ? 4 : 2;
+
+      // Draw node with gradient
+      const gradient = ctx.createRadialGradient(x - 10, y - 10, 0, x, y, NODE_RADIUS);
+      gradient.addColorStop(0, isSelected ? "#60a5fa" : adjustBrightness(baseColor, 20));
+      gradient.addColorStop(1, baseColor);
+
+      ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2);
       ctx.fill();
 
-      // Border - thicker for selected nodes in connection mode
-      ctx.strokeStyle = isSelected ? "#1f2937" : "#ffffff";
-      ctx.lineWidth = isSelected ? 3 : 2;
+      // Draw inner glow for selected nodes
+      if (isSelected) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, NODE_RADIUS - 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Reset shadow
+      ctx.shadowColor = "transparent";
+
+      // Border
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = isSelected ? 4 : 3;
+      ctx.beginPath();
+      ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Text
+      // Outer ring for selected/connection nodes
+      if (isSelected) {
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(x, y, NODE_RADIUS + 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // Text with better styling
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 12px Arial";
+      ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
@@ -323,6 +403,16 @@ export default function MindMapEditor({
       });
     });
   }, [nodes, edges, selectedNode, selectedEdge, connectionMode, connectionFirstNode]);
+
+  // Helper to adjust color brightness
+  const adjustBrightness = (color: string, percent: number): string => {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R < 255 ? R : 255) * 0x10000 + (G < 255 ? G : 255) * 0x100 + (B < 255 ? B : 255)).toString(16).slice(1);
+  };
 
   const getColorHex = (color: string): string => {
     const colorMap: Record<string, string> = {
