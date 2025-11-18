@@ -34,7 +34,7 @@ model User {
   teamMemberships TeamMember[]
   chatConversations ChatConversation[]
   bugReports    BugReport[]
-  workspaceDocuments WorkspaceDocument[]  // Documents uploaded by user
+  workspaceDocuments WorkspaceDocument[] @relation("UserDocuments")  // Documents uploaded by user
   stickyNotesFrom    StickyNote[]  @relation("StickyNotesFrom")  // Notes sent by user
   stickyNotesTo      StickyNote[]  @relation("StickyNotesTo")    // Notes received by user
   workspaceActivities WorkspaceActivity[]  // Activities performed by user
@@ -562,7 +562,7 @@ model WorkspaceDocument {
   fileSize        Int      // File size in bytes
 
   uploadedBy      String
-  uploadedByUser  User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  uploadedByUser  User     @relation("UserDocuments", fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   folder          String?  @default("root")  // Folder path: "root", "folder1", "folder1/subfolder"
   tags            String?  // Comma-separated tags

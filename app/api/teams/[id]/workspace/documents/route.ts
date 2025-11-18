@@ -84,9 +84,13 @@ export async function GET(
 
     return NextResponse.json(documents);
   } catch (error) {
-    console.error("[Documents GET]", error);
+    console.error("[Documents GET] Error:", error instanceof Error ? error.message : error);
+    console.error("[Documents GET] Full error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch documents" },
+      {
+        error: "Failed to fetch documents",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     );
   }
