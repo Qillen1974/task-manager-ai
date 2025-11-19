@@ -34,6 +34,7 @@ export async function GET(
     }
 
     // Get or create workspace
+    console.log("[Workspace GET] Fetching workspace with documents for teamId:", teamId);
     let workspace = await db.workspace.findFirst({
       where: { teamId },
       include: {
@@ -83,8 +84,14 @@ export async function GET(
       },
     });
 
+    console.log("[Workspace GET] Workspace fetched:", {
+      id: workspace?.id,
+      documentsCount: workspace?.documents?.length || 0,
+    });
+
     // Create workspace if it doesn't exist
     if (!workspace) {
+      console.log("[Workspace GET] Creating new workspace");
       workspace = await db.workspace.create({
         data: {
           teamId,
@@ -92,13 +99,45 @@ export async function GET(
           description: "Team collaboration space",
         },
         include: {
-          documents: true,
-          stickyNotes: true,
+          documents: {
+            include: {
+              uploadedByUser: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          stickyNotes: {
+            include: {
+              fromUser: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+              toUser: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
           activities: true,
         },
       });
+      console.log("[Workspace GET] New workspace created with id:", workspace.id);
     }
 
+    console.log("[Workspace GET] Returning workspace with documents:", workspace.documents?.length || 0);
     return NextResponse.json(workspace);
   } catch (error) {
     console.error("[Workspace GET]", error);
