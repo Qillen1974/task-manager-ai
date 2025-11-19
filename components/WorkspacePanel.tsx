@@ -123,11 +123,30 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to download: ${response.statusText}`);
+        // Try to parse error details from response
+        let errorMessage = `Failed to download: ${response.statusText}`;
+
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // Response is not JSON, use default message
+        }
+
+        throw new Error(errorMessage);
       }
 
       // Get the blob
       const blob = await response.blob();
+
+      // Validate we have content
+      if (blob.size === 0) {
+        throw new Error("Downloaded file is empty. Please try re-uploading the document.");
+      }
 
       // Create a temporary download link
       const url = window.URL.createObjectURL(blob);

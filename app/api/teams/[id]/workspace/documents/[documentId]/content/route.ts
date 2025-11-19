@@ -52,8 +52,19 @@ export async function GET(
 
     // Check if file content exists
     if (!document.fileContent) {
+      console.log("[Document Content] No file content found for document:", {
+        id: document.id,
+        originalName: document.originalName,
+        fileSize: document.fileSize,
+      });
+
       return NextResponse.json(
-        { error: "Document content not available" },
+        {
+          error: "Document content not available",
+          message: "This document was uploaded before file storage was enabled. Please re-upload the document to enable downloads.",
+          documentId: document.id,
+          originalName: document.originalName,
+        },
         { status: 404 }
       );
     }
@@ -65,14 +76,20 @@ export async function GET(
       size: document.fileContent.length,
     });
 
+    // Ensure fileContent is a Buffer
+    const fileBuffer = Buffer.isBuffer(document.fileContent)
+      ? document.fileContent
+      : Buffer.from(document.fileContent);
+
     // Return file content with appropriate headers
-    const response = new NextResponse(document.fileContent);
+    const response = new NextResponse(fileBuffer);
     response.headers.set("Content-Type", document.fileType || "application/octet-stream");
     response.headers.set(
       "Content-Disposition",
       `attachment; filename="${document.originalName}"`
     );
-    response.headers.set("Content-Length", document.fileContent.length.toString());
+    response.headers.set("Content-Length", fileBuffer.length.toString());
+    response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
 
     return response;
   } catch (error) {
