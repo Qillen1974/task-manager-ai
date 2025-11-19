@@ -116,16 +116,37 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   };
 
   const handleDownloadDocument = async (doc: Document) => {
-    // Show a download/view dialog
-    const userChoice = confirm(
-      `${doc.originalName}\n\nFile Storage Status:\n\nThe document has been registered in the workspace (${(doc.fileSize / 1024 / 1024).toFixed(2)} MB, ${doc.fileType}).\n\nTo fully enable downloads, integrate:\n• Vercel Blob Storage\n• AWS S3\n• Or another file storage service\n\nClick OK to copy document info to clipboard.`
-    );
+    try {
+      // Request the file from the server
+      const response = await fetch(
+        `/api/teams/${teamId}/workspace/documents/${doc.id}/content`
+      );
 
-    if (userChoice) {
-      const info = `Document: ${doc.originalName}\nSize: ${(doc.fileSize / 1024 / 1024).toFixed(2)} MB\nType: ${doc.fileType}\nUploaded: ${new Date(doc.createdAt).toLocaleString()}\nBy: ${doc.uploadedByUser?.firstName} ${doc.uploadedByUser?.lastName}`;
-      navigator.clipboard.writeText(info).then(() => {
-        alert("Document info copied to clipboard!");
-      });
+      if (!response.ok) {
+        throw new Error(`Failed to download: ${response.statusText}`);
+      }
+
+      // Get the blob
+      const blob = await response.blob();
+
+      // Create a temporary download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.originalName;
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download document:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to download document"
+      );
     }
   };
 

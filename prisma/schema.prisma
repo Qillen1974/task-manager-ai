@@ -560,6 +560,7 @@ model WorkspaceDocument {
   fileType        String   // pdf, xlsx, txt, jpg, png, etc.
   fileUrl         String   // URL to stored file
   fileSize        Int      // File size in bytes
+  fileContent     Bytes?   // Actual file content (stored as binary)
 
   uploadedBy      String
   uploadedByUser  User     @relation("UserDocuments", fields: [uploadedBy], references: [id], onDelete: Cascade)

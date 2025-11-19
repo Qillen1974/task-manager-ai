@@ -127,12 +127,15 @@ export async function POST(
       );
     }
 
-    // For now, store file URL as a placeholder
-    // In production, you'd upload to S3/Vercel Blob Storage
+    // Read file content as buffer
+    const fileBuffer = await file.arrayBuffer();
+    const fileContent = Buffer.from(fileBuffer);
+
+    // Store file URL as a reference
     const fileHash = crypto.randomBytes(16).toString("hex");
     const fileExtension = file.name.split(".").pop();
     const fileName = `${fileHash}.${fileExtension}`;
-    const fileUrl = `/uploads/${teamId}/${fileName}`;
+    const fileUrl = `/api/teams/${teamId}/workspace/documents/${fileName}/content`;
 
     console.log("[Documents POST] Creating document with data:", {
       workspaceId: workspace.id,
@@ -140,9 +143,10 @@ export async function POST(
       originalName: file.name,
       uploadedBy: auth.userId,
       folder,
+      fileSize: fileContent.length,
     });
 
-    // Create document record
+    // Create document record with file content stored in database
     const document = await db.workspaceDocument.create({
       data: {
         workspaceId: workspace.id,
@@ -151,6 +155,7 @@ export async function POST(
         fileType: file.type || "application/octet-stream",
         fileUrl,
         fileSize: file.size,
+        fileContent: fileContent, // Store actual file bytes in database
         uploadedBy: auth.userId,
         folder,
         description,
