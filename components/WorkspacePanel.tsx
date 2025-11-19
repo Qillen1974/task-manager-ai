@@ -62,6 +62,8 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [showNoContentAlert, setShowNoContentAlert] = useState(false);
+  const [noContentDocName, setNoContentDocName] = useState<string>("");
 
   useEffect(() => {
     loadWorkspace();
@@ -124,18 +126,25 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
 
       if (!response.ok) {
         // Try to parse error details from response
-        let errorMessage = `Failed to download: ${response.statusText}`;
+        let errorData: any = {};
 
         try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          }
+          errorData = await response.json();
         } catch (e) {
           // Response is not JSON, use default message
         }
+
+        // Special handling for 410 Gone (old documents without content)
+        if (response.status === 410 && errorData.message) {
+          setNoContentDocName(doc.originalName);
+          setShowNoContentAlert(true);
+          return;
+        }
+
+        const errorMessage =
+          errorData.message ||
+          errorData.error ||
+          `Failed to download: ${response.statusText}`;
 
         throw new Error(errorMessage);
       }
@@ -399,6 +408,39 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
                     </dd>
                   </div>
                 </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Content Alert Modal */}
+      {showNoContentAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Document Not Available
+                  </h3>
+                  <p className="text-gray-700 text-sm mb-4">
+                    <strong>{noContentDocName}</strong> was uploaded before file storage was enabled. To download this document, please delete it and re-upload it.
+                  </p>
+                  <p className="text-gray-600 text-sm mb-6">
+                    Files uploaded from now on will be stored and downloadable immediately.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowNoContentAlert(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition font-medium"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
