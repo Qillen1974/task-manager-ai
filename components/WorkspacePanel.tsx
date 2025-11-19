@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useApi } from "@/lib/useApi";
-import { FileText, MessageSquare, Plus, Loader, AlertCircle, FileUp, Trash2 } from "lucide-react";
+import { FileText, MessageSquare, Plus, Loader, AlertCircle, FileUp, Trash2, Download, X } from "lucide-react";
 import StickyNotesWall from "./StickyNotesWall";
 import DocumentUploader from "./DocumentUploader";
 
@@ -61,6 +61,7 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   useEffect(() => {
     loadWorkspace();
@@ -112,6 +113,15 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   const handleUploadComplete = () => {
     setShowUploadModal(false);
     loadWorkspace();
+  };
+
+  const handleDownloadDocument = (doc: Document) => {
+    // Open the document in a new tab (for preview or download depending on browser)
+    window.open(doc.fileUrl, '_blank');
+  };
+
+  const handleViewDocument = (doc: Document) => {
+    setSelectedDocument(doc);
   };
 
   if (loading) {
@@ -214,25 +224,41 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
                 {workspace.documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition cursor-pointer group"
+                    onClick={() => handleViewDocument(doc)}
                   >
                     <div className="flex items-center gap-3 flex-1">
-                      <FileText className="w-5 h-5 text-gray-400" />
+                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition" />
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{doc.originalName}</p>
+                        <p className="font-medium text-gray-900 group-hover:text-blue-600 transition">{doc.originalName}</p>
                         <p className="text-sm text-gray-600">
                           {doc.uploadedByUser?.firstName} {doc.uploadedByUser?.lastName} •{" "}
                           {(doc.fileSize / 1024).toFixed(1)} KB • {new Date(doc.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDocumentDeleted(doc.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete document"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadDocument(doc);
+                        }}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Download document"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDocumentDeleted(doc.id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                        title="Delete document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -246,6 +272,89 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
           </div>
         )}
       </div>
+
+      {/* Document Viewer Modal */}
+      {selectedDocument && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-gray-400" />
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedDocument.originalName}</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {selectedDocument.uploadedByUser?.firstName} {selectedDocument.uploadedByUser?.lastName} •{" "}
+                    {(selectedDocument.fileSize / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDocument(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium mb-4">
+                  Document Preview
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  This is a {selectedDocument.fileType} file. Click the download button below to open or save it.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => handleDownloadDocument(selectedDocument)}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download/Open
+                  </button>
+                  <button
+                    onClick={() => setSelectedDocument(null)}
+                    className="flex items-center gap-2 bg-gray-200 text-gray-900 px-6 py-2 rounded-lg hover:bg-gray-300 transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>File Details:</strong>
+                </p>
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-blue-700">File Name:</dt>
+                    <dd className="text-blue-900 font-medium">{selectedDocument.fileName}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-blue-700">Type:</dt>
+                    <dd className="text-blue-900 font-medium">{selectedDocument.fileType}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-blue-700">Size:</dt>
+                    <dd className="text-blue-900 font-medium">
+                      {(selectedDocument.fileSize / 1024 / 1024).toFixed(2)} MB
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-blue-700">Uploaded:</dt>
+                    <dd className="text-blue-900 font-medium">
+                      {new Date(selectedDocument.createdAt).toLocaleString()}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
