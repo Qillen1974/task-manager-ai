@@ -51,21 +51,22 @@ export async function GET(
     }
 
     // Check if file content exists
-    if (!document.fileContent) {
+    if (!document.fileContent || document.fileContent.length === 0) {
       console.log("[Document Content] No file content found for document:", {
         id: document.id,
         originalName: document.originalName,
         fileSize: document.fileSize,
+        hasContent: !!document.fileContent,
       });
 
       return NextResponse.json(
         {
           error: "Document content not available",
-          message: "This document was uploaded before file storage was enabled. Please re-upload the document to enable downloads.",
+          message: "This document was uploaded before file storage was enabled. Please delete and re-upload the document to enable downloads.",
           documentId: document.id,
           originalName: document.originalName,
         },
-        { status: 404 }
+        { status: 410 } // 410 Gone - permanent unavailability
       );
     }
 
@@ -73,29 +74,37 @@ export async function GET(
       id: document.id,
       originalName: document.originalName,
       fileType: document.fileType,
-      size: document.fileContent.length,
+      size: Buffer.isBuffer(document.fileContent) ? document.fileContent.length : document.fileContent.byteLength,
     });
 
-    // Ensure fileContent is a Buffer
-    const fileBuffer = Buffer.isBuffer(document.fileContent)
-      ? document.fileContent
-      : Buffer.from(document.fileContent);
+    // Ensure fileContent is a Buffer/Uint8Array
+    let fileBuffer: Buffer | Uint8Array;
+    if (Buffer.isBuffer(document.fileContent)) {
+      fileBuffer = document.fileContent;
+    } else if (document.fileContent instanceof Uint8Array) {
+      fileBuffer = document.fileContent;
+    } else {
+      fileBuffer = Buffer.from(document.fileContent);
+    }
 
     // Return file content with appropriate headers
-    const response = new NextResponse(fileBuffer);
-    response.headers.set("Content-Type", document.fileType || "application/octet-stream");
-    response.headers.set(
-      "Content-Disposition",
-      `attachment; filename="${document.originalName}"`
-    );
-    response.headers.set("Content-Length", fileBuffer.length.toString());
-    response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    const response = new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": document.fileType || "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(document.originalName)}"`,
+        "Content-Length": String(fileBuffer.byteLength || fileBuffer.length),
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      },
+    });
 
     return response;
   } catch (error) {
     console.error("[Document Content]", error);
     return NextResponse.json(
-      { error: "Failed to download document" },
+      { error: "Failed to download document", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
