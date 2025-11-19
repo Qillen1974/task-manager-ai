@@ -70,6 +70,11 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
     try {
       setLoading(true);
       const response = await api.get(`/teams/${teamId}/workspace`);
+      console.log("[WorkspacePanel] Workspace response:", {
+        success: response.success,
+        documentsCount: response.data?.documents?.length || 0,
+        documents: response.data?.documents?.map((d: any) => ({ id: d.id, name: d.originalName })),
+      });
       setWorkspace(response.data);
       setError(null);
     } catch (err: any) {
