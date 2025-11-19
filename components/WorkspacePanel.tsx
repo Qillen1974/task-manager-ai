@@ -119,9 +119,23 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
 
   const handleDownloadDocument = async (doc: Document) => {
     try {
-      // Request the file from the server
+      // Get the access token from localStorage
+      const accessToken = typeof window !== 'undefined'
+        ? localStorage.getItem('accessToken')
+        : null;
+
+      if (!accessToken) {
+        throw new Error("Authentication required. Please log in.");
+      }
+
+      // Request the file from the server with authorization
       const response = await fetch(
-        `/api/teams/${teamId}/workspace/documents/${doc.id}/content`
+        `/api/teams/${teamId}/workspace/documents/${doc.id}/content`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
       );
 
       if (!response.ok) {
