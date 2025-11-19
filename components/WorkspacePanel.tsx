@@ -115,9 +115,18 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
     loadWorkspace();
   };
 
-  const handleDownloadDocument = (doc: Document) => {
-    // Open the document in a new tab (for preview or download depending on browser)
-    window.open(doc.fileUrl, '_blank');
+  const handleDownloadDocument = async (doc: Document) => {
+    // Show a download/view dialog
+    const userChoice = confirm(
+      `${doc.originalName}\n\nFile Storage Status:\n\nThe document has been registered in the workspace (${(doc.fileSize / 1024 / 1024).toFixed(2)} MB, ${doc.fileType}).\n\nTo fully enable downloads, integrate:\n• Vercel Blob Storage\n• AWS S3\n• Or another file storage service\n\nClick OK to copy document info to clipboard.`
+    );
+
+    if (userChoice) {
+      const info = `Document: ${doc.originalName}\nSize: ${(doc.fileSize / 1024 / 1024).toFixed(2)} MB\nType: ${doc.fileType}\nUploaded: ${new Date(doc.createdAt).toLocaleString()}\nBy: ${doc.uploadedByUser?.firstName} ${doc.uploadedByUser?.lastName}`;
+      navigator.clipboard.writeText(info).then(() => {
+        alert("Document info copied to clipboard!");
+      });
+    }
   };
 
   const handleViewDocument = (doc: Document) => {
