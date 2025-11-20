@@ -31,6 +31,12 @@ export interface NotificationPayload {
  */
 export async function createNotification(payload: NotificationPayload) {
   try {
+    console.log("[Notification] Creating notification with payload:", {
+      userId: payload.userId,
+      type: payload.type,
+      title: payload.title,
+    });
+
     const notification = await db.notification.create({
       data: {
         userId: payload.userId,
@@ -45,9 +51,13 @@ export async function createNotification(payload: NotificationPayload) {
       },
     });
 
+    console.log("[Notification] Notification created successfully with ID:", notification.id);
     return notification;
   } catch (error) {
-    console.error("[Notification] Failed to create in-app notification:", error);
+    console.error("[Notification] Failed to create in-app notification:", {
+      error: error instanceof Error ? error.message : String(error),
+      payload: payload,
+    });
     throw error;
   }
 }
@@ -380,6 +390,8 @@ export async function sendStickyNoteNotification(
   noteContent: string
 ) {
   try {
+    console.log("[Notification] Starting sticky note notification for:", recipientId);
+
     const sender = await db.user.findUnique({
       where: { id: senderId },
       select: { firstName: true, lastName: true },
@@ -396,11 +408,18 @@ export async function sendStickyNoteNotification(
     }
 
     const senderName = sender ? `${sender.firstName} ${sender.lastName}`.trim() : "A team member";
+    console.log("[Notification] Fetching preferences for recipient:", recipientId);
     const preferences = await getNotificationPreferences(recipientId);
+    console.log("[Notification] Preferences retrieved:", {
+      inAppStickyNotes: preferences.inAppStickyNotes,
+      emailStickyNotes: preferences.emailStickyNotes,
+    });
+
     const notesLink = `${process.env.NEXT_PUBLIC_APP_URL}/teams/${teamId}/workspace`;
 
     // Create in-app notification if enabled
     if (preferences.inAppStickyNotes) {
+      console.log("[Notification] Creating in-app notification");
       await createNotification({
         type: "sticky_note_received",
         title: `Message from ${senderName}`,
@@ -414,6 +433,9 @@ export async function sendStickyNoteNotification(
           noteContent: noteContent.substring(0, 100), // Store preview
         },
       });
+      console.log("[Notification] In-app notification created successfully");
+    } else {
+      console.log("[Notification] In-app sticky note notifications disabled for user");
     }
 
     // Send email if enabled

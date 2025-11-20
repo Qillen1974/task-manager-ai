@@ -208,11 +208,13 @@ export async function POST(
 
     // Send notification to recipient
     try {
+      console.log("[StickyNotes POST] Sending notification to:", toUserId);
       const team = await db.team.findUnique({
         where: { id: teamId },
       });
 
       if (team) {
+        console.log("[StickyNotes POST] Team found:", team.name);
         await sendStickyNoteNotification(
           toUserId,
           auth.userId,
@@ -220,9 +222,15 @@ export async function POST(
           team.name,
           content
         );
+        console.log("[StickyNotes POST] Notification sent successfully");
+      } else {
+        console.warn("[StickyNotes POST] Team not found:", teamId);
       }
     } catch (notificationError) {
-      console.error("[StickyNotes POST] Failed to send notification:", notificationError);
+      console.error("[StickyNotes POST] Failed to send notification:", {
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+        stack: notificationError instanceof Error ? notificationError.stack : undefined,
+      });
       // Don't fail the API call if notification fails
     }
 
