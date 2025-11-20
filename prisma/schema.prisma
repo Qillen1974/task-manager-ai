@@ -38,6 +38,8 @@ model User {
   stickyNotesFrom    StickyNote[]  @relation("StickyNotesFrom")  // Notes sent by user
   stickyNotesTo      StickyNote[]  @relation("StickyNotesTo")    // Notes received by user
   workspaceActivities WorkspaceActivity[]  // Activities performed by user
+  notifications Notification[]  // Notifications sent to user
+  notificationPreferences NotificationPreference?  // User's notification settings
 
   @@index([email])
 }
@@ -628,4 +630,68 @@ model WorkspaceActivity {
   @@index([actorId])
   @@index([type])
   @@index([createdAt])
+}
+
+// Notification - in-app notifications for team collaboration events
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            String   // "task_assigned", "team_invitation", "document_uploaded", "sticky_note_received", "task_completed"
+  title           String
+  message         String   @db.Text
+
+  // Related resource IDs for linking back to source
+  relatedTaskId   String?
+  relatedTeamId   String?
+  relatedDocumentId String?
+  relatedUserId   String?  // User who triggered the notification
+
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+
+  // Notification delivery preferences
+  sentViaEmail    Boolean  @default(false)
+  emailSentAt     DateTime?
+
+  metadata        Json?    // Additional context
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// NotificationPreference - user's notification settings
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Email notification preferences
+  emailTaskAssignments    Boolean @default(true)
+  emailTeamInvitations    Boolean @default(true)
+  emailDocumentUploads    Boolean @default(false)
+  emailStickyNotes        Boolean @default(false)
+  emailTaskCompletions    Boolean @default(false)
+
+  // In-app notification preferences
+  inAppTaskAssignments    Boolean @default(true)
+  inAppTeamInvitations    Boolean @default(true)
+  inAppDocumentUploads    Boolean @default(true)
+  inAppStickyNotes        Boolean @default(true)
+  inAppTaskCompletions    Boolean @default(true)
+
+  // General preferences
+  digestFrequency         String  @default("immediate")  // "immediate", "daily", "weekly", "never"
+  notificationsMuted      Boolean @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
 }

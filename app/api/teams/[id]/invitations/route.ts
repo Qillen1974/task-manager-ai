@@ -4,6 +4,7 @@ import { verifyAuth } from "@/lib/middleware";
 import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { z } from "zod";
 import crypto from "crypto";
+import { sendTeamInvitationNotification } from "@/lib/notificationService";
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),
@@ -102,8 +103,27 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       },
     });
 
-    // TODO: Send email with invitation link
-    // Email body should include: invitation.token to be used in /teams/accept-invite?token=...
+    // Get inviter name
+    const inviter = await db.user.findUnique({
+      where: { id: auth.userId },
+      select: { firstName: true, lastName: true },
+    });
+    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}`.trim() : "A team member";
+
+    // Send invitation email and create notifications
+    try {
+      await sendTeamInvitationNotification(
+        normalizedEmail,
+        teamId,
+        team.name,
+        inviterName,
+        role,
+        invitation.token
+      );
+    } catch (emailError) {
+      console.error("[API] Failed to send invitation email:", emailError);
+      // Don't fail the API call if email fails - invitation is still created
+    }
 
     return success(
       {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import crypto from "crypto";
+import { sendDocumentUploadNotification } from "@/lib/notificationService";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
@@ -194,6 +195,29 @@ export async function POST(
     });
 
     console.log("[Documents POST] Activity logged");
+
+    // Get team info and send notifications
+    try {
+      const team = await db.team.findUnique({
+        where: { id: teamId },
+      });
+
+      if (team && document.uploadedByUser) {
+        const uploaderName = `${document.uploadedByUser.firstName} ${document.uploadedByUser.lastName}`.trim();
+        await sendDocumentUploadNotification(
+          uploaderName,
+          teamId,
+          team.name,
+          document.id,
+          document.originalName,
+          auth.userId // Exclude uploader from notifications
+        );
+      }
+    } catch (notificationError) {
+      console.error("[Documents POST] Failed to send notification:", notificationError);
+      // Don't fail the upload if notification fails
+    }
+
     return NextResponse.json(document, { status: 201 });
   } catch (error) {
     console.error("[Documents POST]", error);

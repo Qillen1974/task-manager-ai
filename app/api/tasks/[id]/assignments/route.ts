@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { z } from "zod";
+import { sendTaskAssignmentNotification } from "@/lib/notificationService";
 
 const createAssignmentSchema = z.object({
   userId: z.string(),
@@ -98,6 +99,29 @@ export async function POST(
         role,
       },
     });
+
+    // Get assigner name for notification
+    const assigner = await db.user.findUnique({
+      where: { id: auth.userId },
+      select: { firstName: true, lastName: true },
+    });
+    const assignerName = assigner ? `${assigner.firstName} ${assigner.lastName}`.trim() : "A team member";
+
+    // Send notification
+    try {
+      await sendTaskAssignmentNotification(
+        userId,
+        assignerName,
+        params.id,
+        task.title,
+        task.project.name,
+        task.dueDate,
+        role
+      );
+    } catch (notificationError) {
+      console.error("[API] Failed to send task assignment notification:", notificationError);
+      // Don't fail the API call if notification fails
+    }
 
     return success(assignment, "Task assigned successfully", 201);
   });

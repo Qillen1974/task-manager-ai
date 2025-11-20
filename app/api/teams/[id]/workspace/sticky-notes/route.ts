@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
+import { sendStickyNoteNotification } from "@/lib/notificationService";
 
 const STICKY_NOTE_COLORS = ["yellow", "pink", "blue", "green", "purple", "orange"];
 
@@ -204,6 +205,26 @@ export async function POST(
         },
       },
     });
+
+    // Send notification to recipient
+    try {
+      const team = await db.team.findUnique({
+        where: { id: teamId },
+      });
+
+      if (team) {
+        await sendStickyNoteNotification(
+          toUserId,
+          auth.userId,
+          teamId,
+          team.name,
+          content
+        );
+      }
+    } catch (notificationError) {
+      console.error("[StickyNotes POST] Failed to send notification:", notificationError);
+      // Don't fail the API call if notification fails
+    }
 
     return NextResponse.json(note, { status: 201 });
   } catch (error) {
