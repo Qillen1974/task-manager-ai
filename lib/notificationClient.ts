@@ -18,11 +18,17 @@ export async function fetchNotifications(
     unreadOnly: unreadOnly.toString(),
   });
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`/api/notifications?${params}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     credentials: "include",
   });
 
@@ -38,8 +44,15 @@ export async function fetchNotifications(
  * Get a single notification
  */
 export async function fetchNotification(id: string): Promise<Notification> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`/api/notifications/${id}`, {
     method: "GET",
+    headers,
     credentials: "include",
   });
 
@@ -58,11 +71,17 @@ export async function updateNotificationsStatus(
   notificationIds: string[],
   isRead: boolean
 ): Promise<{ updatedCount: number }> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch("/api/notifications", {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       notificationIds,
       isRead,
@@ -82,8 +101,15 @@ export async function updateNotificationsStatus(
  * Delete a notification
  */
 export async function deleteNotification(id: string): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`/api/notifications/${id}`, {
     method: "DELETE",
+    headers,
     credentials: "include",
   });
 
@@ -96,8 +122,15 @@ export async function deleteNotification(id: string): Promise<void> {
  * Fetch user's notification preferences
  */
 export async function fetchNotificationPreferences(): Promise<NotificationPreference> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch("/api/notifications/preferences", {
     method: "GET",
+    headers,
     credentials: "include",
   });
 
@@ -115,11 +148,17 @@ export async function fetchNotificationPreferences(): Promise<NotificationPrefer
 export async function updateNotificationPreferences(
   updates: Partial<NotificationPreference>
 ): Promise<NotificationPreference> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch("/api/notifications/preferences", {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(updates),
     credentials: "include",
   });
@@ -136,8 +175,15 @@ export async function updateNotificationPreferences(
  * Reset notification preferences to defaults
  */
 export async function resetNotificationPreferences(): Promise<NotificationPreference> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch("/api/notifications/preferences/reset", {
     method: "POST",
+    headers,
     credentials: "include",
   });
 
