@@ -45,8 +45,12 @@ export async function fetchNotifications(
     throw new Error(`Failed to fetch notifications: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
@@ -65,8 +69,12 @@ export async function fetchNotification(id: string): Promise<Notification> {
     throw new Error(`Failed to fetch notification: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
@@ -95,8 +103,12 @@ export async function updateNotificationsStatus(
     throw new Error(`Failed to update notifications: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
@@ -132,8 +144,12 @@ export async function fetchNotificationPreferences(): Promise<NotificationPrefer
     throw new Error(`Failed to fetch preferences: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
@@ -158,8 +174,12 @@ export async function updateNotificationPreferences(
     throw new Error(`Failed to update preferences: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
@@ -178,8 +198,12 @@ export async function resetNotificationPreferences(): Promise<NotificationPrefer
     throw new Error(`Failed to reset preferences: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const json = await response.json();
+  // Handle both wrapped { success, data } and direct data responses
+  if (json.success && json.data) {
+    return json.data;
+  }
+  return json;
 }
 
 /**
