@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useApi } from "@/lib/useApi";
 import { FileText, MessageSquare, Plus, Loader, AlertCircle, FileUp, Trash2, Download, X } from "lucide-react";
 import StickyNotesWall from "./StickyNotesWall";
@@ -65,11 +65,7 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   const [showNoContentAlert, setShowNoContentAlert] = useState(false);
   const [noContentDocName, setNoContentDocName] = useState<string>("");
 
-  useEffect(() => {
-    loadWorkspace();
-  }, [teamId, api]);
-
-  const loadWorkspace = async () => {
+  const loadWorkspace = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/teams/${teamId}/workspace`);
@@ -92,7 +88,11 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [api, teamId]);
+
+  useEffect(() => {
+    loadWorkspace();
+  }, [loadWorkspace]);
 
   const handleDocumentDeleted = async (documentId: string) => {
     if (!confirm("Are you sure you want to delete this document?")) {
