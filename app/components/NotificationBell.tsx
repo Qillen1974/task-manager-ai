@@ -217,14 +217,14 @@ function getNotificationLink(notification: Notification): string | null {
 
     case "team_invitation":
       if (notification.relatedTeamId) {
-        return `/teams/${notification.relatedTeamId}`;
+        return `/dashboard/teams/${notification.relatedTeamId}`;
       }
       break;
 
     case "document_uploaded":
     case "sticky_note_received":
       if (notification.relatedTeamId) {
-        return `/teams/${notification.relatedTeamId}/workspace`;
+        return `/dashboard/teams/${notification.relatedTeamId}`;
       }
       break;
   }
