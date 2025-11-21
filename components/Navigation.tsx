@@ -4,6 +4,7 @@ import { Project } from "@/lib/types";
 import Link from "next/link";
 import { useState } from "react";
 import { ProjectTabs } from "./ProjectTabs";
+import NotificationBell from "@/app/components/NotificationBell";
 
 interface NavigationProps {
   projects: Project[];
@@ -188,6 +189,9 @@ export function Navigation({
 
           {/* User Profile & Logout */}
           <div className="flex items-center gap-4 relative">
+            {/* Notification Bell */}
+            <NotificationBell autoRefresh={true} refreshInterval={30000} />
+
             {userName && (
               <div className="relative">
                 <button
