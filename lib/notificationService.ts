@@ -396,18 +396,20 @@ export async function sendStickyNoteNotification(
       where: { id: senderId },
       select: { firstName: true, lastName: true },
     });
+    console.log("[Notification] Sender lookup result:", sender);
 
     const recipient = await db.user.findUnique({
       where: { id: recipientId },
       select: { email: true, firstName: true },
     });
+    console.log("[Notification] Recipient lookup result:", recipient);
 
     if (!recipient?.email) {
       console.warn("[Notification] Recipient not found or has no email:", recipientId);
       return;
     }
 
-    const senderName = sender ? `${sender.firstName} ${sender.lastName}`.trim() : "A team member";
+    const senderName = sender?.firstName && sender?.lastName ? `${sender.firstName} ${sender.lastName}`.trim() : (sender?.firstName ? sender.firstName : "A team member");
     console.log("[Notification] Fetching preferences for recipient:", recipientId);
     const preferences = await getNotificationPreferences(recipientId);
     console.log("[Notification] Preferences retrieved:", {
