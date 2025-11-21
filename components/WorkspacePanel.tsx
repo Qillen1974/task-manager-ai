@@ -67,7 +67,7 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
 
   useEffect(() => {
     loadWorkspace();
-  }, [teamId]);
+  }, [teamId, api]);
 
   const loadWorkspace = async () => {
     try {

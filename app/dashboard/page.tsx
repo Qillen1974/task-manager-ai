@@ -68,20 +68,6 @@ export default function Home() {
   const api = useApi();
   const router = useRouter();
 
-  // Get search params safely - they might be null during server-side rendering
-  let initialView = "dashboard";
-  let initialProjectId = "";
-
-  try {
-    const searchParams = useSearchParams();
-    if (searchParams) {
-      initialView = searchParams.get("view") || "dashboard";
-      initialProjectId = searchParams.get("projectId") || "";
-    }
-  } catch (e) {
-    // searchParams not available, use defaults
-  }
-
   const [hydrated, setHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -91,8 +77,8 @@ export default function Home() {
   const wizardTriggeredRef = useRef(false);
 
   // Navigation and UI state
-  const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>(initialView);
-  const [activeProjectId, setActiveProjectId] = useState<string>(initialProjectId);
+  const [activeView, setActiveView] = useState<"dashboard" | "projects" | "all-tasks" | string>("dashboard");
+  const [activeProjectId, setActiveProjectId] = useState<string>("");
   const [dashboardProjectFilter, setDashboardProjectFilter] = useState<string>(""); // "" means all projects
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -260,6 +246,27 @@ export default function Home() {
     window.addEventListener('authSuccess', handleAuthSuccess);
     return () => window.removeEventListener('authSuccess', handleAuthSuccess);
   }, [api]);
+
+  // Handle search params for initial view and project selection
+  useEffect(() => {
+    try {
+      const searchParams = useSearchParams();
+      if (searchParams) {
+        const view = searchParams.get("view");
+        const projectId = searchParams.get("projectId");
+
+        if (view) {
+          setActiveView(view);
+        }
+        if (projectId) {
+          setActiveProjectId(projectId);
+        }
+      }
+    } catch (e) {
+      // useSearchParams not available, use defaults
+      console.debug("useSearchParams not available, using defaults");
+    }
+  }, []);
 
   // Detect first-time users and show onboarding wizard
   useEffect(() => {

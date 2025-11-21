@@ -67,14 +67,18 @@ export function useApi() {
   }, [refreshToken]);
 
   /**
-   * Make API call with automatic token refresh
+   * Make API call with automatic token refresh, timeout, and abort support
    */
   const call = useCallback(
     async <T = any>(
       method: string,
       endpoint: string,
-      body?: any
+      body?: any,
+      timeout: number = 30000 // 30 second timeout by default
     ): Promise<ApiResponse<T>> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
       try {
         // Always get fresh token from localStorage to ensure we have the latest token
         const currentToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
@@ -94,6 +98,7 @@ export function useApi() {
           method,
           headers,
           body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
         });
 
         const data: ApiResponse<T> = await response.json();
@@ -106,25 +111,57 @@ export function useApi() {
             const updatedToken = localStorage.getItem('accessToken');
             if (updatedToken) {
               // Retry the original request with new token
-              const retryHeaders: HeadersInit = {
-                'Authorization': `Bearer ${updatedToken}`,
-              };
-              if (!isFormData) {
-                retryHeaders['Content-Type'] = 'application/json';
-              }
+              const retryController = new AbortController();
+              const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
 
-              const retryResponse = await fetch(`/api${endpoint}`, {
-                method,
-                headers: retryHeaders,
-                body: isFormData ? body : body ? JSON.stringify(body) : undefined,
-              });
-              return retryResponse.json();
+              try {
+                const retryHeaders: HeadersInit = {
+                  'Authorization': `Bearer ${updatedToken}`,
+                };
+                if (!isFormData) {
+                  retryHeaders['Content-Type'] = 'application/json';
+                }
+
+                const retryResponse = await fetch(`/api${endpoint}`, {
+                  method,
+                  headers: retryHeaders,
+                  body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+                  signal: retryController.signal,
+                });
+                clearTimeout(retryTimeoutId);
+                return retryResponse.json();
+              } catch (retryError) {
+                clearTimeout(retryTimeoutId);
+                if (retryError instanceof Error && retryError.name === 'AbortError') {
+                  console.warn(`API request timeout (retry) for ${method} ${endpoint}`);
+                  return {
+                    success: false,
+                    error: {
+                      message: 'Request timeout',
+                      code: 'REQUEST_TIMEOUT',
+                    },
+                  };
+                }
+                throw retryError;
+              }
             }
           }
         }
 
+        clearTimeout(timeoutId);
         return data;
       } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.warn(`API request timeout for ${method} ${endpoint}`);
+          return {
+            success: false,
+            error: {
+              message: 'Request timeout',
+              code: 'REQUEST_TIMEOUT',
+            },
+          };
+        }
         console.error('API call failed:', error);
         return {
           success: false,
