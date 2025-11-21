@@ -207,32 +207,43 @@ export async function POST(
     });
 
     // Send notification to recipient
+    console.log("[StickyNotes POST] === STARTING NOTIFICATION FLOW ===");
+    console.log("[StickyNotes POST] Parameters:", { toUserId, teamId, senderId: auth.userId });
+
     try {
-      console.log("[StickyNotes POST] Sending notification to:", toUserId);
+      console.log("[StickyNotes POST] Fetching team data...");
       const team = await db.team.findUnique({
         where: { id: teamId },
       });
 
+      console.log("[StickyNotes POST] Team fetch result:", team ? `Found: ${team.name}` : "Not found");
+
       if (team) {
-        console.log("[StickyNotes POST] Team found:", team.name);
-        await sendStickyNoteNotification(
+        console.log("[StickyNotes POST] === CALLING sendStickyNoteNotification ===");
+        const result = await sendStickyNoteNotification(
           toUserId,
           auth.userId,
           teamId,
           team.name,
           content
         );
-        console.log("[StickyNotes POST] Notification sent successfully");
+        console.log("[StickyNotes POST] === RETURNED FROM sendStickyNoteNotification ===");
+        console.log("[StickyNotes POST] Notification result:", result);
       } else {
-        console.warn("[StickyNotes POST] Team not found:", teamId);
+        console.error("[StickyNotes POST] CRITICAL: Team not found with ID:", teamId);
       }
     } catch (notificationError) {
-      console.error("[StickyNotes POST] Failed to send notification:", {
-        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
-        stack: notificationError instanceof Error ? notificationError.stack : undefined,
+      console.error("[StickyNotes POST] === CAUGHT ERROR ===", {
+        message: notificationError instanceof Error ? notificationError.message : String(notificationError),
+        error: notificationError,
       });
-      // Don't fail the API call if notification fails
+      // Log the full stack for debugging
+      if (notificationError instanceof Error) {
+        console.error("[StickyNotes POST] Stack trace:", notificationError.stack);
+      }
     }
+
+    console.log("[StickyNotes POST] === NOTIFICATION FLOW COMPLETE ===");
 
     return NextResponse.json(note, { status: 201 });
   } catch (error) {
