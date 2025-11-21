@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useApi } from "@/lib/useApi";
 import { FileText, MessageSquare, Plus, Loader, AlertCircle, FileUp, Trash2, Download, X } from "lucide-react";
 import StickyNotesWall from "./StickyNotesWall";
@@ -65,34 +65,34 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
   const [showNoContentAlert, setShowNoContentAlert] = useState(false);
   const [noContentDocName, setNoContentDocName] = useState<string>("");
 
-  const loadWorkspace = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/teams/${teamId}/workspace`);
-      console.log("[WorkspacePanel] Full response object:", response);
-      console.log("[WorkspacePanel] Response keys:", Object.keys(response));
-      console.log("[WorkspacePanel] Response.data:", response.data);
-
-      // The response might be the workspace object directly, not wrapped in an ApiResponse
-      const workspaceData = response.success ? response.data : response;
-      console.log("[WorkspacePanel] Workspace data:", {
-        id: workspaceData?.id,
-        documentsCount: workspaceData?.documents?.length || 0,
-        documents: workspaceData?.documents?.map((d: any) => ({ id: d.id, name: d.originalName })),
-      });
-      setWorkspace(workspaceData);
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to load workspace");
-      console.error("Failed to load workspace:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [api, teamId]);
-
   useEffect(() => {
+    const loadWorkspace = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/teams/${teamId}/workspace`);
+        console.log("[WorkspacePanel] Full response object:", response);
+        console.log("[WorkspacePanel] Response keys:", Object.keys(response));
+        console.log("[WorkspacePanel] Response.data:", response.data);
+
+        // The response might be the workspace object directly, not wrapped in an ApiResponse
+        const workspaceData = response.success ? response.data : response;
+        console.log("[WorkspacePanel] Workspace data:", {
+          id: workspaceData?.id,
+          documentsCount: workspaceData?.documents?.length || 0,
+          documents: workspaceData?.documents?.map((d: any) => ({ id: d.id, name: d.originalName })),
+        });
+        setWorkspace(workspaceData);
+        setError(null);
+      } catch (err: any) {
+        setError(err.response?.data?.error || "Failed to load workspace");
+        console.error("Failed to load workspace:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadWorkspace();
-  }, [loadWorkspace]);
+  }, [teamId]);
 
   const handleDocumentDeleted = async (documentId: string) => {
     if (!confirm("Are you sure you want to delete this document?")) {
