@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
+import { sendTaskCompletionNotification } from "@/lib/notificationService";
 
 /**
  * GET /api/tasks/[id] - Get a specific task
@@ -340,6 +341,23 @@ export async function PATCH(
         },
       },
     });
+
+    // Send task completion notification if task was just completed
+    if (completed === true && !task.completed) {
+      try {
+        const assignmentIds = updated.assignments?.map(a => a.id) || [];
+        await sendTaskCompletionNotification(
+          assignmentIds,
+          auth.userId,
+          updated.id,
+          updated.title,
+          updated.project?.name || "Untitled"
+        );
+      } catch (notificationError) {
+        // Log but don't fail the request if notification fails
+        console.error("Failed to send task completion notification:", notificationError);
+      }
+    }
 
     // Fetch user data for assignments
     const updatedAssignmentUserIds = updated.assignments?.map(a => a.userId) || [];
