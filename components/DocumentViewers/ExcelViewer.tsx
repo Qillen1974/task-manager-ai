@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { WorkspaceDocument } from "@/lib/types";
 
 interface ExcelViewerProps {
@@ -42,30 +43,63 @@ export function ExcelViewer({ document, teamId, accessToken }: ExcelViewerProps)
           throw new Error(`Failed to load file: ${response.statusText}`);
         }
 
-        const text = await response.text();
+        const blob = await response.blob();
+        const fileType = document.fileType || "";
 
-        // Parse CSV
-        Papa.parse(text, {
-          header: false,
-          skipEmptyLines: true,
-          complete: (results) => {
-            if (results.data && results.data.length > 0) {
-              const data = results.data as (string | number | boolean | null)[][];
-              const headers = data[0].map((h) => String(h || "Column"));
-              const rows = data.slice(1);
+        // Check if it's an Excel file
+        if (fileType.includes("spreadsheet") || fileType.includes("excel") || document.originalName?.endsWith(".xlsx") || document.originalName?.endsWith(".xls")) {
+          // Parse XLSX file
+          const arrayBuffer = await blob.arrayBuffer();
+          const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
-              setTableData({
-                headers,
-                rows,
-              });
-            } else {
-              setError("No data found in the file");
-            }
-          },
-          error: (error) => {
-            setError(`Failed to parse file: ${error.message}`);
-          },
-        });
+          // Get first sheet
+          const sheetName = workbook.SheetNames[0];
+          if (!sheetName) {
+            setError("No sheets found in Excel file");
+            setLoading(false);
+            return;
+          }
+
+          const worksheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | number | boolean | null)[][];
+
+          if (data && data.length > 0) {
+            const headers = data[0].map((h) => String(h || "Column"));
+            const rows = data.slice(1);
+
+            setTableData({
+              headers,
+              rows,
+            });
+          } else {
+            setError("No data found in the Excel file");
+          }
+        } else {
+          // Parse as CSV
+          const text = await blob.text();
+
+          Papa.parse(text, {
+            header: false,
+            skipEmptyLines: true,
+            complete: (results) => {
+              if (results.data && results.data.length > 0) {
+                const data = results.data as (string | number | boolean | null)[][];
+                const headers = data[0].map((h) => String(h || "Column"));
+                const rows = data.slice(1);
+
+                setTableData({
+                  headers,
+                  rows,
+                });
+              } else {
+                setError("No data found in the file");
+              }
+            },
+            error: (error) => {
+              setError(`Failed to parse file: ${error.message}`);
+            },
+          });
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load file");
       } finally {
@@ -74,7 +108,7 @@ export function ExcelViewer({ document, teamId, accessToken }: ExcelViewerProps)
     };
 
     loadData();
-  }, [document.id, teamId, accessToken]);
+  }, [document.id, teamId, accessToken, document.originalName, document.fileType]);
 
   const handleSort = (columnIndex: number) => {
     if (!tableData) return;
