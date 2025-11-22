@@ -15,14 +15,14 @@ interface ProjectTabsProps {
 
 // Helper function to get color values for projects
 const colorMap: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  blue: { bg: "#EFF6FF", text: "#1E40AF", border: "#3B82F6", dot: "#3B82F6" },
-  red: { bg: "#FEF2F2", text: "#991B1B", border: "#EF4444", dot: "#EF4444" },
-  green: { bg: "#F0FDF4", text: "#15803D", border: "#22C55E", dot: "#22C55E" },
-  yellow: { bg: "#FFFBEB", text: "#B45309", border: "#FBBF24", dot: "#FBBF24" },
-  purple: { bg: "#FAF5FF", text: "#6B21A8", border: "#A855F7", dot: "#A855F7" },
+  blue: { bg: "#EFF6FF", text: "#0C2340", border: "#3B82F6", dot: "#3B82F6" },
+  red: { bg: "#FEF2F2", text: "#7F1D1D", border: "#EF4444", dot: "#EF4444" },
+  green: { bg: "#F0FDF4", text: "#0F5132", border: "#22C55E", dot: "#22C55E" },
+  yellow: { bg: "#FFFBEB", text: "#713F12", border: "#FBBF24", dot: "#FBBF24" },
+  purple: { bg: "#FAF5FF", text: "#4A1172", border: "#A855F7", dot: "#A855F7" },
   pink: { bg: "#FDF2F8", text: "#831843", border: "#EC4899", dot: "#EC4899" },
-  indigo: { bg: "#EEF2FF", text: "#312E81", border: "#6366F1", dot: "#6366F1" },
-  cyan: { bg: "#ECFDF5", text: "#164E63", border: "#06B6D4", dot: "#06B6D4" },
+  indigo: { bg: "#EEF2FF", text: "#1E1B4B", border: "#6366F1", dot: "#6366F1" },
+  cyan: { bg: "#ECFDF5", text: "#0F4C75", border: "#06B6D4", dot: "#06B6D4" },
 };
 
 function getProjectColors(color: string) {

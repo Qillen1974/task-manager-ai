@@ -27,14 +27,14 @@ interface NavigationProps {
 
 // Helper function to get color values for projects
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
-  blue: { bg: "#EFF6FF", text: "#1E40AF", border: "#93C5FD" },
-  red: { bg: "#FEF2F2", text: "#991B1B", border: "#FCA5A5" },
-  green: { bg: "#F0FDF4", text: "#15803D", border: "#86EFAC" },
-  yellow: { bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" },
-  purple: { bg: "#FAF5FF", text: "#6B21A8", border: "#D8B4FE" },
+  blue: { bg: "#EFF6FF", text: "#0C2340", border: "#93C5FD" },
+  red: { bg: "#FEF2F2", text: "#7F1D1D", border: "#FCA5A5" },
+  green: { bg: "#F0FDF4", text: "#0F5132", border: "#86EFAC" },
+  yellow: { bg: "#FFFBEB", text: "#713F12", border: "#FCD34D" },
+  purple: { bg: "#FAF5FF", text: "#4A1172", border: "#D8B4FE" },
   pink: { bg: "#FDF2F8", text: "#831843", border: "#F472B6" },
-  indigo: { bg: "#EEF2FF", text: "#312E81", border: "#A5B4FC" },
-  cyan: { bg: "#ECFDF5", text: "#164E63", border: "#06B6D4" },
+  indigo: { bg: "#EEF2FF", text: "#1E1B4B", border: "#A5B4FC" },
+  cyan: { bg: "#ECFDF5", text: "#0F4C75", border: "#06B6D4" },
 };
 
 function getProjectColors(color: string) {
