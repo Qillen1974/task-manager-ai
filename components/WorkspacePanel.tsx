@@ -389,7 +389,7 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
               <DocumentViewer
                 document={selectedDocument}
                 teamId={teamId}
-                accessToken={api.getToken?.() || ""}
+                accessToken={api.accessToken || ""}
               />
             </div>
           </div>
