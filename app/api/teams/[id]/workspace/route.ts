@@ -39,7 +39,19 @@ export async function GET(
       where: { teamId },
       include: {
         documents: {
-          include: {
+          select: {
+            id: true,
+            fileName: true,
+            originalName: true,
+            fileType: true,
+            fileUrl: true,
+            fileSize: true,
+            uploadedBy: true,
+            folder: true,
+            tags: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
             uploadedByUser: {
               select: {
                 id: true,
@@ -100,7 +112,19 @@ export async function GET(
         },
         include: {
           documents: {
-            include: {
+            select: {
+              id: true,
+              fileName: true,
+              originalName: true,
+              fileType: true,
+              fileUrl: true,
+              fileSize: true,
+              uploadedBy: true,
+              folder: true,
+              tags: true,
+              description: true,
+              createdAt: true,
+              updatedAt: true,
               uploadedByUser: {
                 select: {
                   id: true,
