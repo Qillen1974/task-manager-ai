@@ -5,6 +5,7 @@ import { useApi } from "@/lib/useApi";
 import { FileText, MessageSquare, Plus, Loader, AlertCircle, FileUp, Trash2, Download, X } from "lucide-react";
 import StickyNotesWall from "./StickyNotesWall";
 import DocumentUploader from "./DocumentUploader";
+import { DocumentViewer } from "./DocumentViewers/DocumentViewer";
 
 interface WorkspacePanelProps {
   teamId: string;
@@ -351,81 +352,45 @@ export default function WorkspacePanel({ teamId }: WorkspacePanelProps) {
       {/* Document Viewer Modal */}
       {selectedDocument && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
-              <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-gray-400" />
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{selectedDocument.originalName}</h2>
-                  <p className="text-sm text-gray-600 mt-1">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <FileText className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 truncate">{selectedDocument.originalName}</h2>
+                  <p className="text-sm text-gray-600 mt-0.5">
                     {selectedDocument.uploadedByUser?.firstName} {selectedDocument.uploadedByUser?.lastName} •{" "}
                     {(selectedDocument.fileSize / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedDocument(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                <button
+                  onClick={() => handleDownloadDocument(selectedDocument)}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+                  title="Download document"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 font-medium mb-4">
-                  Document Preview
-                </p>
-                <p className="text-sm text-gray-500 mb-6">
-                  This is a {selectedDocument.fileType} file. Click the download button below to open or save it.
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => handleDownloadDocument(selectedDocument)}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download/Open
-                  </button>
-                  <button
-                    onClick={() => setSelectedDocument(null)}
-                    className="flex items-center gap-2 bg-gray-200 text-gray-900 px-6 py-2 rounded-lg hover:bg-gray-300 transition"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>File Details:</strong>
-                </p>
-                <dl className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-blue-700">File Name:</dt>
-                    <dd className="text-blue-900 font-medium">{selectedDocument.fileName}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-blue-700">Type:</dt>
-                    <dd className="text-blue-900 font-medium">{selectedDocument.fileType}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-blue-700">Size:</dt>
-                    <dd className="text-blue-900 font-medium">
-                      {(selectedDocument.fileSize / 1024 / 1024).toFixed(2)} MB
-                    </dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-blue-700">Uploaded:</dt>
-                    <dd className="text-blue-900 font-medium">
-                      {new Date(selectedDocument.createdAt).toLocaleString()}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
+            {/* Viewer Content */}
+            <div className="flex-1 overflow-hidden">
+              <DocumentViewer
+                document={selectedDocument}
+                teamId={teamId}
+                accessToken={api.getToken?.() || ""}
+              />
             </div>
           </div>
         </div>
