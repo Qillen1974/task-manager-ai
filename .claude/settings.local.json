@@ -4,7 +4,8 @@
       "Bash(cd:*)",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

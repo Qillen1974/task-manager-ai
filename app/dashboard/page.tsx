@@ -247,6 +247,34 @@ export default function Home() {
     return () => window.removeEventListener('authSuccess', handleAuthSuccess);
   }, [api]);
 
+  // Auto-refresh projects and tasks when window regains focus (prevents stale data)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleVisibilityChange = async () => {
+      // Only refresh if the page becomes visible and user is authenticated
+      if (!document.hidden && localStorage.getItem('accessToken')) {
+        console.log("[Dashboard] Window regained focus - refreshing data to prevent stale state");
+        try {
+          const projectsResponse = await api.getProjects();
+          if (projectsResponse.success && projectsResponse.data) {
+            setProjects(projectsResponse.data);
+          }
+
+          const tasksResponse = await api.getTasks();
+          if (tasksResponse.success && tasksResponse.data) {
+            setTasks(tasksResponse.data);
+          }
+        } catch (error) {
+          console.warn("[Dashboard] Failed to refresh data on focus:", error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [api]);
+
   // Handle search params for initial view and project selection
   useEffect(() => {
     try {
@@ -707,6 +735,26 @@ export default function Home() {
         });
 
         if (!response.ok) {
+          // Special handling for 404 - the project may have been already deleted or doesn't exist
+          if (response.status === 404) {
+            console.warn(`Project ${projectId} not found in database - refreshing project list`);
+
+            // Refresh projects and tasks to sync with current database state
+            const projectsResponse = await api.getProjects();
+            if (projectsResponse.success && projectsResponse.data) {
+              setProjects(projectsResponse.data);
+            }
+
+            const tasksResponse = await api.getTasks();
+            if (tasksResponse.success && tasksResponse.data) {
+              setTasks(tasksResponse.data);
+            }
+
+            setActiveProjectId("");
+            alert("This project no longer exists in the database. The project list has been refreshed to show current data.");
+            return;
+          }
+
           const errorData = await response.json();
           throw new Error(errorData.error?.message || "Failed to delete project");
         }
