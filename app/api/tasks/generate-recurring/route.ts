@@ -131,6 +131,69 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Handle cleanup-duplicates - remove duplicate recurring task instances
+    if (action === "cleanup-duplicates") {
+      const recurringTasks = await db.task.findMany({
+        where: {
+          isRecurring: true,
+          parentTaskId: null,
+        },
+        select: { id: true, title: true },
+      });
+
+      let totalDuplicatesRemoved = 0;
+      const cleanupDetails: Array<{ taskTitle: string; duplicatesRemoved: number }> = [];
+
+      for (const recurringTask of recurringTasks) {
+        // Find all instances of this recurring task
+        const instances = await db.task.findMany({
+          where: {
+            parentTaskId: recurringTask.id,
+            isRecurring: false,
+          },
+          orderBy: { createdAt: "asc" },
+        });
+
+        // Group instances by their title (which includes the date)
+        const instancesByTitle = new Map<string, typeof instances>();
+        for (const instance of instances) {
+          if (!instancesByTitle.has(instance.title)) {
+            instancesByTitle.set(instance.title, []);
+          }
+          instancesByTitle.get(instance.title)!.push(instance);
+        }
+
+        // For each group with duplicates, keep the oldest and delete the rest
+        let duplicatesForThisTask = 0;
+        for (const [title, duplicates] of instancesByTitle.entries()) {
+          if (duplicates.length > 1) {
+            // Keep the first (oldest) instance, delete the rest
+            const toDelete = duplicates.slice(1);
+            for (const duplicate of toDelete) {
+              await db.task.delete({ where: { id: duplicate.id } });
+              duplicatesForThisTask++;
+              totalDuplicatesRemoved++;
+            }
+            console.log(`[Cleanup] Removed ${toDelete.length} duplicate(s) of "${title}"`);
+          }
+        }
+
+        if (duplicatesForThisTask > 0) {
+          cleanupDetails.push({
+            taskTitle: recurringTask.title,
+            duplicatesRemoved: duplicatesForThisTask,
+          });
+        }
+      }
+
+      return success({
+        action: "cleanup-duplicates",
+        message: `Removed ${totalDuplicatesRemoved} duplicate task instance${totalDuplicatesRemoved !== 1 ? "s" : ""}`,
+        totalDuplicatesRemoved,
+        cleanupDetails,
+      });
+    }
+
     // Default: Generate all due recurring tasks
     const result = await generateRecurringTaskInstances();
 
