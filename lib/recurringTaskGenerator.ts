@@ -100,20 +100,19 @@ export async function generateInstanceIfDue(parentTask: Task): Promise<boolean> 
     return false; // Not due yet
   }
 
-  // DUPLICATE PREVENTION: Check if an instance was already generated for this occurrence
-  // Look for instances created within a small time window (5 minutes) after nextGenerationDate
-  const recentlyGenerated = await db.task.findFirst({
+  // DUPLICATE PREVENTION: Check if an instance for today's date already exists
+  // Generate the expected title for today to check for duplicates
+  const expectedTitle = `${parentTask.title} (${now.toLocaleDateString()})`;
+
+  const existingInstance = await db.task.findFirst({
     where: {
       parentTaskId: parentTask.id,
-      createdAt: {
-        gte: new Date(nextGenDate.getTime() - 5 * 60 * 1000), // 5 minutes before nextGenDate
-        lte: new Date(now.getTime() + 1 * 60 * 1000), // 1 minute in future (for clock skew)
-      },
+      title: expectedTitle,
     },
   });
 
-  if (recentlyGenerated) {
-    console.log(`[Recurring Tasks] Task ${parentTask.id} already has a recent instance, skipping duplicate generation`);
+  if (existingInstance) {
+    console.log(`[Recurring Tasks] Task ${parentTask.id} already has an instance for today ("${expectedTitle}"), skipping duplicate generation`);
 
     // Still update nextGenerationDate to prevent repeated checks
     const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
