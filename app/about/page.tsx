@@ -1,12 +1,28 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   title: "About TaskQuadrant - Our Mission & Values",
   description: "Learn about TaskQuadrant's mission to help professionals master their priorities using the proven Eisenhower Matrix framework.",
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/about',
+  name: 'About TaskQuadrant - Our Mission & Values',
+  description: "Learn about TaskQuadrant's mission to help professionals master their priorities using the proven Eisenhower Matrix framework.",
+});
+
 export default function AboutPage() {
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      <AboutPageContent />
+    </>
+  );
+}
+
+function AboutPageContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}

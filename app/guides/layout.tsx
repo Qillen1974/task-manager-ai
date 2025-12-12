@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { JsonLd, createWebPageSchema } from '@/components/JsonLd';
 
 export const metadata: Metadata = {
   title: 'Guides & Resources - TaskQuadrant',
@@ -30,10 +31,21 @@ export const metadata: Metadata = {
   },
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/guides',
+  name: 'Guides & Resources - TaskQuadrant',
+  description: 'Comprehensive guides on task management, productivity strategies, and team collaboration. In-depth analysis, actionable tips, and data-driven insights.',
+});
+
 interface GuidesLayoutProps {
   children: ReactNode;
 }
 
 export default function GuidesLayout({ children }: GuidesLayoutProps): ReactNode {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      {children}
+    </>
+  );
 }

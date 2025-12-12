@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { JsonLd, createWebPageSchema } from '@/components/JsonLd';
 
 export const metadata: Metadata = {
   title: 'Manpower Calculator - Estimate Project Resources & Hours',
@@ -29,10 +30,21 @@ export const metadata: Metadata = {
   },
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/tools/manpower-calculator',
+  name: 'Manpower Calculator - Project Resource Estimation Tool',
+  description: 'Free manpower calculator tool to estimate hours and resources needed for tasks. Calculate team requirements by task type, complexity, and duration.',
+});
+
 interface CalculatorLayoutProps {
   children: ReactNode;
 }
 
 export default function CalculatorLayout({ children }: CalculatorLayoutProps): ReactNode {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      {children}
+    </>
+  );
 }

@@ -1,12 +1,28 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - TaskQuadrant",
   description: "Read TaskQuadrant's privacy policy to understand how we collect, use, and protect your personal data and task information.",
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/privacy',
+  name: 'Privacy Policy - TaskQuadrant',
+  description: "Read TaskQuadrant's privacy policy to understand how we collect, use, and protect your personal data and task information.",
+});
+
 export default function PrivacyPage() {
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      <PrivacyPageContent />
+    </>
+  );
+}
+
+function PrivacyPageContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}

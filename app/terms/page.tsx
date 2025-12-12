@@ -1,12 +1,28 @@
 import Link from "next/link";
 import { Metadata } from "next";
+import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   title: "Terms of Service - TaskQuadrant",
   description: "Review TaskQuadrant's terms of service, including user accounts, content rights, billing, and service availability.",
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/terms',
+  name: 'Terms of Service - TaskQuadrant',
+  description: "Review TaskQuadrant's terms of service, including user accounts, content rights, billing, and service availability.",
+});
+
 export default function TermsPage() {
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      <TermsPageContent />
+    </>
+  );
+}
+
+function TermsPageContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { JsonLd, createWebPageSchema, softwareApplicationSchema } from '@/components/JsonLd';
 
 export const metadata: Metadata = {
   title: 'TaskQuadrant Landing - Eisenhower Matrix Task Management',
@@ -29,10 +30,22 @@ export const metadata: Metadata = {
   },
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/landing',
+  name: 'TaskQuadrant - Eisenhower Matrix Task Management',
+  description: 'Discover TaskQuadrant - The ultimate task management tool using the Eisenhower Matrix. Prioritize your tasks by urgency and importance.',
+});
+
 interface LandingLayoutProps {
   children: ReactNode;
 }
 
 export default function LandingLayout({ children }: LandingLayoutProps): ReactNode {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      <JsonLd data={softwareApplicationSchema} />
+      {children}
+    </>
+  );
 }

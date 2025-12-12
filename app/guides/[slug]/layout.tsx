@@ -19,7 +19,7 @@ const guideMetadata: Record<
   }
 > = {
   'task-management-guide': {
-    title: 'The Ultimate Guide to Task Management: Strategies, Tools & Best Practices',
+    title: 'Task Management Guide - Strategies & Best Practices',
     description:
       'Comprehensive guide covering task management strategies, the Eisenhower Matrix framework, prioritization techniques, and actionable best practices for individuals and teams.',
     keywords:
@@ -33,12 +33,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const guide = guideMetadata[slug] || guideMetadata['task-management-guide'];
 
   return {
-    title: `${guide.title} - TaskQuadrant Guides`,
+    title: guide.title,
     description: guide.description,
     keywords: guide.keywords,
     authors: [{ name: 'TaskQuadrant Team' }],
     openGraph: {
-      title: `${guide.title} - TaskQuadrant`,
+      title: guide.title,
       description: guide.description,
       type: 'article',
       url: `https://taskquadrant.io/guides/${slug}`,
@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${guide.title} - TaskQuadrant`,
+      title: guide.title,
       description: guide.description,
       images: guide.image ? [guide.image] : undefined,
     },

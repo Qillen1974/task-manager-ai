@@ -1,13 +1,29 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { Lock, Shield, Server, Eye } from "lucide-react";
+import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 
 export const metadata: Metadata = {
   title: "Security - TaskQuadrant Data Protection & Privacy",
   description: "TaskQuadrant uses HTTPS encryption, secure password handling, and AWS infrastructure to protect your data. Learn about our security measures.",
 };
 
+const webPageSchema = createWebPageSchema({
+  url: 'https://taskquadrant.io/security',
+  name: 'Security - TaskQuadrant Data Protection & Privacy',
+  description: 'TaskQuadrant uses HTTPS encryption, secure password handling, and AWS infrastructure to protect your data. Learn about our security measures.',
+});
+
 export default function SecurityPage() {
+  return (
+    <>
+      <JsonLd data={webPageSchema} />
+      <SecurityPageContent />
+    </>
+  );
+}
+
+function SecurityPageContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}

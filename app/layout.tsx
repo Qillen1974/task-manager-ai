@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { startRecurringTaskScheduler } from "@/lib/scheduler";
 import PWAProvider from "@/components/PWAProvider";
+import { JsonLd, organizationSchema } from "@/components/JsonLd";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -17,7 +18,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "TaskQuadrant - Professional Task Management with Eisenhower Matrix",
+  title: "TaskQuadrant - Task Management with Eisenhower Matrix",
   description: "Manage your tasks with the Eisenhower Matrix - Prioritize by urgency and importance. Free task management tool for individuals and teams.",
   keywords: "task management, Eisenhower Matrix, productivity, prioritization, project management, time management",
   manifest: "/manifest.json",
@@ -91,6 +92,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
+
+        {/* JSON-LD Structured Data */}
+        <JsonLd data={organizationSchema} />
 
         {/* Google Ads Conversion Tracking */}
         <Script

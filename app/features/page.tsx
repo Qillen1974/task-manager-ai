@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import { CheckCircle, Zap, BarChart3, Clock, RefreshCw, Download, Smartphone } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "TaskQuadrant Features - Eisenhower Matrix, Projects & Analytics",
+  title: "Features - TaskQuadrant Task Management Tool",
   description: "Discover TaskQuadrant's powerful features: Eisenhower Matrix, project management, recurring tasks, analytics, exports, and more for productivity.",
 };
 
