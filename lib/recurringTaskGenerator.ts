@@ -100,55 +100,69 @@ export async function generateInstanceIfDue(parentTask: Task): Promise<boolean> 
     return false; // Not due yet
   }
 
-  // DUPLICATE PREVENTION: Check if an instance for today's date already exists
-  // Generate the expected title for today to check for duplicates
+  // ATOMIC DUPLICATE PREVENTION: Use a transaction to ensure atomic check-and-create
+  // This prevents race conditions where multiple concurrent requests could create duplicates
   const expectedTitle = `${parentTask.title} (${now.toLocaleDateString()})`;
 
-  const existingInstance = await db.task.findFirst({
-    where: {
-      parentTaskId: parentTask.id,
-      title: expectedTitle,
-    },
-  });
+  try {
+    const result = await db.$transaction(async (tx) => {
+      // Check if an instance for today's date already exists (within transaction)
+      const existingInstance = await tx.task.findFirst({
+        where: {
+          parentTaskId: parentTask.id,
+          title: expectedTitle,
+        },
+      });
 
-  if (existingInstance) {
-    console.log(`[Recurring Tasks] Task ${parentTask.id} already has an instance for today ("${expectedTitle}"), skipping duplicate generation`);
+      if (existingInstance) {
+        console.log(`[Recurring Tasks] Task ${parentTask.id} already has an instance for today ("${expectedTitle}"), skipping duplicate generation`);
 
-    // Still update nextGenerationDate to prevent repeated checks
-    const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
-    const nextDate = calculateNextOccurrenceDate(baseDate, parentTask.recurringConfig);
+        // Still update nextGenerationDate to prevent repeated checks
+        const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
+        const nextDate = calculateNextOccurrenceDate(baseDate, parentTask.recurringConfig);
 
-    await db.task.update({
-      where: { id: parentTask.id },
-      data: {
-        lastGeneratedDate: now,
-        nextGenerationDate: nextDate,
-      },
+        await tx.task.update({
+          where: { id: parentTask.id },
+          data: {
+            lastGeneratedDate: now,
+            nextGenerationDate: nextDate,
+          },
+        });
+
+        return { created: false };
+      }
+
+      // Generate the new instance (within transaction)
+      const newInstance = await generateTaskInstanceInTransaction(parentTask, tx);
+
+      // Calculate next generation date based on the current nextGenerationDate (not the start date)
+      // This ensures we increment from when the task was just generated, not from the original start date
+      const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
+      const nextDate = calculateNextOccurrenceDate(baseDate, parentTask.recurringConfig);
+
+      // Update parent task with new generation info (within transaction)
+      await tx.task.update({
+        where: { id: parentTask.id },
+        data: {
+          lastGeneratedDate: now,
+          nextGenerationDate: nextDate,
+        },
+      });
+
+      return { created: true, nextDate };
     });
 
-    return false; // Instance already exists
+    if (result.created) {
+      console.log(`[Recurring Tasks] Generated instance for task ${parentTask.id}, next generation: ${result.nextDate}`);
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    // Handle potential unique constraint violations or other errors
+    console.error(`[Recurring Tasks] Error generating instance for task ${parentTask.id}:`, error);
+    return false;
   }
-
-  // Generate the new instance
-  const newInstance = await generateTaskInstance(parentTask);
-
-  // Calculate next generation date based on the current nextGenerationDate (not the start date)
-  // This ensures we increment from when the task was just generated, not from the original start date
-  const baseDate = parentTask.nextGenerationDate || parentTask.recurringStartDate || new Date();
-  const nextDate = calculateNextOccurrenceDate(baseDate, parentTask.recurringConfig);
-
-  // Update parent task with new generation info
-  await db.task.update({
-    where: { id: parentTask.id },
-    data: {
-      lastGeneratedDate: now,
-      nextGenerationDate: nextDate,
-    },
-  });
-
-  console.log(`[Recurring Tasks] Generated instance for task ${parentTask.id}, next generation: ${nextDate}`);
-
-  return true;
 }
 
 /**
@@ -172,6 +186,50 @@ async function generateTaskInstance(parentTask: Task): Promise<Task> {
   }
 
   const instance = await db.task.create({
+    data: {
+      userId: parentTask.userId,
+      projectId: parentTask.projectId,
+      title: `${parentTask.title} (${now.toLocaleDateString()})`,
+      description: parentTask.description,
+      priority: parentTask.priority,
+      startDate: newStartDate,
+      startTime: parentTask.startTime,
+      dueDate: newDueDate,
+      dueTime: parentTask.dueTime,
+      resourceCount: parentTask.resourceCount,
+      manhours: parentTask.manhours,
+      dependsOnTaskId: parentTask.dependsOnTaskId,
+      // Link to parent recurring task
+      parentTaskId: parentTask.id,
+      // Mark as non-recurring instance
+      isRecurring: false,
+    },
+  });
+
+  return instance;
+}
+
+/**
+ * Create a new task instance from a recurring task template within a transaction
+ */
+async function generateTaskInstanceInTransaction(parentTask: Task, tx: any): Promise<Task> {
+  // Calculate due date offset
+  const now = new Date();
+  const daysSinceStart = Math.floor((now.getTime() - (parentTask.recurringStartDate?.getTime() || 0)) / (1000 * 60 * 60 * 24));
+
+  // Create new instance with adjusted dates
+  let newDueDate = null;
+  let newStartDate = null;
+
+  if (parentTask.dueDate) {
+    newDueDate = new Date(parentTask.dueDate.getTime() + daysSinceStart * 24 * 60 * 60 * 1000);
+  }
+
+  if (parentTask.startDate) {
+    newStartDate = new Date(parentTask.startDate.getTime() + daysSinceStart * 24 * 60 * 60 * 1000);
+  }
+
+  const instance = await tx.task.create({
     data: {
       userId: parentTask.userId,
       projectId: parentTask.projectId,
