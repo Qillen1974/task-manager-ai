@@ -184,39 +184,63 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
 
         const taskNameSplit = pdf.splitTextToSize(task.title, columnWidths.taskName - 2);
         const descriptionSplit = pdf.splitTextToSize(description, columnWidths.description - 2);
-        const rowHeight = Math.max(taskNameSplit.length * 3, 2 * 3, descriptionSplit.length * 3, 5);
+
+        // Calculate proper row height with adequate spacing for multi-line content
+        const lineHeight = 4.5; // Increased from 3 to 4.5mm for better readability
+        const maxLines = Math.max(taskNameSplit.length, descriptionSplit.length, 1);
+        const rowHeight = maxLines * lineHeight + 2; // Add 2mm padding
 
         // Check if we need a new page
         if (yPosition + rowHeight > pageHeight - 10) {
           pdf.addPage();
           yPosition = 15;
+
+          // Redraw table headers on new page
+          pdf.setFontSize(9);
+          pdf.setFont(undefined, "bold");
+          pdf.setFillColor(60, 100, 150);
+          pdf.rect(15, yPosition - 4, pageWidth - 30, 5, "F");
+          pdf.setTextColor(255);
+          pdf.text("Task", 16, yPosition);
+          pdf.text("Dates", 16 + columnWidths.taskName, yPosition);
+          pdf.text("Progress", 16 + columnWidths.taskName + columnWidths.dates, yPosition);
+          pdf.text("Resources", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
+          pdf.text("Manpower", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources, yPosition);
+          pdf.text("Description", 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources + columnWidths.manpower, yPosition);
+          yPosition += 5;
+          pdf.setFont(undefined, "normal");
+          pdf.setTextColor(20, 20, 20);
         }
 
         // Draw row background
         pdf.setFillColor(idx % 2 === 0 ? 240 : 255);
         pdf.rect(15, yPosition - 3, pageWidth - 30, rowHeight, "F");
 
-        // Task name
-        pdf.text(taskNameSplit, 16, yPosition);
+        // Starting Y position for this row's content
+        let contentY = yPosition;
 
-        // Dates
-        pdf.text(dateRange, 16 + columnWidths.taskName, yPosition);
+        // Task name - render each line separately
+        taskNameSplit.forEach((line: string, lineIdx: number) => {
+          pdf.text(line, 16, contentY + (lineIdx * lineHeight));
+        });
 
-        // Progress
-        pdf.text(progress, 16 + columnWidths.taskName + columnWidths.dates, yPosition);
+        // Dates - centered vertically in the row
+        pdf.text(dateRange, 16 + columnWidths.taskName, contentY);
 
-        // Resources
-        pdf.text(resources, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, yPosition);
+        // Progress - centered vertically in the row
+        pdf.text(progress, 16 + columnWidths.taskName + columnWidths.dates, contentY);
 
-        // Manpower
-        pdf.text(manpower, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources, yPosition);
+        // Resources - centered vertically in the row
+        pdf.text(resources, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress, contentY);
 
-        // Description
-        pdf.text(
-          descriptionSplit,
-          16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources + columnWidths.manpower,
-          yPosition
-        );
+        // Manpower - centered vertically in the row
+        pdf.text(manpower, 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources, contentY);
+
+        // Description - render each line separately to prevent cutoff
+        const descriptionX = 16 + columnWidths.taskName + columnWidths.dates + columnWidths.progress + columnWidths.resources + columnWidths.manpower;
+        descriptionSplit.forEach((line: string, lineIdx: number) => {
+          pdf.text(line, descriptionX, contentY + (lineIdx * lineHeight));
+        });
 
         yPosition += rowHeight + 2;
       });
