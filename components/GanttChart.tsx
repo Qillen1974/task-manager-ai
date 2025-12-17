@@ -444,20 +444,39 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
     return (durationMs / totalMs) * 100;
   };
 
-  // Generate month labels for timeline header
+  // Generate month labels for timeline header with proportional widths
   const generateMonthLabels = () => {
     const labels = [];
-    const current = new Date(ganttData.minDate);
+    const current = new Date(ganttData.minDate.getFullYear(), ganttData.minDate.getMonth(), 1);
+    const endDate = new Date(ganttData.maxDate.getFullYear(), ganttData.maxDate.getMonth() + 1, 0);
 
-    while (current <= ganttData.maxDate) {
+    const totalMs = ganttData.maxDate.getTime() - ganttData.minDate.getTime();
+
+    while (current <= endDate) {
       const monthName = current.toLocaleString("default", { month: "short" });
       const yearNum = current.getFullYear();
-      labels.push(`${monthName} ${yearNum}`);
+
+      // Calculate the start and end of this month within the gantt range
+      const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+      const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59);
+
+      // Clip to gantt range
+      const visibleStart = monthStart < ganttData.minDate ? ganttData.minDate : monthStart;
+      const visibleEnd = monthEnd > ganttData.maxDate ? ganttData.maxDate : monthEnd;
+
+      // Calculate width as percentage of total timeline
+      const monthDuration = visibleEnd.getTime() - visibleStart.getTime();
+      const widthPercent = (monthDuration / totalMs) * 100;
+
+      labels.push({
+        label: `${monthName} ${yearNum}`,
+        widthPercent: widthPercent,
+      });
 
       current.setMonth(current.getMonth() + 1);
     }
 
-    return [...new Set(labels)]; // Remove duplicates
+    return labels;
   };
 
   const monthLabels = generateMonthLabels();
@@ -542,13 +561,13 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
           <div className="flex-1 relative">
             <div className="text-xs font-semibold text-gray-600 mb-2">Timeline</div>
             <div className="flex text-xs text-gray-500 border-l border-gray-300">
-              {monthLabels.map((label, idx) => (
+              {monthLabels.map((monthData, idx) => (
                 <div
                   key={idx}
-                  className="flex-1 px-2 py-1 border-r border-gray-300"
-                  style={{ minWidth: `${100 / monthLabels.length}%` }}
+                  className="px-2 py-1 border-r border-gray-300"
+                  style={{ width: `${monthData.widthPercent}%` }}
                 >
-                  {label}
+                  {monthData.label}
                 </div>
               ))}
             </div>
