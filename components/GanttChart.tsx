@@ -271,16 +271,18 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
       let startDate: Date | null = null;
       let endDate: Date | null = null;
 
-      // Parse start date - ensure we handle date-only strings correctly
+      // Parse start date - use local timezone to avoid date shifts
       if (task.startDate) {
-        const dateStr = task.startDate.split('T')[0]; // Get just the date part, ignore time
-        startDate = new Date(dateStr + 'T00:00:00'); // Add midnight time to avoid timezone issues
+        const dateStr = task.startDate.split('T')[0]; // Get just the date part (YYYY-MM-DD)
+        const [year, month, day] = dateStr.split('-').map(Number);
+        startDate = new Date(year, month - 1, day); // month is 0-indexed in JS
       }
 
-      // Parse due date - ensure we handle date-only strings correctly
+      // Parse due date - use local timezone to avoid date shifts
       if (task.dueDate) {
-        const dateStr = task.dueDate.split('T')[0]; // Get just the date part, ignore time
-        endDate = new Date(dateStr + 'T23:59:59'); // Add end of day time
+        const dateStr = task.dueDate.split('T')[0]; // Get just the date part (YYYY-MM-DD)
+        const [year, month, day] = dateStr.split('-').map(Number);
+        endDate = new Date(year, month - 1, day, 23, 59, 59); // End of day
       }
 
       // If we have both dates, calculate duration
