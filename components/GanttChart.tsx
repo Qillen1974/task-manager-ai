@@ -430,18 +430,36 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
 
   const calculatePosition = (date: Date | null) => {
     if (!date) return 0;
-    const daysDiff = Math.ceil(
-      (date.getTime() - ganttData.minDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const percentage = (daysDiff / ganttData.totalDays) * 100;
-    return Math.max(0, Math.min(100, percentage));
+
+    // Calculate position based on months from start (same logic as mobile app)
+    const startYear = ganttData.minDate.getFullYear();
+    const startMonth = ganttData.minDate.getMonth();
+    const dateYear = date.getFullYear();
+    const dateMonth = date.getMonth();
+
+    const monthsDiff = (dateYear - startYear) * 12 + (dateMonth - startMonth);
+
+    // Add fractional position within the month
+    const daysInMonth = new Date(dateYear, dateMonth + 1, 0).getDate();
+    const dayOfMonth = date.getDate();
+    const fractionOfMonth = (dayOfMonth - 1) / daysInMonth;
+
+    // Calculate total months in the gantt timeline
+    const endYear = ganttData.maxDate.getFullYear();
+    const endMonth = ganttData.maxDate.getMonth();
+    const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+
+    // Return as percentage of total timeline
+    return ((monthsDiff + fractionOfMonth) / totalMonths) * 100;
   };
 
   const calculateWidth = (startDate: Date | null, endDate: Date | null) => {
     if (!startDate || !endDate) return 0;
-    const durationMs = endDate.getTime() - startDate.getTime();
-    const totalMs = ganttData.maxDate.getTime() - ganttData.minDate.getTime();
-    return (durationMs / totalMs) * 100;
+
+    const startPos = calculatePosition(startDate);
+    const endPos = calculatePosition(endDate);
+
+    return Math.max(endPos - startPos, 0.5); // Minimum 0.5% width
   };
 
   // Generate month labels for timeline header with proportional widths
