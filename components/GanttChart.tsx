@@ -276,6 +276,12 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
         const dateStr = task.startDate.split('T')[0]; // Get just the date part (YYYY-MM-DD)
         const [year, month, day] = dateStr.split('-').map(Number);
         startDate = new Date(year, month - 1, day); // month is 0-indexed in JS
+
+        // Debug logging
+        console.log(`Task: ${task.title}`);
+        console.log(`  Raw startDate: ${task.startDate}`);
+        console.log(`  Parsed: year=${year}, month=${month}, day=${day}`);
+        console.log(`  Created Date: ${startDate.toDateString()}`);
       }
 
       // Parse due date - use local timezone to avoid date shifts
@@ -283,6 +289,11 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
         const dateStr = task.dueDate.split('T')[0]; // Get just the date part (YYYY-MM-DD)
         const [year, month, day] = dateStr.split('-').map(Number);
         endDate = new Date(year, month - 1, day, 23, 59, 59); // End of day
+
+        // Debug logging
+        console.log(`  Raw dueDate: ${task.dueDate}`);
+        console.log(`  Parsed: year=${year}, month=${month}, day=${day}`);
+        console.log(`  Created Date: ${endDate.toDateString()}`);
       }
 
       // If we have both dates, calculate duration
@@ -450,7 +461,18 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
     const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 
     // Return as percentage of total timeline
-    return ((monthsDiff + fractionOfMonth) / totalMonths) * 100;
+    const position = ((monthsDiff + fractionOfMonth) / totalMonths) * 100;
+
+    // Debug logging
+    console.log(`calculatePosition for ${date.toDateString()}:`);
+    console.log(`  minDate: ${ganttData.minDate.toDateString()} (${startYear}-${startMonth})`);
+    console.log(`  maxDate: ${ganttData.maxDate.toDateString()} (${endYear}-${endMonth})`);
+    console.log(`  dateMonth: ${dateMonth}, monthsDiff: ${monthsDiff}`);
+    console.log(`  dayOfMonth: ${dayOfMonth}, daysInMonth: ${daysInMonth}, fraction: ${fractionOfMonth}`);
+    console.log(`  totalMonths: ${totalMonths}`);
+    console.log(`  position: ${position}%`);
+
+    return position;
   };
 
   const calculateWidth = (startDate: Date | null, endDate: Date | null) => {
