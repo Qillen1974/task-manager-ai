@@ -16,6 +16,7 @@ import ProjectsScreen from '../screens/projects/ProjectsScreen';
 import ProjectTasksScreen from '../screens/projects/ProjectTasksScreen';
 import GanttChartScreen from '../screens/projects/GanttChartScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import UpgradeScreen from '../screens/upgrade/UpgradeScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   TaskCreate: undefined;
   ProjectTasks: { projectId: string; projectName: string; projectColor: string };
   GanttChart: { projectId: string; projectName: string; projectColor: string };
+  Upgrade: undefined;
 };
 
 export type MainTabsParamList = {
@@ -129,6 +131,11 @@ export default function AppNavigator() {
               name="GanttChart"
               component={GanttChartScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Upgrade"
+              component={UpgradeScreen}
+              options={{ headerShown: true, title: 'Upgrade' }}
             />
           </>
         )}

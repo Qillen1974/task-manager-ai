@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
+import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../api/client';
 import { Priority, Project, RecurringPattern, RecurringConfig } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -49,6 +50,7 @@ const DAYS_OF_WEEK = [
 export default function TaskCreateScreen() {
   const navigation = useNavigation<TaskCreateNavigationProp>();
   const { createTask } = useTaskStore();
+  const { subscription, subscriptionLimits } = useAuthStore();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -101,6 +103,46 @@ export default function TaskCreateScreen() {
         return [...prev, day].sort();
       }
     });
+  };
+
+  const handleToggleRecurring = () => {
+    if (!isRecurring) {
+      // Trying to enable recurring
+      if (!subscriptionLimits?.canCreateRecurringTasks) {
+        const plan = subscription?.plan || 'FREE';
+        Alert.alert(
+          'Upgrade Required',
+          `Recurring tasks are not available on the ${plan} plan. Please upgrade to PRO or ENTERPRISE to create recurring tasks.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Upgrade',
+              onPress: () => navigation.navigate('Upgrade' as any),
+            },
+          ]
+        );
+        return;
+      }
+
+      // Check if limit is reached
+      if (subscriptionLimits?.recurringTaskLimit > 0 &&
+          subscriptionLimits?.currentRecurringTaskCount !== undefined &&
+          subscriptionLimits.currentRecurringTaskCount >= subscriptionLimits.recurringTaskLimit) {
+        Alert.alert(
+          'Limit Reached',
+          `You have reached your recurring task limit (${subscriptionLimits.recurringTaskLimit} tasks). Please upgrade to ENTERPRISE for unlimited recurring tasks.`,
+          [
+            { text: 'OK', style: 'cancel' },
+            {
+              text: 'Upgrade',
+              onPress: () => navigation.navigate('Upgrade' as any),
+            },
+          ]
+        );
+        return;
+      }
+    }
+    setIsRecurring(!isRecurring);
   };
 
   const handleCreate = async () => {
@@ -403,13 +445,18 @@ export default function TaskCreateScreen() {
           <View style={styles.checkboxContainer}>
             <TouchableOpacity
               style={styles.checkbox}
-              onPress={() => setIsRecurring(!isRecurring)}
+              onPress={handleToggleRecurring}
               disabled={isCreating}
             >
               <View style={[styles.checkboxBox, isRecurring && styles.checkboxBoxChecked]}>
                 {isRecurring && <Text style={styles.checkboxCheck}>✓</Text>}
               </View>
-              <Text style={styles.checkboxLabel}>Make this a recurring task</Text>
+              <Text style={styles.checkboxLabel}>
+                Make this a recurring task
+                {subscription?.plan === 'FREE' && (
+                  <Text style={styles.proLabel}> (PRO)</Text>
+                )}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -875,6 +922,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     fontWeight: '500',
+  },
+  proLabel: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   recurringContainer: {
     marginTop: 16,

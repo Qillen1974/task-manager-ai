@@ -4,6 +4,35 @@ export type RecurringPattern = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 
 export type TaskAssignmentRole = "OWNER" | "COLLABORATOR" | "REVIEWER";
 
+export type SubscriptionPlan = "FREE" | "PRO" | "ENTERPRISE";
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  plan: SubscriptionPlan;
+  status: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  projectLimit: number;
+  taskLimit: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionLimits {
+  canCreateRecurringTasks: boolean;
+  recurringTaskLimit: number;
+  currentRecurringTaskCount?: number;
+  canCreateRootProject: boolean;
+  rootProjectLimit: number;
+  currentRootProjectCount?: number;
+  canCreateSubproject: boolean;
+  subprojectLevels: number;
+}
+
 export interface TaskAssignment {
   id: string;
   userId: string;
@@ -27,6 +56,7 @@ export interface User {
   isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
+  subscription?: Subscription;
 }
 
 export interface RecurringConfig {
@@ -97,4 +127,6 @@ export interface AuthState {
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  subscription: Subscription | null;
+  subscriptionLimits: SubscriptionLimits | null;
 }

@@ -11,12 +11,18 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/colors';
 
+type ProfileNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
+
 export default function ProfileScreen() {
-  const { user, logout, updateProfile, changePassword, deleteAccount } = useAuthStore();
+  const navigation = useNavigation<ProfileNavigationProp>();
+  const { user, subscription, subscriptionLimits, logout, updateProfile, changePassword, deleteAccount } = useAuthStore();
 
   // Edit Profile Modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -186,6 +192,63 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.editProfileButton} onPress={handleEditProfile}>
             <Text style={styles.editProfileButtonText}>Edit Profile</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Subscription Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Subscription</Text>
+          <View style={styles.subscriptionCard}>
+            <View style={styles.subscriptionHeader}>
+              <Text style={styles.subscriptionPlan}>{subscription?.plan || 'FREE'}</Text>
+              {subscription?.plan !== 'FREE' && (
+                <View style={[
+                  styles.subscriptionBadge,
+                  subscription?.plan === 'ENTERPRISE' && styles.enterpriseBadge
+                ]}>
+                  <Text style={styles.subscriptionBadgeText}>
+                    {subscription?.plan}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Subscription Limits */}
+            {subscriptionLimits && (
+              <View style={styles.limitsContainer}>
+                <View style={styles.limitRow}>
+                  <Text style={styles.limitLabel}>Recurring Tasks:</Text>
+                  <Text style={styles.limitValue}>
+                    {subscriptionLimits.canCreateRecurringTasks
+                      ? subscriptionLimits.recurringTaskLimit === -1
+                        ? 'Unlimited'
+                        : `${subscriptionLimits.currentRecurringTaskCount || 0}/${subscriptionLimits.recurringTaskLimit}`
+                      : 'Not Available'}
+                  </Text>
+                </View>
+                <View style={styles.limitRow}>
+                  <Text style={styles.limitLabel}>Sub-Projects:</Text>
+                  <Text style={styles.limitValue}>
+                    {subscriptionLimits.canCreateSubproject
+                      ? subscriptionLimits.subprojectLevels === -1
+                        ? 'Unlimited'
+                        : `${subscriptionLimits.subprojectLevels} level(s)`
+                      : 'Not Available'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {subscription?.plan !== 'ENTERPRISE' && (
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => navigation.navigate('Upgrade' as any)}
+              >
+                <Text style={styles.upgradeButtonText}>
+                  {subscription?.plan === 'FREE' ? 'Upgrade to PRO' : 'Upgrade to ENTERPRISE'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -604,5 +667,64 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+  },
+  subscriptionCard: {
+    backgroundColor: Colors.infoBackground,
+    borderRadius: 8,
+    padding: 16,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  subscriptionPlan: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  subscriptionBadge: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  enterpriseBadge: {
+    backgroundColor: Colors.urgentImportant,
+  },
+  subscriptionBadgeText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  limitsContainer: {
+    marginBottom: 16,
+  },
+  limitRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  limitLabel: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  limitValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  upgradeButton: {
+    backgroundColor: Colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

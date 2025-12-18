@@ -11,6 +11,7 @@ interface AuthStore extends AuthState {
   updateProfile: (updates: { firstName?: string; lastName?: string; email?: string }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  fetchSubscription: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -20,6 +21,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   token: null,
   refreshToken: null,
   isAuthenticated: false,
+  subscription: null,
+  subscriptionLimits: null,
   isLoading: false,
   error: null,
 
@@ -30,7 +33,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       console.log('Login response:', response);
 
       // Backend returns: { user, tokens: { accessToken, refreshToken }, subscription }
-      const { user, tokens } = response;
+      const { user, tokens, subscription } = response;
       const accessToken = tokens.accessToken;
       const refreshToken = tokens.refreshToken;
 
@@ -43,8 +46,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
         token: accessToken,
         refreshToken,
         isAuthenticated: true,
+        subscription: subscription || null,
         isLoading: false,
       });
+
+      // Fetch subscription limits after login
+      if (subscription) {
+        try {
+          const limits = await apiClient.getSubscriptionLimits();
+          set({ subscriptionLimits: limits });
+        } catch (error) {
+          console.error('Failed to fetch subscription limits:', error);
+        }
+      }
     } catch (error: any) {
       console.error('Login error details:', {
         message: error.message,
@@ -66,7 +80,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       console.log('Registration response:', response);
 
       // Backend returns: { user, tokens: { accessToken, refreshToken }, subscription }
-      const { user, tokens } = response;
+      const { user, tokens, subscription } = response;
       const accessToken = tokens.accessToken;
       const refreshToken = tokens.refreshToken;
 
@@ -79,8 +93,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
         token: accessToken,
         refreshToken,
         isAuthenticated: true,
+        subscription: subscription || null,
         isLoading: false,
       });
+
+      // Fetch subscription limits after registration
+      if (subscription) {
+        try {
+          const limits = await apiClient.getSubscriptionLimits();
+          set({ subscriptionLimits: limits });
+        } catch (error) {
+          console.error('Failed to fetch subscription limits:', error);
+        }
+      }
     } catch (error: any) {
       console.error('Registration error details:', {
         message: error.message,
@@ -119,6 +144,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
       token: null,
       refreshToken: null,
       isAuthenticated: false,
+      subscription: null,
+      subscriptionLimits: null,
     });
   },
 
@@ -138,6 +165,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
           isAuthenticated: true,
           isLoading: false,
         });
+
+        // Fetch subscription data
+        try {
+          const subscription = await apiClient.getCurrentSubscription();
+          const limits = await apiClient.getSubscriptionLimits();
+          set({ subscription, subscriptionLimits: limits });
+        } catch (error) {
+          console.error('Failed to fetch subscription data:', error);
+        }
       } else {
         set({ isLoading: false });
       }
@@ -187,6 +223,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
         token: null,
         refreshToken: null,
         isAuthenticated: false,
+        subscription: null,
+        subscriptionLimits: null,
         isLoading: false,
       });
     } catch (error: any) {
@@ -194,6 +232,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete account';
       set({ error: errorMessage, isLoading: false });
       throw new Error(errorMessage);
+    }
+  },
+
+  fetchSubscription: async () => {
+    try {
+      const subscription = await apiClient.getCurrentSubscription();
+      const limits = await apiClient.getSubscriptionLimits();
+      set({ subscription, subscriptionLimits: limits });
+    } catch (error: any) {
+      console.error('Failed to fetch subscription:', error);
+      throw error;
     }
   },
 }));

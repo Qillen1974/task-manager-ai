@@ -161,6 +161,17 @@ class ApiClient {
     const response = await this.client.delete(`/projects/${id}`);
     return response.data.data;
   }
+
+  // Subscription endpoints
+  async getCurrentSubscription() {
+    const response = await this.client.get('/subscriptions/current');
+    return response.data.data;
+  }
+
+  async getSubscriptionLimits() {
+    const response = await this.client.get('/subscriptions/limits');
+    return response.data.data;
+  }
 }
 
 export const apiClient = new ApiClient();
