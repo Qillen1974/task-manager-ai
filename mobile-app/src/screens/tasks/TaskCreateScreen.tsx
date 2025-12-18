@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { apiClient } from '../../api/client';
 import { Priority, Project } from '../../types';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 type TaskCreateNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskCreate'>;
 
@@ -38,6 +40,10 @@ export default function TaskCreateScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -77,6 +83,8 @@ export default function TaskCreateScreen() {
         priority,
         projectId: selectedProjectId,
         completed: false,
+        startDate: startDate ? startDate.toISOString() : undefined,
+        dueDate: dueDate ? dueDate.toISOString() : undefined,
       });
 
       Alert.alert('Success', 'Task created successfully', [
@@ -229,6 +237,81 @@ export default function TaskCreateScreen() {
               </View>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Start Date */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Start Date (Optional)</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowStartDatePicker(true)}
+            disabled={isCreating}
+          >
+            <Text style={styles.dateButtonText}>
+              {startDate ? startDate.toLocaleDateString() : 'Select start date'}
+            </Text>
+            <Text style={styles.dateIcon}>📅</Text>
+          </TouchableOpacity>
+          {startDate && (
+            <TouchableOpacity
+              style={styles.clearDateButton}
+              onPress={() => setStartDate(undefined)}
+              disabled={isCreating}
+            >
+              <Text style={styles.clearDateText}>Clear</Text>
+            </TouchableOpacity>
+          )}
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowStartDatePicker(Platform.OS === 'ios');
+                if (selectedDate) {
+                  setStartDate(selectedDate);
+                }
+              }}
+            />
+          )}
+        </View>
+
+        {/* Due Date */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Due Date (Optional)</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDueDatePicker(true)}
+            disabled={isCreating}
+          >
+            <Text style={styles.dateButtonText}>
+              {dueDate ? dueDate.toLocaleDateString() : 'Select due date'}
+            </Text>
+            <Text style={styles.dateIcon}>📅</Text>
+          </TouchableOpacity>
+          {dueDate && (
+            <TouchableOpacity
+              style={styles.clearDateButton}
+              onPress={() => setDueDate(undefined)}
+              disabled={isCreating}
+            >
+              <Text style={styles.clearDateText}>Clear</Text>
+            </TouchableOpacity>
+          )}
+          {showDueDatePicker && (
+            <DateTimePicker
+              value={dueDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={startDate}
+              onChange={(event, selectedDate) => {
+                setShowDueDatePicker(Platform.OS === 'ios');
+                if (selectedDate) {
+                  setDueDate(selectedDate);
+                }
+              }}
+            />
+          )}
         </View>
 
         {/* Info Box */}
@@ -459,5 +542,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+  },
+  dateButton: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  dateIcon: {
+    fontSize: 20,
+  },
+  clearDateButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  clearDateText: {
+    fontSize: 14,
+    color: Colors.error,
+    fontWeight: '500',
   },
 });
