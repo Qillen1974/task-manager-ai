@@ -168,9 +168,11 @@ class ApiClient {
     return response.data.data;
   }
 
-  async getSubscriptionLimits() {
-    const response = await this.client.get('/subscriptions/limits');
-    return response.data.data;
+  async getRecurringTaskCount() {
+    const response = await this.client.get('/tasks');
+    const tasks = response.data.data;
+    // Count recurring task templates (isRecurring: true, parentTaskId: null)
+    return tasks.filter((task: any) => task.isRecurring && !task.parentTaskId).length;
   }
 }
 

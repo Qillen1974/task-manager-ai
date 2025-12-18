@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../api/client';
 import { User, AuthState } from '../types';
+import { calculateSubscriptionLimits } from '../utils/subscriptionLimits';
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -50,13 +51,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isLoading: false,
       });
 
-      // Fetch subscription limits after login
+      // Calculate subscription limits after login
       if (subscription) {
         try {
-          const limits = await apiClient.getSubscriptionLimits();
+          const recurringTaskCount = await apiClient.getRecurringTaskCount();
+          const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscriptionLimits: limits });
         } catch (error) {
-          console.error('Failed to fetch subscription limits:', error);
+          console.error('Failed to calculate subscription limits:', error);
+          // Fallback: calculate without current count
+          const limits = calculateSubscriptionLimits(subscription.plan);
+          set({ subscriptionLimits: limits });
         }
       }
     } catch (error: any) {
@@ -97,13 +102,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isLoading: false,
       });
 
-      // Fetch subscription limits after registration
+      // Calculate subscription limits after registration
       if (subscription) {
         try {
-          const limits = await apiClient.getSubscriptionLimits();
+          const recurringTaskCount = await apiClient.getRecurringTaskCount();
+          const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscriptionLimits: limits });
         } catch (error) {
-          console.error('Failed to fetch subscription limits:', error);
+          console.error('Failed to calculate subscription limits:', error);
+          // Fallback: calculate without current count
+          const limits = calculateSubscriptionLimits(subscription.plan);
+          set({ subscriptionLimits: limits });
         }
       }
     } catch (error: any) {
@@ -166,10 +175,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
           isLoading: false,
         });
 
-        // Fetch subscription data
+        // Fetch subscription data and calculate limits
         try {
           const subscription = await apiClient.getCurrentSubscription();
-          const limits = await apiClient.getSubscriptionLimits();
+          const recurringTaskCount = await apiClient.getRecurringTaskCount();
+          const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscription, subscriptionLimits: limits });
         } catch (error) {
           console.error('Failed to fetch subscription data:', error);
@@ -238,7 +248,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   fetchSubscription: async () => {
     try {
       const subscription = await apiClient.getCurrentSubscription();
-      const limits = await apiClient.getSubscriptionLimits();
+      const recurringTaskCount = await apiClient.getRecurringTaskCount();
+      const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
       set({ subscription, subscriptionLimits: limits });
     } catch (error: any) {
       console.error('Failed to fetch subscription:', error);
