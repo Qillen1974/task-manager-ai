@@ -14,6 +14,7 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { Task } from '../../types';
+import { useResponsive } from '../../hooks/useResponsive';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 type GanttChartScreenRouteProp = RouteProp<RootStackParamList, 'GanttChart'>;
@@ -27,16 +28,18 @@ interface GanttTask {
   percentComplete: number;
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const MONTH_WIDTH = 120; // Width of each month column in pixels
-
 export default function GanttChartScreen() {
   const route = useRoute<GanttChartScreenRouteProp>();
   const navigation = useNavigation<GanttChartScreenNavigationProp>();
   const { projectId, projectName, projectColor } = route.params;
   const { tasks } = useTaskStore();
+  const { isAnyTablet, getFontSize, getDimension } = useResponsive();
 
   const projectTasks = tasks.filter((task) => task.projectId === projectId);
+
+  // Responsive dimensions
+  const MONTH_WIDTH = getDimension(120, 160); // 120 for phone, 160 for tablet
+  const TASK_NAME_COLUMN_WIDTH = getDimension(150, 200); // 150 for phone, 200 for tablet
 
   // Enable landscape mode when screen mounts
   useEffect(() => {
@@ -211,7 +214,7 @@ export default function GanttChartScreen() {
     const startPos = calculatePosition(startDate);
     const endPos = calculatePosition(endDate);
 
-    return Math.max(endPos - startPos, MONTH_WIDTH * 0.1); // Minimum 10% of month width
+    return Math.max(endPos - startPos, 12); // Minimum 12px width
   };
 
   const totalResources = ganttData.items.reduce(
@@ -312,14 +315,14 @@ export default function GanttChartScreen() {
             <View style={styles.ganttContent}>
               {/* Timeline Header */}
               <View style={styles.timelineHeader}>
-                <View style={styles.taskNameColumn}>
+                <View style={[styles.taskNameColumn, { width: TASK_NAME_COLUMN_WIDTH }]}>
                   <Text style={styles.columnHeaderText}>Task</Text>
                 </View>
                 <View style={styles.dateLabelsContainer}>
                   {monthLabels.map((label, idx) => (
                     <View
                       key={idx}
-                      style={styles.monthColumn}
+                      style={[styles.monthColumn, { width: MONTH_WIDTH }]}
                     >
                       <Text style={styles.monthLabel}>{label.month}</Text>
                       <Text style={styles.yearLabel}>{label.year}</Text>
@@ -335,7 +338,7 @@ export default function GanttChartScreen() {
                   style={[styles.taskRow, index % 2 === 0 && styles.taskRowEven]}
                 >
                   {/* Task Name */}
-                  <View style={styles.taskNameColumn}>
+                  <View style={[styles.taskNameColumn, { width: TASK_NAME_COLUMN_WIDTH }]}>
                     <Text style={styles.taskName} numberOfLines={2}>
                       {item.task.title}
                     </Text>
@@ -498,7 +501,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   taskNameColumn: {
-    width: 150,
     padding: 8,
     borderRightWidth: 1,
     borderRightColor: Colors.border,
@@ -513,7 +515,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   monthColumn: {
-    width: MONTH_WIDTH,
     padding: 8,
     alignItems: 'center',
     borderRightWidth: 1,
@@ -574,7 +575,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: MONTH_WIDTH * 0.1,
   },
   progressText: {
     fontSize: 11,

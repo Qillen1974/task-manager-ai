@@ -26,6 +26,7 @@ import { Colors } from '../../constants/colors';
 import { useProjectStore } from '../../store/projectStore';
 import { useTaskStore } from '../../store/taskStore';
 import { Project } from '../../types';
+import { useResponsive } from '../../hooks/useResponsive';
 
 type ProjectsNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabsParamList, 'Projects'>,
@@ -58,6 +59,9 @@ export default function ProjectsScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+
+  const { getColumns, isAnyTablet, getModalWidth } = useResponsive();
+  const numColumns = getColumns(1, 2, 3); // 1 for phone, 2 for tablet, 3 for large tablet
 
   useEffect(() => {
     fetchProjects();
@@ -195,8 +199,13 @@ export default function ProjectsScreen() {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedProjects.has(item.id);
 
+    // Calculate flex basis for grid layout
+    const gridItemStyle = numColumns > 1 && level === 0
+      ? { flex: 1, marginHorizontal: 8 }
+      : {};
+
     return (
-      <View key={item.id}>
+      <View key={item.id} style={gridItemStyle}>
         <TouchableOpacity
           style={[
             styles.projectCard,
@@ -305,7 +314,10 @@ export default function ProjectsScreen() {
           data={projects}
           renderItem={renderProject}
           keyExtractor={(item) => item.id}
+          key={numColumns} // Force re-render when columns change
+          numColumns={numColumns}
           contentContainerStyle={styles.listContent}
+          columnWrapperStyle={numColumns > 1 ? styles.columnWrapper : undefined}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -331,17 +343,20 @@ export default function ProjectsScreen() {
       {/* Create Project Modal */}
       <Modal
         visible={showCreateModal}
-        animationType="slide"
+        animationType={isAnyTablet ? 'fade' : 'slide'}
         transparent={true}
         onRequestClose={() => setShowCreateModal(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, isAnyTablet && styles.modalOverlayTablet]}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
+            <View style={[styles.modalOverlay, isAnyTablet && styles.modalOverlayTablet]}>
+              <View style={[
+                styles.modalContent,
+                isAnyTablet && { width: getModalWidth(), borderRadius: 20, maxHeight: '80%' }
+              ]}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Create New Project</Text>
                   <TouchableOpacity
@@ -443,17 +458,20 @@ export default function ProjectsScreen() {
       {/* Edit Project Modal */}
       <Modal
         visible={showEditModal}
-        animationType="slide"
+        animationType={isAnyTablet ? 'fade' : 'slide'}
         transparent={true}
         onRequestClose={() => setShowEditModal(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, isAnyTablet && styles.modalOverlayTablet]}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
+            <View style={[styles.modalOverlay, isAnyTablet && styles.modalOverlayTablet]}>
+              <View style={[
+                styles.modalContent,
+                isAnyTablet && { width: getModalWidth(), borderRadius: 20, maxHeight: '80%' }
+              ]}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Edit Project</Text>
                   <TouchableOpacity
@@ -584,6 +602,10 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     flexGrow: 1,
+  },
+  columnWrapper: {
+    justifyContent: 'flex-start',
+    marginBottom: 4,
   },
   projectCard: {
     backgroundColor: Colors.white,
@@ -734,6 +756,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalOverlayTablet: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: Colors.white,
