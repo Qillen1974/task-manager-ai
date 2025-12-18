@@ -18,6 +18,7 @@ import { apiClient } from '../../api/client';
 import { Task, Project } from '../../types';
 import { Colors, getPriorityColor, getPriorityLabel } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
+import { useResponsive } from '../../hooks/useResponsive';
 
 type DashboardNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabsParamList, 'Dashboard'>,
@@ -29,6 +30,7 @@ export default function DashboardScreen() {
   const { tasks, isLoading, fetchTasks } = useTaskStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { isAnyTablet, isLandscape } = useResponsive();
 
   const loadData = async () => {
     try {
@@ -123,17 +125,28 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Urgent & Important */}
-        {renderQuadrant('urgent-important', '🔴 Do First', Colors.urgentImportant)}
+        {/* Quadrants Container - Grid layout for tablets */}
+        <View style={isAnyTablet && isLandscape ? styles.quadrantsGrid : styles.quadrantsStack}>
+          {/* Urgent & Important */}
+          <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
+            {renderQuadrant('urgent-important', '🔴 Do First', Colors.urgentImportant)}
+          </View>
 
-        {/* Not Urgent & Important */}
-        {renderQuadrant('not-urgent-important', '🔵 Schedule', Colors.notUrgentImportant)}
+          {/* Not Urgent & Important */}
+          <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
+            {renderQuadrant('not-urgent-important', '🔵 Schedule', Colors.notUrgentImportant)}
+          </View>
 
-        {/* Urgent & Not Important */}
-        {renderQuadrant('urgent-not-important', '🟡 Delegate', Colors.urgentNotImportant)}
+          {/* Urgent & Not Important */}
+          <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
+            {renderQuadrant('urgent-not-important', '🟡 Delegate', Colors.urgentNotImportant)}
+          </View>
 
-        {/* Not Urgent & Not Important */}
-        {renderQuadrant('not-urgent-not-important', '⚪ Eliminate', Colors.notUrgentNotImportant)}
+          {/* Not Urgent & Not Important */}
+          <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
+            {renderQuadrant('not-urgent-not-important', '⚪ Eliminate', Colors.notUrgentNotImportant)}
+          </View>
+        </View>
 
         {/* Summary Stats */}
         <View style={styles.statsContainer}>
@@ -193,6 +206,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+  },
+  quadrantsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  quadrantsStack: {
+    flexDirection: 'column',
+  },
+  gridQuadrant: {
+    width: '48.5%',
+    marginBottom: 16,
+  },
+  stackQuadrant: {
+    width: '100%',
   },
   quadrant: {
     backgroundColor: Colors.white,

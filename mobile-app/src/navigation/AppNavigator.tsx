@@ -3,7 +3,9 @@ import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useAuthStore } from '../store/authStore';
+import { useResponsive } from '../hooks/useResponsive';
 
 // Import screens (we'll create these next)
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -38,8 +40,10 @@ export type MainTabsParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabsParamList>();
+const Drawer = createDrawerNavigator<MainTabsParamList>();
 
-function MainTabs() {
+// Bottom Tab Navigator for phones
+function MainTabsPhone() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -82,6 +86,66 @@ function MainTabs() {
       />
     </Tab.Navigator>
   );
+}
+
+// Drawer Navigator for tablets
+function MainTabsTablet() {
+  return (
+    <Drawer.Navigator
+      screenOptions={{
+        drawerActiveTintColor: '#3B82F6',
+        drawerInactiveTintColor: '#6B7280',
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: '#3B82F6',
+        },
+        headerTintColor: '#fff',
+        drawerStyle: {
+          width: 280,
+        },
+      }}
+    >
+      <Drawer.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          drawerLabel: 'Dashboard',
+          title: 'TaskQuadrant',
+        }}
+      />
+      <Drawer.Screen
+        name="Tasks"
+        component={TaskListScreen}
+        options={{
+          drawerLabel: 'Tasks',
+          title: 'My Tasks',
+        }}
+      />
+      <Drawer.Screen
+        name="Projects"
+        component={ProjectsScreen}
+        options={{
+          drawerLabel: 'Projects',
+          title: 'My Projects',
+        }}
+      />
+      <Drawer.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          drawerLabel: 'Profile',
+          title: 'My Profile',
+        }}
+      />
+    </Drawer.Navigator>
+  );
+}
+
+// Adaptive navigation component
+function MainTabs() {
+  const { useSideNavigation } = useResponsive();
+
+  return useSideNavigation ? <MainTabsTablet /> : <MainTabsPhone />;
 }
 
 // Simple icon component (you can replace with react-native-vector-icons later)
