@@ -74,7 +74,8 @@ export default function DashboardScreen() {
       if (task.completed || !task.dueDate) return false;
       const dueDate = new Date(task.dueDate);
       dueDate.setHours(0, 0, 0, 0);
-      return dueDate.getTime() === today.getTime();
+      // Include tasks due today or overdue (past due date)
+      return dueDate.getTime() <= today.getTime();
     });
   };
 
@@ -141,7 +142,7 @@ export default function DashboardScreen() {
         {getDueTodayTasks().length > 0 && (
           <View style={styles.dueTodayContainer}>
             <View style={styles.dueTodayHeader}>
-              <Text style={styles.dueTodayTitle}>📅 Due Today</Text>
+              <Text style={styles.dueTodayTitle}>📅 Due Today & Overdue</Text>
               <Text style={styles.dueTodayCount}>{getDueTodayTasks().length}</Text>
             </View>
             <View style={styles.dueTodayList}>

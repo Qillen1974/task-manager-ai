@@ -995,7 +995,8 @@ export default function Home() {
                   if (task.completed || !task.dueDate) return false;
                   const dueDate = new Date(task.dueDate);
                   dueDate.setHours(0, 0, 0, 0);
-                  return dueDate.getTime() === today.getTime();
+                  // Include tasks due today or overdue (past due date)
+                  return dueDate.getTime() <= today.getTime();
                 });
 
                 if (dueTodayTasks.length === 0) return null;
@@ -1013,7 +1014,7 @@ export default function Home() {
                   <div className="mb-6 sm:mb-8 bg-amber-50 border-2 border-amber-400 rounded-xl overflow-hidden shadow-lg">
                     <div className="bg-amber-400 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
                       <h2 className="text-base sm:text-lg font-bold text-amber-900 flex items-center gap-2">
-                        📅 Due Today
+                        📅 Due Today & Overdue
                       </h2>
                       <span className="bg-white bg-opacity-50 text-amber-900 font-bold px-3 sm:px-4 py-1 sm:py-2 rounded-full text-sm sm:text-base">
                         {dueTodayTasks.length}
