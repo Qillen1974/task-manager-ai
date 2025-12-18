@@ -32,11 +32,6 @@ export default function AIButler() {
   const [error, setError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Don't show if user is not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
-
   // Add welcome message when opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -109,6 +104,11 @@ export default function AIButler() {
     setInput('');
     setError(null);
   };
+
+  // Don't show if user is not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <>
