@@ -11,7 +11,7 @@ interface TaskStore {
   isLoading: boolean;
   error: string | null;
   lastSync: number | null;
-  fetchTasks: () => Promise<void>;
+  fetchTasks: (skipNotificationScheduling?: boolean) => Promise<void>;
   createTask: (task: Partial<Task>) => Promise<Task>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -29,7 +29,7 @@ export const useTaskStore = create<TaskStore>(
       error: null,
       lastSync: null,
 
-      fetchTasks: async () => {
+      fetchTasks: async (skipNotificationScheduling = false) => {
         set({ isLoading: true, error: null });
         try {
           // Only fetch from API if online
@@ -37,9 +37,12 @@ export const useTaskStore = create<TaskStore>(
             const tasks = await apiClient.getTasks();
             set({ tasks, isLoading: false, lastSync: Date.now() });
 
-            // Schedule notifications and update badge count
-            await notificationService.scheduleRemindersForTasks(tasks);
-            await notificationService.updateBadgeForTasks(tasks);
+            // Only schedule notifications if explicitly requested (not on every fetch)
+            // This prevents excessive rescheduling when app comes to foreground
+            if (!skipNotificationScheduling) {
+              await notificationService.scheduleRemindersForTasks(tasks);
+              await notificationService.updateBadgeForTasks(tasks);
+            }
           } else {
             // Use cached tasks when offline
             set({ isLoading: false });

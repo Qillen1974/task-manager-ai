@@ -12,6 +12,8 @@ Notifications.setNotificationHandler({
 });
 
 class NotificationService {
+  private isScheduling = false;
+
   async requestPermissions(): Promise<boolean> {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -43,20 +45,41 @@ class NotificationService {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return null;
 
-    const dueDate = new Date(task.dueDate);
+    // Parse the due date - handle both string and Date objects
+    const dueDate = typeof task.dueDate === 'string'
+      ? new Date(task.dueDate)
+      : new Date(task.dueDate);
+
     const now = new Date();
 
     // Don't schedule if the task is already overdue
-    if (dueDate < now) return null;
+    if (dueDate < now) {
+      console.log(`[Notifications] Skipping overdue task: ${task.title} (due: ${dueDate.toLocaleDateString()})`);
+      return null;
+    }
 
-    // Schedule notification for 9 AM on the due date
-    const reminderDate = new Date(dueDate);
-    reminderDate.setHours(9, 0, 0, 0);
+    // Schedule notification for 9 AM on the due date (local timezone)
+    const reminderDate = new Date(
+      dueDate.getFullYear(),
+      dueDate.getMonth(),
+      dueDate.getDate(),
+      9, // 9 AM
+      0, // 0 minutes
+      0, // 0 seconds
+      0  // 0 milliseconds
+    );
 
     // If reminder date is in the past, don't schedule
-    if (reminderDate < now) return null;
+    if (reminderDate < now) {
+      console.log(`[Notifications] Skipping past reminder: ${task.title} (reminder: ${reminderDate.toLocaleString()})`);
+      return null;
+    }
 
     try {
+      console.log(`[Notifications] Scheduling: "${task.title}" for ${reminderDate.toLocaleString()} (due: ${dueDate.toLocaleDateString()})`);
+
+      // Use CALENDAR trigger instead of DATE trigger to get absolute dates
+      // This prevents the timeInterval conversion issue
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Task Due Today',
@@ -65,11 +88,17 @@ class NotificationService {
           sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: reminderDate,
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          repeats: false,
+          year: reminderDate.getFullYear(),
+          month: reminderDate.getMonth() + 1, // Calendar months are 1-12, JS months are 0-11
+          day: reminderDate.getDate(),
+          hour: reminderDate.getHours(),
+          minute: reminderDate.getMinutes(),
         },
       });
 
+      console.log(`[Notifications] ✓ Scheduled notification ID: ${notificationId}`);
       return notificationId;
     } catch (error) {
       console.error('Failed to schedule notification:', error);
@@ -94,17 +123,53 @@ class NotificationService {
   }
 
   async scheduleRemindersForTasks(tasks: Task[]): Promise<void> {
-    const hasPermission = await this.requestPermissions();
-    if (!hasPermission) return;
+    // Prevent concurrent scheduling operations (race condition protection)
+    if (this.isScheduling) {
+      console.log('[Notifications] Scheduling already in progress, skipping duplicate call');
+      return;
+    }
 
-    // Cancel all existing reminders first
-    await this.cancelAllTaskReminders();
+    this.isScheduling = true;
 
-    // Schedule reminders for all tasks with due dates
-    for (const task of tasks) {
-      if (!task.completed && task.dueDate) {
-        await this.scheduleTaskReminder(task);
+    try {
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        this.isScheduling = false;
+        return;
       }
+
+      console.log('[Notifications] Cancelling all existing notifications...');
+      // Cancel all existing reminders first
+      await this.cancelAllTaskReminders();
+
+      // Wait longer to ensure cancellation completes on iOS
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify all notifications are cleared
+      const remaining = await Notifications.getAllScheduledNotificationsAsync();
+      if (remaining.length > 0) {
+        console.log(`[Notifications] Warning: ${remaining.length} notifications still present after cancellation, clearing again...`);
+        await this.cancelAllTaskReminders();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      console.log(`[Notifications] Scheduling reminders for ${tasks.length} tasks...`);
+      // Schedule reminders for all tasks with due dates
+      let scheduledCount = 0;
+      for (const task of tasks) {
+        if (!task.completed && task.dueDate) {
+          const notificationId = await this.scheduleTaskReminder(task);
+          if (notificationId) {
+            scheduledCount++;
+          }
+        }
+      }
+
+      console.log(`[Notifications] ✓ Scheduled ${scheduledCount} notifications`);
+    } catch (error) {
+      console.error('[Notifications] Error scheduling reminders:', error);
+    } finally {
+      this.isScheduling = false;
     }
   }
 

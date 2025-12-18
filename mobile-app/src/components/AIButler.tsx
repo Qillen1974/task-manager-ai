@@ -100,6 +100,7 @@ export default function AIButler() {
   };
 
   const handleClose = () => {
+    console.log('Close button pressed'); // Debug log
     setIsOpen(false);
     setMessages([]);
     setInput('');
@@ -129,24 +130,26 @@ export default function AIButler() {
         transparent={false}
         onRequestClose={handleClose}
       >
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerIcon}>🤖</Text>
-              <View>
-                <Text style={styles.headerTitle}>AI Butler</Text>
-                <Text style={styles.headerSubtitle}>TaskQuadrant Assistant</Text>
+        <SafeAreaView style={styles.modalContainer} edges={['bottom']}>
+          {/* Header with proper safe area padding */}
+          <View style={styles.headerContainer}>
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.headerIcon}>🤖</Text>
+                <View>
+                  <Text style={styles.headerTitle}>AI Butler</Text>
+                  <Text style={styles.headerSubtitle}>TaskQuadrant Assistant</Text>
+                </View>
               </View>
+              <TouchableOpacity
+                onPress={handleClose}
+                style={styles.closeButton}
+                activeOpacity={0.7}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              style={styles.closeButton}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.closeButtonText}>×</Text>
-            </TouchableOpacity>
           </View>
 
           <KeyboardAvoidingView
@@ -240,8 +243,8 @@ export default function AIButler() {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    left: 20, // Changed to left side to avoid overlap with + button
-    bottom: 90, // Above the tab bar
+    right: 20,
+    bottom: 90, // Bottom right corner, above tab bar
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -264,6 +267,10 @@ const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
+  headerContainer: {
+    backgroundColor: Colors.primary,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20, // Extra padding for safe area
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -272,6 +279,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    zIndex: 10,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -292,15 +300,18 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   closeButtonText: {
-    fontSize: 36,
+    fontSize: 16,
     color: Colors.white,
-    lineHeight: 36,
+    fontWeight: '600',
   },
   messagesContainer: {
     flex: 1,

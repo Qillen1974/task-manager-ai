@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
+    top: 75, // Positioned near the header border line
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -419,6 +419,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+    zIndex: 10,
   },
   fabText: {
     fontSize: 32,

@@ -37,10 +37,10 @@ export default function App() {
       // Process any pending sync operations
       await syncQueue.processQueue();
 
-      // Refresh data from server
+      // Refresh data from server (skip notification rescheduling to prevent duplicates)
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
       if (isAuthenticated) {
-        useTaskStore.getState().fetchTasks();
+        useTaskStore.getState().fetchTasks(true); // Skip notification scheduling
         useProjectStore.getState().fetchProjects();
       }
     }

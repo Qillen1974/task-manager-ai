@@ -14,9 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/colors';
+import { clearAndRescheduleNotifications } from '../../utils/clearStaleNotifications';
 
 type ProfileNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -37,6 +37,31 @@ export default function ProfileScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleClearNotifications = async () => {
+    Alert.alert(
+      'Clear Stale Notifications',
+      'This will remove all old notifications and reschedule only for your current tasks. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          onPress: async () => {
+            try {
+              const result = await clearAndRescheduleNotifications();
+              if (result.success) {
+                Alert.alert('Success', `Cleared all stale notifications. Scheduled ${result.totalTasks} fresh notifications for your current tasks.`);
+              } else {
+                Alert.alert('Error', result.error || 'Failed to clear notifications');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to clear notifications');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -145,30 +170,6 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleViewNotifications = async () => {
-    try {
-      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-
-      if (scheduled.length === 0) {
-        Alert.alert('Scheduled Notifications', 'No scheduled notifications found.');
-        return;
-      }
-
-      const notificationList = scheduled.map((notification, index) => {
-        const trigger = notification.trigger as any;
-        const date = trigger.type === 'date' ? new Date(trigger.value) : new Date();
-        return `${index + 1}. ${notification.content.title}\n   ${notification.content.body}\n   Due: ${date.toLocaleString()}`;
-      }).join('\n\n');
-
-      Alert.alert(
-        `Scheduled Notifications (${scheduled.length})`,
-        notificationList,
-        [{ text: 'OK' }]
-      );
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to fetch notifications');
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -260,13 +261,6 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Change Password</Text>
             <Text style={styles.menuItemArrow}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleViewNotifications}
-          >
-            <Text style={styles.menuItemText}>View Scheduled Notifications</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
             <Text style={[styles.menuItemText, { color: Colors.error }]}>
               Delete Account
@@ -281,6 +275,10 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Version</Text>
             <Text style={styles.menuItemValue}>1.0.0</Text>
           </View>
+          <TouchableOpacity style={styles.menuItem} onPress={handleClearNotifications}>
+            <Text style={styles.menuItemText}>Clear Stale Notifications</Text>
+            <Text style={styles.menuItemArrow}>›</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
