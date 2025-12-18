@@ -174,6 +174,226 @@ async function generateKnowledgeBaseResponse(
 ): Promise<string> {
   const messageLower = userMessage.toLowerCase();
 
+  // Check for specific topics with detailed responses
+
+  // Team collaboration
+  if (messageLower.includes("team") || messageLower.includes("collaborat")) {
+    return `**Team Collaboration Features** (Available in PRO and ENTERPRISE plans)
+
+TaskQuadrant offers powerful team collaboration tools:
+
+🔐 **Role-Based Access Control:**
+• ADMIN - Full control: create, edit, delete, manage members
+• EDITOR - Can create and edit tasks/projects
+• VIEWER - Read-only access to view tasks/projects
+
+👥 **Team Management:**
+• Invite team members via email
+• Assign tasks to specific team members
+• Track who's working on what
+• Set permissions per project
+
+📊 **Collaboration Features:**
+• Shared project workspaces
+• Task assignments and ownership
+• Team activity tracking
+• Collaborative project planning
+
+💡 **Resource Allocation:**
+• Assign multiple team members to tasks
+• Set manhours and resource counts
+• Track team capacity and workload
+
+To use team features:
+1. Upgrade to PRO or ENTERPRISE plan
+2. Go to Dashboard → Teams
+3. Create a team and invite members
+4. Assign roles and start collaborating!
+
+Would you like to know more about a specific collaboration feature?`;
+  }
+
+  // Mind Maps
+  if (messageLower.includes("mind map") || messageLower.includes("mindmap")) {
+    return `**Mind Maps** (Available in PRO and ENTERPRISE plans)
+
+Mind Maps help you brainstorm and visualize complex projects before creating them:
+
+✨ **Key Features:**
+• Visual canvas for brainstorming ideas
+• Drag-and-drop node creation and organization
+• Connect ideas with relationships
+• Add priorities, due dates, and descriptions to nodes
+• Export mind maps as images
+
+🎯 **Smart Conversion:**
+• Convert entire mind map to projects and tasks with one click!
+• Branch nodes → Subprojects
+• Leaf nodes → Individual tasks
+• All metadata (priorities, dates) carries over
+• Re-convert anytime to update your plan
+
+📊 **Plan Limits:**
+• FREE: No mind maps
+• PRO: Up to 5 mind maps, 50 nodes each
+• ENTERPRISE: Unlimited mind maps, 200 nodes each
+
+Perfect for:
+• Project planning and brainstorming
+• Breaking down complex initiatives
+• Team ideation sessions
+• Strategic planning
+
+Try creating your first mind map from Dashboard → Mind Maps!`;
+  }
+
+  // Recurring Tasks
+  if (messageLower.includes("recurring") || messageLower.includes("repeat") || messageLower.includes("automat")) {
+    return `**Recurring Tasks** (Available in PRO and ENTERPRISE plans)
+
+Automate repetitive work with recurring task templates:
+
+⏰ **Recurrence Patterns:**
+• Daily - Repeat every X days
+• Weekly - Choose specific days (Mon, Tue, etc.)
+• Monthly - Choose day of month
+• Custom - Advanced patterns
+
+🎯 **How It Works:**
+1. Create a recurring task template
+2. Set your recurrence pattern
+3. System auto-generates instances
+4. Complete instances as they appear
+5. Template stays active for future instances
+
+📊 **Plan Limits:**
+• FREE: No recurring tasks
+• PRO: Up to 10 recurring task templates
+• ENTERPRISE: Unlimited recurring tasks
+
+💡 **Best Uses:**
+• Weekly team meetings
+• Monthly reports
+• Daily standup reminders
+• Quarterly reviews
+• Regular maintenance tasks
+
+Create from: Dashboard → Tasks → "Create Recurring Task"
+
+Would you like help setting up a specific recurring pattern?`;
+  }
+
+  // Gantt Charts
+  if (messageLower.includes("gantt") || messageLower.includes("timeline")) {
+    return `**Gantt Charts** (Available on all plans)
+
+Visualize project timelines and dependencies:
+
+📅 **Timeline View:**
+• See all project tasks on a visual timeline
+• Tasks displayed as horizontal bars
+• Duration based on start/due dates
+• Color-coded by project
+
+📊 **Task Information:**
+• Progress percentage (0-100%)
+• Resource allocation
+• Manhours estimates
+• Task dependencies
+
+🎯 **Export Options:**
+• Export as PNG image
+• Export as PDF document
+• Share with stakeholders
+• Use for project reporting
+
+💡 **Pro Tips:**
+• Add start dates and due dates for better visualization
+• Set manhours to see effort estimates
+• Update progress % to track completion
+• Use for sprint planning and reviews
+
+Access from: Projects → Select Project → Gantt Chart icon
+
+The Gantt view helps you spot scheduling conflicts and optimize project timelines!`;
+  }
+
+  // Subscription/Pricing
+  if (messageLower.includes("subscript") || messageLower.includes("plan") || messageLower.includes("pric") || messageLower.includes("upgrade")) {
+    return `**Subscription Plans:**
+
+📦 **FREE Plan** - $0/month
+• 10 projects (no subprojects)
+• Unlimited tasks
+• Eisenhower Matrix
+• Basic features
+• Perfect for individuals!
+
+⭐ **PRO Plan** - $9.99/month
+• 30 projects + 1 level subprojects
+• Unlimited tasks
+• 10 recurring task templates
+• 5 mind maps (50 nodes each)
+• Team collaboration (up to 5 members)
+• PNG/PDF exports
+• Great for small teams!
+
+🚀 **ENTERPRISE Plan** - $29.99/month
+• Unlimited projects + unlimited subproject levels
+• Unlimited tasks
+• Unlimited recurring tasks
+• Unlimited mind maps (200 nodes each)
+• Full team collaboration (unlimited members)
+• All advanced features
+• Priority support
+• Perfect for large teams!
+
+**To Upgrade:**
+Web App: Settings → Subscription → Upgrade
+Mobile App: Profile → Upgrade (opens web for payment)
+
+Your upgrade is instant and available across all devices!
+
+Which plan interests you?`;
+  }
+
+  // Eisenhower Matrix
+  if (messageLower.includes("eisenhower") || messageLower.includes("matrix") || messageLower.includes("priorit")) {
+    return `**Eisenhower Matrix**
+
+TaskQuadrant uses the proven Eisenhower Matrix to help you prioritize tasks:
+
+🔴 **Do First** (Urgent & Important)
+• Critical deadlines
+• Emergencies and crises
+• High-priority work
+
+🔵 **Schedule** (Not Urgent & Important)
+• Long-term planning
+• Strategic work
+• Personal development
+
+🟡 **Delegate** (Urgent & Not Important)
+• Interruptions
+• Some emails/calls
+• Tasks others can do
+
+⚪ **Eliminate** (Not Urgent & Not Important)
+• Time wasters
+• Busy work
+• Low-value activities
+
+**How to Use:**
+1. Add a task
+2. Assign priority (the quadrant)
+3. Dashboard shows all tasks organized by matrix
+4. Focus on "Do First" tasks first!
+
+This helps you work ON what matters, not just work ON everything.
+
+The key is being honest about urgency vs importance!`;
+  }
+
   // Check if user is asking about a bug/error
   const isBugRelated =
     messageLower.includes("bug") ||
