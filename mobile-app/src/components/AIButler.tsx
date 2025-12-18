@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../constants/colors';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/authStore';
@@ -128,11 +129,7 @@ export default function AIButler() {
         transparent={false}
         onRequestClose={handleClose}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalContainer}
-          keyboardVerticalOffset={0}
-        >
+        <SafeAreaView style={styles.modalContainer} edges={['top']}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -142,10 +139,21 @@ export default function AIButler() {
                 <Text style={styles.headerSubtitle}>TaskQuadrant Assistant</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={styles.closeButton}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
           </View>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoid}
+            keyboardVerticalOffset={0}
+          >
 
           {/* Messages */}
           <ScrollView
@@ -222,7 +230,8 @@ export default function AIButler() {
               <Text style={styles.sendButtonText}>➤</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </>
   );
@@ -231,7 +240,7 @@ export default function AIButler() {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: 20,
+    left: 20, // Changed to left side to avoid overlap with + button
     bottom: 90, // Above the tab bar
     width: 56,
     height: 56,
@@ -251,6 +260,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
