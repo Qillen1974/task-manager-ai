@@ -17,7 +17,7 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { apiClient } from '../../api/client';
-import { Priority, Project } from '../../types';
+import { Priority, Project, RecurringPattern, RecurringConfig } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 type TaskCreateNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskCreate'>;
@@ -27,6 +27,23 @@ const PRIORITY_OPTIONS: { label: string; value: Priority; color: string }[] = [
   { label: '🔵 Schedule (Not Urgent & Important)', value: 'not-urgent-important', color: Colors.notUrgentImportant },
   { label: '🟡 Delegate (Urgent & Not Important)', value: 'urgent-not-important', color: Colors.urgentNotImportant },
   { label: '⚪ Eliminate (Not Urgent & Not Important)', value: 'not-urgent-not-important', color: Colors.notUrgentNotImportant },
+];
+
+const RECURRING_PATTERNS: { label: string; value: RecurringPattern }[] = [
+  { label: 'Daily', value: 'DAILY' },
+  { label: 'Weekly', value: 'WEEKLY' },
+  { label: 'Monthly', value: 'MONTHLY' },
+  { label: 'Custom', value: 'CUSTOM' },
+];
+
+const DAYS_OF_WEEK = [
+  { label: 'Sun', value: 0 },
+  { label: 'Mon', value: 1 },
+  { label: 'Tue', value: 2 },
+  { label: 'Wed', value: 3 },
+  { label: 'Thu', value: 4 },
+  { label: 'Fri', value: 5 },
+  { label: 'Sat', value: 6 },
 ];
 
 export default function TaskCreateScreen() {
@@ -44,6 +61,18 @@ export default function TaskCreateScreen() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+
+  // Recurring task state
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringPattern, setRecurringPattern] = useState<RecurringPattern>('DAILY');
+  const [recurringInterval, setRecurringInterval] = useState('1');
+  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
+  const [dayOfMonth, setDayOfMonth] = useState('1');
+  const [recurringStartDate, setRecurringStartDate] = useState<Date | undefined>(undefined);
+  const [recurringEndDate, setRecurringEndDate] = useState<Date | undefined>(undefined);
+  const [hasRecurringEndDate, setHasRecurringEndDate] = useState(false);
+  const [showRecurringStartDatePicker, setShowRecurringStartDatePicker] = useState(false);
+  const [showRecurringEndDatePicker, setShowRecurringEndDatePicker] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -64,6 +93,16 @@ export default function TaskCreateScreen() {
     }
   };
 
+  const toggleDayOfWeek = (day: number) => {
+    setSelectedDaysOfWeek((prev) => {
+      if (prev.includes(day)) {
+        return prev.filter((d) => d !== day);
+      } else {
+        return [...prev, day].sort();
+      }
+    });
+  };
+
   const handleCreate = async () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Please enter a task title');
@@ -75,9 +114,26 @@ export default function TaskCreateScreen() {
       return;
     }
 
+    // Validate recurring task fields
+    if (isRecurring) {
+      if (!recurringStartDate) {
+        Alert.alert('Error', 'Please select a start date for the recurring task');
+        return;
+      }
+      if (recurringPattern === 'WEEKLY' && selectedDaysOfWeek.length === 0) {
+        Alert.alert('Error', 'Please select at least one day of the week');
+        return;
+      }
+      const interval = parseInt(recurringInterval);
+      if (isNaN(interval) || interval < 1) {
+        Alert.alert('Error', 'Interval must be at least 1');
+        return;
+      }
+    }
+
     setIsCreating(true);
     try {
-      await createTask({
+      const taskData: any = {
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
@@ -85,7 +141,35 @@ export default function TaskCreateScreen() {
         completed: false,
         startDate: startDate ? startDate.toISOString().split('T')[0] : undefined,
         dueDate: dueDate ? dueDate.toISOString().split('T')[0] : undefined,
-      });
+      };
+
+      // Add recurring fields if enabled
+      if (isRecurring) {
+        const recurringConfig: RecurringConfig = {
+          pattern: recurringPattern,
+          interval: parseInt(recurringInterval),
+        };
+
+        if (recurringPattern === 'WEEKLY') {
+          recurringConfig.daysOfWeek = selectedDaysOfWeek;
+        } else if (recurringPattern === 'MONTHLY') {
+          recurringConfig.dayOfMonth = parseInt(dayOfMonth);
+        }
+
+        if (hasRecurringEndDate && recurringEndDate) {
+          recurringConfig.endDate = recurringEndDate.toISOString().split('T')[0];
+        }
+
+        taskData.isRecurring = true;
+        taskData.recurringPattern = recurringPattern;
+        taskData.recurringConfig = JSON.stringify(recurringConfig);
+        taskData.recurringStartDate = recurringStartDate!.toISOString().split('T')[0];
+        if (hasRecurringEndDate && recurringEndDate) {
+          taskData.recurringEndDate = recurringEndDate.toISOString().split('T')[0];
+        }
+      }
+
+      await createTask(taskData);
 
       Alert.alert('Success', 'Task created successfully', [
         {
@@ -311,6 +395,197 @@ export default function TaskCreateScreen() {
                 }
               }}
             />
+          )}
+        </View>
+
+        {/* Recurring Task */}
+        <View style={styles.section}>
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              style={styles.checkbox}
+              onPress={() => setIsRecurring(!isRecurring)}
+              disabled={isCreating}
+            >
+              <View style={[styles.checkboxBox, isRecurring && styles.checkboxBoxChecked]}>
+                {isRecurring && <Text style={styles.checkboxCheck}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Make this a recurring task</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isRecurring && (
+            <View style={styles.recurringContainer}>
+              {/* Pattern Selection */}
+              <Text style={styles.label}>
+                Recurrence Pattern <Text style={styles.required}>*</Text>
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.patternScroll}>
+                {RECURRING_PATTERNS.map((pattern) => (
+                  <TouchableOpacity
+                    key={pattern.value}
+                    style={[
+                      styles.patternOption,
+                      recurringPattern === pattern.value && styles.patternOptionSelected,
+                    ]}
+                    onPress={() => setRecurringPattern(pattern.value)}
+                    disabled={isCreating}
+                  >
+                    <Text
+                      style={[
+                        styles.patternOptionText,
+                        recurringPattern === pattern.value && styles.patternOptionTextSelected,
+                      ]}
+                    >
+                      {pattern.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Interval */}
+              <View style={styles.intervalContainer}>
+                <Text style={styles.label}>
+                  Repeat Every <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.intervalInputContainer}>
+                  <TextInput
+                    style={styles.intervalInput}
+                    value={recurringInterval}
+                    onChangeText={setRecurringInterval}
+                    keyboardType="number-pad"
+                    editable={!isCreating}
+                  />
+                  <Text style={styles.intervalLabel}>
+                    {recurringPattern === 'DAILY' ? 'day(s)' :
+                     recurringPattern === 'WEEKLY' ? 'week(s)' :
+                     recurringPattern === 'MONTHLY' ? 'month(s)' : 'unit(s)'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Weekly Day Selection */}
+              {recurringPattern === 'WEEKLY' && (
+                <View style={styles.daysContainer}>
+                  <Text style={styles.label}>
+                    Days of Week <Text style={styles.required}>*</Text>
+                  </Text>
+                  <View style={styles.daysRow}>
+                    {DAYS_OF_WEEK.map((day) => (
+                      <TouchableOpacity
+                        key={day.value}
+                        style={[
+                          styles.dayButton,
+                          selectedDaysOfWeek.includes(day.value) && styles.dayButtonSelected,
+                        ]}
+                        onPress={() => toggleDayOfWeek(day.value)}
+                        disabled={isCreating}
+                      >
+                        <Text
+                          style={[
+                            styles.dayButtonText,
+                            selectedDaysOfWeek.includes(day.value) && styles.dayButtonTextSelected,
+                          ]}
+                        >
+                          {day.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Monthly Day Selection */}
+              {recurringPattern === 'MONTHLY' && (
+                <View style={styles.monthlyContainer}>
+                  <Text style={styles.label}>
+                    Day of Month <Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={dayOfMonth}
+                    onChangeText={setDayOfMonth}
+                    keyboardType="number-pad"
+                    placeholder="1-31"
+                    editable={!isCreating}
+                  />
+                </View>
+              )}
+
+              {/* Recurring Start Date */}
+              <View style={styles.recurringDateContainer}>
+                <Text style={styles.label}>
+                  Start Date <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowRecurringStartDatePicker(true)}
+                  disabled={isCreating}
+                >
+                  <Text style={styles.dateButtonText}>
+                    {recurringStartDate ? recurringStartDate.toLocaleDateString() : 'Select start date'}
+                  </Text>
+                  <Text style={styles.dateIcon}>📅</Text>
+                </TouchableOpacity>
+                {showRecurringStartDatePicker && (
+                  <DateTimePicker
+                    value={recurringStartDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, selectedDate) => {
+                      setShowRecurringStartDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) {
+                        setRecurringStartDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+              </View>
+
+              {/* Recurring End Date */}
+              <View style={styles.recurringDateContainer}>
+                <View style={styles.checkboxContainer}>
+                  <TouchableOpacity
+                    style={styles.checkbox}
+                    onPress={() => setHasRecurringEndDate(!hasRecurringEndDate)}
+                    disabled={isCreating}
+                  >
+                    <View style={[styles.checkboxBox, hasRecurringEndDate && styles.checkboxBoxChecked]}>
+                      {hasRecurringEndDate && <Text style={styles.checkboxCheck}>✓</Text>}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Set End Date</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {hasRecurringEndDate && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowRecurringEndDatePicker(true)}
+                      disabled={isCreating}
+                    >
+                      <Text style={styles.dateButtonText}>
+                        {recurringEndDate ? recurringEndDate.toLocaleDateString() : 'Select end date'}
+                      </Text>
+                      <Text style={styles.dateIcon}>📅</Text>
+                    </TouchableOpacity>
+                    {showRecurringEndDatePicker && (
+                      <DateTimePicker
+                        value={recurringEndDate || new Date()}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        minimumDate={recurringStartDate}
+                        onChange={(event, selectedDate) => {
+                          setShowRecurringEndDatePicker(Platform.OS === 'ios');
+                          if (selectedDate) {
+                            setRecurringEndDate(selectedDate);
+                          }
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
           )}
         </View>
 
@@ -568,5 +843,124 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.error,
     fontWeight: '500',
+  },
+  checkboxContainer: {
+    marginBottom: 16,
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxBoxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  checkboxCheck: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  recurringContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: Colors.infoBackground,
+    borderRadius: 8,
+  },
+  patternScroll: {
+    marginBottom: 16,
+  },
+  patternOption: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    marginRight: 12,
+  },
+  patternOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.white,
+  },
+  patternOptionText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  patternOptionTextSelected: {
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  intervalContainer: {
+    marginBottom: 16,
+  },
+  intervalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  intervalInput: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text,
+    width: 80,
+    marginRight: 12,
+  },
+  intervalLabel: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  daysContainer: {
+    marginBottom: 16,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  dayButtonSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dayButtonText: {
+    fontSize: 12,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  dayButtonTextSelected: {
+    color: Colors.white,
+  },
+  monthlyContainer: {
+    marginBottom: 16,
+  },
+  recurringDateContainer: {
+    marginBottom: 16,
   },
 });
