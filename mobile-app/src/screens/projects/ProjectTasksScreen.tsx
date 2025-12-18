@@ -16,7 +16,6 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { Task } from '../../types';
-import { Swipeable } from 'react-native-gesture-handler';
 
 type ProjectTasksRouteProp = RouteProp<RootStackParamList, 'ProjectTasks'>;
 type ProjectTasksNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProjectTasks'>;
@@ -98,21 +97,10 @@ export default function ProjectTasksScreen() {
     }
   };
 
-  const renderRightActions = (task: Task) => {
-    return (
-      <TouchableOpacity
-        style={styles.deleteAction}
-        onPress={() => handleDelete(task.id, task.title)}
-      >
-        <Text style={styles.deleteActionText}>Delete</Text>
-      </TouchableOpacity>
-    );
-  };
-
   const renderTask = ({ item }: { item: Task }) => (
-    <Swipeable renderRightActions={() => renderRightActions(item)}>
+    <View style={styles.taskCard}>
       <TouchableOpacity
-        style={styles.taskCard}
+        style={styles.taskCardContent}
         onPress={() => handleTaskPress(item.id)}
       >
         <View style={styles.taskHeader}>
@@ -153,9 +141,15 @@ export default function ProjectTasksScreen() {
               )}
             </View>
           </View>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item.id, item.title)}
+          >
+            <Text style={styles.deleteButtonText}>×</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
-    </Swipeable>
+    </View>
   );
 
   return (
@@ -312,10 +306,15 @@ const styles = StyleSheet.create({
   taskCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskCardContent: {
+    flex: 1,
+    padding: 16,
   },
   taskHeader: {
     flexDirection: 'row',
@@ -376,18 +375,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
   },
-  deleteAction: {
-    backgroundColor: Colors.error,
+  deleteButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    borderRadius: 12,
+    alignItems: 'center',
+    marginRight: 12,
   },
-  deleteActionText: {
-    color: Colors.white,
-    fontWeight: '600',
-    fontSize: 16,
+  deleteButtonText: {
+    fontSize: 32,
+    color: Colors.textSecondary,
+    lineHeight: 32,
   },
   emptyContainer: {
     flex: 1,
