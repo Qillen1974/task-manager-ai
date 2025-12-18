@@ -22,12 +22,12 @@ export default function UpgradeScreen() {
   const handleUpgrade = () => {
     Alert.alert(
       'Upgrade Your Plan',
-      `To upgrade to PRO or ENTERPRISE:\n\n1. Open TaskQuadrant on your web browser at https://taskquadrant.io\n\n2. Log in with your account (${user?.email})\n\n3. Go to Settings → Subscription → Upgrade\n\n4. Choose your plan and complete the payment\n\nYour upgrade will be available on the mobile app immediately after payment!`,
+      `To upgrade to PRO or ENTERPRISE:\n\n1. Open TaskQuadrant on your web browser\n\n2. Log in with your account (${user?.email})\n\n3. Go to Settings → Subscription → Upgrade\n\n4. Choose your plan and complete the payment\n\nYour upgrade will be available on the mobile app immediately after payment!`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Open Web App',
-          onPress: () => Linking.openURL('https://taskquadrant.io/login'),
+          onPress: () => Linking.openURL('https://taskquadrant.io/auth?mode=login'),
         },
       ]
     );
