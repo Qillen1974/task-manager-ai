@@ -1,8 +1,6 @@
-import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { AppState, AppStateStatus } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AppState, AppStateStatus, View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import OfflineIndicator from './src/components/OfflineIndicator';
 import { useAuthStore } from './src/store/authStore';
@@ -50,10 +48,10 @@ export default function App() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
       <AppNavigator />
       <OfflineIndicator />
-    </GestureHandlerRootView>
+    </View>
   );
 }
