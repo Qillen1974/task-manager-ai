@@ -58,7 +58,7 @@ export function calculateSubscriptionLimits(
     currentRecurringTaskCount,
     canCreateRootProject: true, // Can always create projects up to limit
     rootProjectLimit: projectLimits.maxProjects,
-    canCreateSubproject: projectLimits.maxProjectNestingLevel > 0,
+    canCreateSubproject: projectLimits.maxProjectNestingLevel !== 0, // -1 (unlimited) or > 0
     subprojectLevels: projectLimits.maxProjectNestingLevel,
   };
 }
