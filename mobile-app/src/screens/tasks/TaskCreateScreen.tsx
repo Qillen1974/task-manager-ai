@@ -83,8 +83,8 @@ export default function TaskCreateScreen() {
         priority,
         projectId: selectedProjectId,
         completed: false,
-        startDate: startDate ? startDate.toISOString() : undefined,
-        dueDate: dueDate ? dueDate.toISOString() : undefined,
+        startDate: startDate ? startDate.toISOString().split('T')[0] : undefined,
+        dueDate: dueDate ? dueDate.toISOString().split('T')[0] : undefined,
       });
 
       Alert.alert('Success', 'Task created successfully', [
