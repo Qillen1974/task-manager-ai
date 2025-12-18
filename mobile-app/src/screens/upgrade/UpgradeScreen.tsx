@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,13 +15,22 @@ import { Colors } from '../../constants/colors';
 
 export default function UpgradeScreen() {
   const navigation = useNavigation();
-  const { subscription } = useAuthStore();
+  const { subscription, user } = useAuthStore();
 
   const currentPlan = subscription?.plan || 'FREE';
 
   const handleUpgrade = () => {
-    // Open web app upgrade page in browser
-    Linking.openURL('https://taskquadrant.io/upgrade');
+    Alert.alert(
+      'Upgrade Your Plan',
+      `To upgrade to PRO or ENTERPRISE:\n\n1. Open TaskQuadrant on your web browser at https://taskquadrant.io\n\n2. Log in with your account (${user?.email})\n\n3. Go to Settings → Subscription → Upgrade\n\n4. Choose your plan and complete the payment\n\nYour upgrade will be available on the mobile app immediately after payment!`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Web App',
+          onPress: () => Linking.openURL('https://taskquadrant.io/login'),
+        },
+      ]
+    );
   };
 
   return (
@@ -110,8 +120,8 @@ export default function UpgradeScreen() {
         {/* Info Box */}
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            💡 Note: Subscription management is currently only available on the web application.
-            Tap "Upgrade" to open the upgrade page in your browser.
+            💡 Note: Payment processing is handled through the web application for security.
+            Tap any "Upgrade" button above for step-by-step instructions on how to upgrade your account.
           </Text>
         </View>
       </ScrollView>
