@@ -10,6 +10,11 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -330,95 +335,109 @@ export default function ProjectsScreen() {
         transparent={true}
         onRequestClose={() => setShowCreateModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create New Project</Text>
-              <TouchableOpacity
-                onPress={() => setShowCreateModal(false)}
-                disabled={isCreating}
-              >
-                <Text style={styles.modalClose}>×</Text>
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Create New Project</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCreateModal(false)}
+                    disabled={isCreating}
+                  >
+                    <Text style={styles.modalClose}>×</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.modalBody}>
-              {/* Project Name */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>
-                  Project Name <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={newProjectName}
-                  onChangeText={setNewProjectName}
-                  placeholder="Enter project name"
-                  editable={!isCreating}
-                  autoFocus
-                />
-              </View>
+                <ScrollView
+                  style={styles.modalBody}
+                  contentContainerStyle={styles.modalBodyContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {/* Project Name */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
+                      Project Name <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newProjectName}
+                      onChangeText={setNewProjectName}
+                      placeholder="Enter project name"
+                      editable={!isCreating}
+                      autoFocus
+                      returnKeyType="next"
+                      onSubmitEditing={() => Keyboard.dismiss()}
+                    />
+                  </View>
 
-              {/* Description */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={newProjectDescription}
-                  onChangeText={setNewProjectDescription}
-                  placeholder="Enter project description (optional)"
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  editable={!isCreating}
-                />
-              </View>
+                  {/* Description */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Description</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={newProjectDescription}
+                      onChangeText={setNewProjectDescription}
+                      placeholder="Enter project description (optional)"
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                      editable={!isCreating}
+                    />
+                  </View>
 
-              {/* Color Picker */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Color</Text>
-                <View style={styles.colorPicker}>
-                  {PROJECT_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorOptionSelected,
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                      disabled={isCreating}
-                    >
-                      {selectedColor === color && (
-                        <Text style={styles.colorCheckmark}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {/* Color Picker */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Color</Text>
+                    <View style={styles.colorPicker}>
+                      {PROJECT_COLORS.map((color) => (
+                        <TouchableOpacity
+                          key={color}
+                          style={[
+                            styles.colorOption,
+                            { backgroundColor: color },
+                            selectedColor === color && styles.colorOptionSelected,
+                          ]}
+                          onPress={() => setSelectedColor(color)}
+                          disabled={isCreating}
+                        >
+                          {selectedColor === color && (
+                            <Text style={styles.colorCheckmark}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowCreateModal(false)}
+                    disabled={isCreating}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.createButton]}
+                    onPress={handleCreateProject}
+                    disabled={isCreating || !newProjectName.trim()}
+                  >
+                    {isCreating ? (
+                      <ActivityIndicator color={Colors.white} />
+                    ) : (
+                      <Text style={styles.createButtonText}>Create</Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowCreateModal(false)}
-                disabled={isCreating}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.createButton]}
-                onPress={handleCreateProject}
-                disabled={isCreating || !newProjectName.trim()}
-              >
-                {isCreating ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.createButtonText}>Create</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Edit Project Modal */}
@@ -428,95 +447,109 @@ export default function ProjectsScreen() {
         transparent={true}
         onRequestClose={() => setShowEditModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Project</Text>
-              <TouchableOpacity
-                onPress={() => setShowEditModal(false)}
-                disabled={isUpdating}
-              >
-                <Text style={styles.modalClose}>×</Text>
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Edit Project</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowEditModal(false)}
+                    disabled={isUpdating}
+                  >
+                    <Text style={styles.modalClose}>×</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.modalBody}>
-              {/* Project Name */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>
-                  Project Name <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={newProjectName}
-                  onChangeText={setNewProjectName}
-                  placeholder="Enter project name"
-                  editable={!isUpdating}
-                  autoFocus
-                />
-              </View>
+                <ScrollView
+                  style={styles.modalBody}
+                  contentContainerStyle={styles.modalBodyContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {/* Project Name */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
+                      Project Name <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newProjectName}
+                      onChangeText={setNewProjectName}
+                      placeholder="Enter project name"
+                      editable={!isUpdating}
+                      autoFocus
+                      returnKeyType="next"
+                      onSubmitEditing={() => Keyboard.dismiss()}
+                    />
+                  </View>
 
-              {/* Description */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={newProjectDescription}
-                  onChangeText={setNewProjectDescription}
-                  placeholder="Enter project description (optional)"
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  editable={!isUpdating}
-                />
-              </View>
+                  {/* Description */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Description</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={newProjectDescription}
+                      onChangeText={setNewProjectDescription}
+                      placeholder="Enter project description (optional)"
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                      editable={!isUpdating}
+                    />
+                  </View>
 
-              {/* Color Picker */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Color</Text>
-                <View style={styles.colorPicker}>
-                  {PROJECT_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorOptionSelected,
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                      disabled={isUpdating}
-                    >
-                      {selectedColor === color && (
-                        <Text style={styles.colorCheckmark}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                  {/* Color Picker */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Color</Text>
+                    <View style={styles.colorPicker}>
+                      {PROJECT_COLORS.map((color) => (
+                        <TouchableOpacity
+                          key={color}
+                          style={[
+                            styles.colorOption,
+                            { backgroundColor: color },
+                            selectedColor === color && styles.colorOptionSelected,
+                          ]}
+                          onPress={() => setSelectedColor(color)}
+                          disabled={isUpdating}
+                        >
+                          {selectedColor === color && (
+                            <Text style={styles.colorCheckmark}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowEditModal(false)}
+                    disabled={isUpdating}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.createButton]}
+                    onPress={handleUpdateProject}
+                    disabled={isUpdating || !newProjectName.trim()}
+                  >
+                    {isUpdating ? (
+                      <ActivityIndicator color={Colors.white} />
+                    ) : (
+                      <Text style={styles.createButtonText}>Update</Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowEditModal(false)}
-                disabled={isUpdating}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.createButton]}
-                onPress={handleUpdateProject}
-                disabled={isUpdating || !newProjectName.trim()}
-              >
-                {isUpdating ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.createButtonText}>Update</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -728,6 +761,9 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+  },
+  modalBodyContent: {
+    paddingBottom: 16,
   },
   inputGroup: {
     marginBottom: 20,
