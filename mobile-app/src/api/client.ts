@@ -174,6 +174,27 @@ class ApiClient {
     // Count recurring task templates (isRecurring: true, parentTaskId: null)
     return tasks.filter((task: any) => task.isRecurring && !task.parentTaskId).length;
   }
+
+  // Generic methods for additional endpoints
+  async post(endpoint: string, data?: any) {
+    const response = await this.client.post(endpoint, data);
+    return response.data;
+  }
+
+  async get(endpoint: string) {
+    const response = await this.client.get(endpoint);
+    return response.data;
+  }
+
+  async patch(endpoint: string, data?: any) {
+    const response = await this.client.patch(endpoint, data);
+    return response.data;
+  }
+
+  async delete(endpoint: string) {
+    const response = await this.client.delete(endpoint);
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();

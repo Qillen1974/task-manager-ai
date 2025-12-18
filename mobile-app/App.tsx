@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppState, AppStateStatus, View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import OfflineIndicator from './src/components/OfflineIndicator';
+import AIButler from './src/components/AIButler';
 import { useAuthStore } from './src/store/authStore';
 import { notificationService } from './src/services/notificationService';
 import { syncQueue } from './src/services/syncQueue';
@@ -52,6 +53,7 @@ export default function App() {
       <StatusBar style="auto" />
       <AppNavigator />
       <OfflineIndicator />
+      <AIButler />
     </View>
   );
 }
