@@ -1,7 +1,7 @@
 "use client";
 
 import { Task, Project } from "@/lib/types";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -31,7 +31,21 @@ interface DependencyArrow {
 
 export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: GanttChartProps) {
   const ganttChartRef = useRef<HTMLDivElement>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [timelineWidth, setTimelineWidth] = useState(0);
+
+  // Measure timeline container width for accurate arrow positioning
+  useEffect(() => {
+    const updateWidth = () => {
+      if (timelineContainerRef.current) {
+        setTimelineWidth(timelineContainerRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   const canExport = userPlan !== "FREE";
 
@@ -636,34 +650,32 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
         </div>
 
         {/* Gantt Bars Container with Dependency Arrows */}
-        <div className="relative">
+        <div className="relative" ref={timelineContainerRef}>
           {/* SVG Overlay for Dependency Arrows */}
-          {dependencyArrows.length > 0 && (
+          {dependencyArrows.length > 0 && timelineWidth > 0 && (
             <svg
-              className="absolute top-0 pointer-events-none overflow-visible"
+              className="absolute top-0 left-0 pointer-events-none"
               style={{
-                left: '320px',
                 height: `${ganttData.items.length * ROW_HEIGHT}px`,
-                width: 'calc(100% - 320px)',
+                width: '100%',
                 zIndex: 20,
+                overflow: 'visible',
               }}
-              preserveAspectRatio="none"
-              viewBox={`0 0 100 ${ganttData.items.length * ROW_HEIGHT}`}
             >
-              {/* Arrow marker definition */}
+              {/* Arrow marker definition - small refined arrowhead */}
               <defs>
                 <marker
-                  id="dependency-arrowhead"
-                  markerWidth="12"
-                  markerHeight="8"
-                  refX="10"
-                  refY="4"
+                  id="dependency-arrow"
+                  markerWidth="6"
+                  markerHeight="6"
+                  refX="5"
+                  refY="3"
                   orient="auto"
-                  markerUnits="userSpaceOnUse"
+                  markerUnits="strokeWidth"
                 >
-                  <polygon
-                    points="0 0, 12 4, 0 8"
-                    fill="#7c3aed"
+                  <path
+                    d="M 0 0 L 6 3 L 0 6 Z"
+                    fill="#8b5cf6"
                   />
                 </marker>
               </defs>
@@ -673,46 +685,48 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                 const fromY = arrow.fromRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
                 const toY = arrow.toRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
 
-                // X positions as percentage of the 0-100 viewBox width
-                const fromX = arrow.fromEndPercent;
-                const toX = arrow.toStartPercent;
+                // Convert percentages to actual pixel positions
+                // Account for the 320px task name column offset
+                const taskNameColumnWidth = 320;
+                const timelineAreaWidth = timelineWidth - taskNameColumnWidth;
 
-                // Create a right-angle connector path
-                // If going forward in time: go right, then down/up, then right to target
-                // If target is before source: go down first, then left
-                const isForward = toX >= fromX;
+                const fromX = taskNameColumnWidth + (arrow.fromEndPercent / 100) * timelineAreaWidth;
+                const toX = taskNameColumnWidth + (arrow.toStartPercent / 100) * timelineAreaWidth;
 
+                // Create a clean right-angle connector path
+                const horizontalGap = 15; // Small gap before turning
+
+                // Path: from end of bar → small horizontal segment → vertical drop → horizontal to target
+                const midX = fromX + horizontalGap;
+
+                // Simple L-shaped or Z-shaped path
                 let pathD: string;
-                if (isForward) {
-                  // Standard case: predecessor ends before dependent starts
-                  const midX = Math.min(fromX + 3, (fromX + toX) / 2 + 1);
-                  pathD = `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX} ${toY}`;
+                if (Math.abs(fromY - toY) < 5) {
+                  // Same row - just horizontal line
+                  pathD = `M ${fromX} ${fromY} L ${toX - 8} ${toY}`;
                 } else {
-                  // Edge case: dependent starts before predecessor ends (overlap)
-                  const dropY = fromY + (toY > fromY ? 20 : -20);
-                  pathD = `M ${fromX} ${fromY} L ${fromX + 2} ${fromY} L ${fromX + 2} ${dropY} L ${toX - 2} ${dropY} L ${toX - 2} ${toY} L ${toX} ${toY}`;
+                  // Different rows - right-angle connector
+                  pathD = `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX - 8} ${toY}`;
                 }
 
                 return (
                   <g key={`dep-${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
-                    {/* Connection line */}
+                    {/* Connection line with small arrowhead */}
                     <path
                       d={pathD}
                       fill="none"
-                      stroke="#7c3aed"
+                      stroke="#8b5cf6"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      markerEnd="url(#dependency-arrowhead)"
-                      style={{ vectorEffect: 'non-scaling-stroke' }}
+                      markerEnd="url(#dependency-arrow)"
                     />
-                    {/* Circle at the start point (end of predecessor bar) */}
+                    {/* Small circle at the start point */}
                     <circle
                       cx={fromX}
                       cy={fromY}
                       r="4"
-                      fill="#7c3aed"
-                      style={{ vectorEffect: 'non-scaling-stroke' }}
+                      fill="#8b5cf6"
                     />
                   </g>
                 );
@@ -824,10 +838,10 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
             <span className="text-gray-600">Due Date</span>
           </div>
           <div className="flex items-center gap-2">
-            <svg width="32" height="16" viewBox="0 0 32 16">
-              <circle cx="4" cy="8" r="3" fill="#7c3aed" />
-              <path d="M 7 8 L 14 8 L 14 8 L 26 8" stroke="#7c3aed" strokeWidth="2" fill="none" />
-              <polygon points="24,4 32,8 24,12" fill="#7c3aed" />
+            <svg width="36" height="16" viewBox="0 0 36 16">
+              <circle cx="4" cy="8" r="3" fill="#8b5cf6" />
+              <path d="M 7 8 L 28 8" stroke="#8b5cf6" strokeWidth="2" fill="none" strokeLinecap="round" />
+              <path d="M 26 5 L 32 8 L 26 11 Z" fill="#8b5cf6" />
             </svg>
             <span className="text-gray-600">Task Dependency</span>
           </div>
