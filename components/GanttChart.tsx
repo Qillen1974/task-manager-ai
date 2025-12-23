@@ -640,26 +640,30 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
           {/* SVG Overlay for Dependency Arrows */}
           {dependencyArrows.length > 0 && (
             <svg
-              className="absolute top-0 left-80 right-0 pointer-events-none"
+              className="absolute top-0 pointer-events-none overflow-visible"
               style={{
+                left: '320px',
                 height: `${ganttData.items.length * ROW_HEIGHT}px`,
                 width: 'calc(100% - 320px)',
-                zIndex: 10,
+                zIndex: 20,
               }}
+              preserveAspectRatio="none"
+              viewBox={`0 0 100 ${ganttData.items.length * ROW_HEIGHT}`}
             >
               {/* Arrow marker definition */}
               <defs>
                 <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="9"
-                  refY="3.5"
+                  id="dependency-arrowhead"
+                  markerWidth="12"
+                  markerHeight="8"
+                  refX="10"
+                  refY="4"
                   orient="auto"
+                  markerUnits="userSpaceOnUse"
                 >
                   <polygon
-                    points="0 0, 10 3.5, 0 7"
-                    fill="#6366f1"
+                    points="0 0, 12 4, 0 8"
+                    fill="#7c3aed"
                   />
                 </marker>
               </defs>
@@ -669,37 +673,46 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                 const fromY = arrow.fromRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
                 const toY = arrow.toRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
 
-                // Create a right-angle path:
-                // 1. Start at end of predecessor bar
-                // 2. Go right a bit
-                // 3. Go down/up to the target row
-                // 4. Go right to the start of dependent bar
-                const midX = Math.max(arrow.fromEndPercent + 2, (arrow.fromEndPercent + arrow.toStartPercent) / 2);
+                // X positions as percentage of the 0-100 viewBox width
+                const fromX = arrow.fromEndPercent;
+                const toX = arrow.toStartPercent;
+
+                // Create a right-angle connector path
+                // If going forward in time: go right, then down/up, then right to target
+                // If target is before source: go down first, then left
+                const isForward = toX >= fromX;
+
+                let pathD: string;
+                if (isForward) {
+                  // Standard case: predecessor ends before dependent starts
+                  const midX = Math.min(fromX + 3, (fromX + toX) / 2 + 1);
+                  pathD = `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX} ${toY}`;
+                } else {
+                  // Edge case: dependent starts before predecessor ends (overlap)
+                  const dropY = fromY + (toY > fromY ? 20 : -20);
+                  pathD = `M ${fromX} ${fromY} L ${fromX + 2} ${fromY} L ${fromX + 2} ${dropY} L ${toX - 2} ${dropY} L ${toX - 2} ${toY} L ${toX} ${toY}`;
+                }
 
                 return (
-                  <g key={`${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
+                  <g key={`dep-${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
+                    {/* Connection line */}
                     <path
-                      d={`
-                        M ${arrow.fromEndPercent}% ${fromY}
-                        L ${midX}% ${fromY}
-                        L ${midX}% ${toY}
-                        L ${arrow.toStartPercent}% ${toY}
-                      `}
+                      d={pathD}
                       fill="none"
-                      stroke="#6366f1"
+                      stroke="#7c3aed"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      markerEnd="url(#arrowhead)"
-                      opacity="0.8"
+                      markerEnd="url(#dependency-arrowhead)"
+                      style={{ vectorEffect: 'non-scaling-stroke' }}
                     />
-                    {/* Small circle at the start point */}
+                    {/* Circle at the start point (end of predecessor bar) */}
                     <circle
-                      cx={`${arrow.fromEndPercent}%`}
+                      cx={fromX}
                       cy={fromY}
                       r="4"
-                      fill="#6366f1"
-                      opacity="0.8"
+                      fill="#7c3aed"
+                      style={{ vectorEffect: 'non-scaling-stroke' }}
                     />
                   </g>
                 );
@@ -811,10 +824,10 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
             <span className="text-gray-600">Due Date</span>
           </div>
           <div className="flex items-center gap-2">
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <circle cx="4" cy="8" r="3" fill="#6366f1" />
-              <line x1="7" y1="8" x2="18" y2="8" stroke="#6366f1" strokeWidth="2" />
-              <polygon points="18,4 24,8 18,12" fill="#6366f1" />
+            <svg width="32" height="16" viewBox="0 0 32 16">
+              <circle cx="4" cy="8" r="3" fill="#7c3aed" />
+              <path d="M 7 8 L 14 8 L 14 8 L 26 8" stroke="#7c3aed" strokeWidth="2" fill="none" />
+              <polygon points="24,4 32,8 24,12" fill="#7c3aed" />
             </svg>
             <span className="text-gray-600">Task Dependency</span>
           </div>
