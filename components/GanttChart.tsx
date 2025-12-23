@@ -686,32 +686,35 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                 const toY = arrow.toRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
 
                 // Convert percentages to actual pixel positions
-                // Account for the 320px task name column offset
                 const taskNameColumnWidth = 320;
                 const timelineAreaWidth = timelineWidth - taskNameColumnWidth;
 
                 const fromX = taskNameColumnWidth + (arrow.fromEndPercent / 100) * timelineAreaWidth;
                 const toX = taskNameColumnWidth + (arrow.toStartPercent / 100) * timelineAreaWidth;
 
-                // Create a clean right-angle connector path
-                const horizontalGap = 15; // Small gap before turning
+                // Arrow should ALWAYS point RIGHT toward the dependent task
+                // We draw: predecessor → vertical drop → approach target from LEFT → arrow points RIGHT
 
-                // Path: from end of bar → small horizontal segment → vertical drop → horizontal to target
-                const midX = fromX + horizontalGap;
-
-                // Simple L-shaped or Z-shaped path
                 let pathD: string;
+                const arrowEndX = toX - 8; // Where arrowhead ends (8px before target bar start)
+
                 if (Math.abs(fromY - toY) < 5) {
-                  // Same row - just horizontal line
-                  pathD = `M ${fromX} ${fromY} L ${toX - 8} ${toY}`;
+                  // Same row - simple horizontal line
+                  pathD = `M ${fromX} ${fromY} L ${arrowEndX} ${toY}`;
                 } else {
-                  // Different rows - right-angle connector
-                  pathD = `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX - 8} ${toY}`;
+                  // Different rows - need to route the line properly
+                  // Key: vertical line should be positioned so we approach target from the LEFT
+
+                  // Position vertical line to the LEFT of the target
+                  const verticalX = Math.min(fromX + 15, arrowEndX - 20);
+
+                  // Path: start → go to vertical line X → drop to target row → go right to target
+                  pathD = `M ${fromX} ${fromY} L ${verticalX} ${fromY} L ${verticalX} ${toY} L ${arrowEndX} ${toY}`;
                 }
 
                 return (
                   <g key={`dep-${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
-                    {/* Connection line with small arrowhead */}
+                    {/* Connection line - arrow always points RIGHT */}
                     <path
                       d={pathD}
                       fill="none"
@@ -721,7 +724,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                       strokeLinejoin="round"
                       markerEnd="url(#dependency-arrow)"
                     />
-                    {/* Small circle at the start point */}
+                    {/* Small circle at the predecessor (start of dependency) */}
                     <circle
                       cx={fromX}
                       cy={fromY}
