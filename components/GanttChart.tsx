@@ -20,6 +20,15 @@ interface GanttTask {
   percentComplete: number;
 }
 
+interface DependencyArrow {
+  fromTaskId: string;
+  toTaskId: string;
+  fromRowIndex: number;
+  toRowIndex: number;
+  fromEndPercent: number;  // Where predecessor bar ends (%)
+  toStartPercent: number;  // Where dependent bar starts (%)
+}
+
 export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: GanttChartProps) {
   const ganttChartRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -412,6 +421,59 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
     };
   }, [tasks]);
 
+  // Calculate dependency arrows
+  const dependencyArrows = useMemo((): DependencyArrow[] => {
+    if (ganttData.items.length === 0) return [];
+
+    const arrows: DependencyArrow[] = [];
+
+    // Create index map for quick lookup of row positions
+    const taskIndexMap = new Map<string, number>();
+    ganttData.items.forEach((item, index) => {
+      taskIndexMap.set(item.task.id, index);
+    });
+
+    // Create task data map for date lookups
+    const taskDataMap = new Map<string, GanttTask>();
+    ganttData.items.forEach((item) => {
+      taskDataMap.set(item.task.id, item);
+    });
+
+    // Find all tasks with dependencies and create arrows
+    ganttData.items.forEach((item, toIndex) => {
+      if (item.task.dependsOnTaskId) {
+        const fromIndex = taskIndexMap.get(item.task.dependsOnTaskId);
+        const fromTask = taskDataMap.get(item.task.dependsOnTaskId);
+
+        if (fromIndex !== undefined && fromTask) {
+          // Calculate positions as percentages
+          const fromEndPercent = fromTask.endDate
+            ? calculatePosition(fromTask.endDate)
+            : calculatePosition(fromTask.startDate);
+
+          const toStartPercent = item.startDate
+            ? calculatePosition(item.startDate)
+            : 0;
+
+          arrows.push({
+            fromTaskId: item.task.dependsOnTaskId,
+            toTaskId: item.task.id,
+            fromRowIndex: fromIndex,
+            toRowIndex: toIndex,
+            fromEndPercent,
+            toStartPercent,
+          });
+        }
+      }
+    });
+
+    return arrows;
+  }, [ganttData.items]);
+
+  // Constants for row layout (must match the render layout)
+  const ROW_HEIGHT = 68; // Height of each task row in pixels (h-14 = 56px + mb-3 = 12px)
+  const TASK_BAR_HEIGHT = 56; // Height of the bar area (h-14)
+
   if (ganttData.items.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -573,8 +635,80 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
           </div>
         </div>
 
-        {/* Gantt Bars */}
-        {ganttData.items.map((item) => (
+        {/* Gantt Bars Container with Dependency Arrows */}
+        <div className="relative">
+          {/* SVG Overlay for Dependency Arrows */}
+          {dependencyArrows.length > 0 && (
+            <svg
+              className="absolute top-0 left-80 right-0 pointer-events-none"
+              style={{
+                height: `${ganttData.items.length * ROW_HEIGHT}px`,
+                width: 'calc(100% - 320px)',
+                zIndex: 10,
+              }}
+            >
+              {/* Arrow marker definition */}
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="10"
+                  markerHeight="7"
+                  refX="9"
+                  refY="3.5"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 3.5, 0 7"
+                    fill="#6366f1"
+                  />
+                </marker>
+              </defs>
+
+              {dependencyArrows.map((arrow, index) => {
+                // Calculate Y positions (center of each row's bar area)
+                const fromY = arrow.fromRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
+                const toY = arrow.toRowIndex * ROW_HEIGHT + TASK_BAR_HEIGHT / 2;
+
+                // Create a right-angle path:
+                // 1. Start at end of predecessor bar
+                // 2. Go right a bit
+                // 3. Go down/up to the target row
+                // 4. Go right to the start of dependent bar
+                const midX = Math.max(arrow.fromEndPercent + 2, (arrow.fromEndPercent + arrow.toStartPercent) / 2);
+
+                return (
+                  <g key={`${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
+                    <path
+                      d={`
+                        M ${arrow.fromEndPercent}% ${fromY}
+                        L ${midX}% ${fromY}
+                        L ${midX}% ${toY}
+                        L ${arrow.toStartPercent}% ${toY}
+                      `}
+                      fill="none"
+                      stroke="#6366f1"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      markerEnd="url(#arrowhead)"
+                      opacity="0.8"
+                    />
+                    {/* Small circle at the start point */}
+                    <circle
+                      cx={`${arrow.fromEndPercent}%`}
+                      cy={fromY}
+                      r="4"
+                      fill="#6366f1"
+                      opacity="0.8"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+          )}
+
+          {/* Gantt Bars */}
+          {ganttData.items.map((item) => (
           <div
             key={item.task.id}
             className="flex mb-3 cursor-pointer hover:bg-gray-50 rounded transition items-start"
@@ -625,6 +759,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
             </div>
           </div>
         ))}
+        </div>
 
         {/* Summary Row */}
         <div className="flex mt-6 pt-4 border-t border-gray-300">
@@ -658,7 +793,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
         </div>
 
         {/* Legend */}
-        <div className="flex gap-6 mt-6 pt-4 border-t border-gray-200 text-xs">
+        <div className="flex flex-wrap gap-6 mt-6 pt-4 border-t border-gray-200 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-500 rounded"></div>
             <span className="text-gray-600">0-32% (Not Started)</span>
@@ -674,6 +809,14 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
           <div className="flex items-center gap-2">
             <div className="w-1 h-4 bg-blue-600"></div>
             <span className="text-gray-600">Due Date</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg width="24" height="16" viewBox="0 0 24 16">
+              <circle cx="4" cy="8" r="3" fill="#6366f1" />
+              <line x1="7" y1="8" x2="18" y2="8" stroke="#6366f1" strokeWidth="2" />
+              <polygon points="18,4 24,8 18,12" fill="#6366f1" />
+            </svg>
+            <span className="text-gray-600">Task Dependency</span>
           </div>
         </div>
 
