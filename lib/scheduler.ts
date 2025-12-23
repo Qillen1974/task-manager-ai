@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { db } from '@/lib/db';
 import { generateRecurringTaskInstances, countPendingGenerations } from '@/lib/recurringTaskGenerator';
+import { cleanupCompletedTasks } from '@/lib/completedTaskCleanup';
 
 /**
  * Recurring Task Scheduler
@@ -33,13 +34,19 @@ export function startRecurringTaskScheduler() {
   }
 
   try {
-    // Run once daily at midnight UTC
+    // Run recurring task generation daily at midnight UTC
     cron.schedule('0 0 * * *', async () => {
       await runGenerationTask();
     });
 
+    // Run completed task cleanup daily at 2 AM UTC
+    cron.schedule('0 2 * * *', async () => {
+      await runCleanupTask();
+    });
+
     schedulerStarted = true;
     console.log('[Scheduler] ✓ Recurring task scheduler started (daily at 00:00 UTC)');
+    console.log('[Scheduler] ✓ Completed task cleanup scheduler started (daily at 02:00 UTC)');
 
     // Run initial check only if not already run today
     console.log('[Scheduler] Checking if initial generation is needed...');
@@ -178,6 +185,95 @@ export function getSchedulerStatus() {
 export async function manuallyTriggerGeneration() {
   console.log('[Scheduler] Manual generation trigger');
   return runGenerationTask();
+}
+
+/**
+ * Internal function to run the cleanup task
+ * Removes completed tasks based on user retention settings
+ */
+async function runCleanupTask() {
+  const timestamp = new Date().toISOString();
+
+  try {
+    // Check scheduler state from database
+    const schedulerState = await db.schedulerState.findUnique({
+      where: { id: 'completed-task-cleanup' }
+    }).catch(() => null);
+
+    // Get today's date at midnight UTC
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Check if already run today
+    if (schedulerState?.lastRunDate >= today) {
+      console.log(`[Cleanup ${timestamp}] Already ran today at ${schedulerState.lastRunDate.toISOString()}, skipping`);
+      return;
+    }
+
+    // Mark as running
+    await db.schedulerState.upsert({
+      where: { id: 'completed-task-cleanup' },
+      create: {
+        id: 'completed-task-cleanup',
+        lastRunDate: new Date(),
+        isRunning: true,
+      },
+      update: {
+        isRunning: true,
+      }
+    });
+
+    console.log(`[Cleanup ${timestamp}] Running completed task cleanup...`);
+
+    // Run cleanup
+    const result = await cleanupCompletedTasks();
+
+    // Update scheduler state with result
+    const finalState: any = {
+      isRunning: false,
+      lastRunDate: new Date(),
+    };
+
+    if (!result.success && result.errors.length > 0) {
+      finalState.lastError = result.errors.slice(0, 3).map(e => e.error).join('; ');
+    }
+
+    await db.schedulerState.update({
+      where: { id: 'completed-task-cleanup' },
+      data: finalState
+    });
+
+    if (result.success) {
+      console.log(`[Cleanup ${timestamp}] ✓ ${result.message}`);
+    } else {
+      console.warn(`[Cleanup ${timestamp}] ⚠ ${result.message}`);
+      if (result.errors.length > 0) {
+        console.warn('[Cleanup] Errors:', result.errors);
+      }
+    }
+  } catch (error) {
+    console.error(`[Cleanup ${timestamp}] ✗ Cleanup task failed:`, error);
+    // Try to update error state in database
+    try {
+      await db.schedulerState.update({
+        where: { id: 'completed-task-cleanup' },
+        data: {
+          isRunning: false,
+          lastError: String(error).slice(0, 200)
+        }
+      }).catch(() => null);
+    } catch (stateError) {
+      console.error('[Cleanup] Could not update scheduler state:', stateError);
+    }
+  }
+}
+
+/**
+ * Manually trigger a cleanup run (for testing/debugging)
+ */
+export async function manuallyTriggerCleanup() {
+  console.log('[Scheduler] Manual cleanup trigger');
+  return runCleanupTask();
 }
 
 /**

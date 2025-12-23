@@ -20,7 +20,15 @@ interface Subscription {
 interface UserPreferences {
   enableAutoPrioritization: boolean;
   autoPrioritizationThresholdHours: number;
+  completedTaskRetentionDays: number;
 }
+
+// Retention options based on plan
+const RETENTION_OPTIONS = {
+  FREE: [7, 14, 30, 60, 90],
+  PRO: [7, 14, 30, 60, 90, 180, 365],
+  ENTERPRISE: [7, 14, 30, 60, 90, 180, 365],
+};
 
 export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps) {
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -29,6 +37,7 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
   const [preferences, setPreferences] = useState<UserPreferences>({
     enableAutoPrioritization: true,
     autoPrioritizationThresholdHours: 48,
+    completedTaskRetentionDays: 30,
   });
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [savingPreferences, setSavingPreferences] = useState(false);
@@ -80,6 +89,7 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
           setPreferences({
             enableAutoPrioritization: response.data.data.enableAutoPrioritization ?? true,
             autoPrioritizationThresholdHours: response.data.data.autoPrioritizationThresholdHours ?? 48,
+            completedTaskRetentionDays: response.data.data.completedTaskRetentionDays ?? 30,
           });
         }
       } catch (err) {
@@ -106,6 +116,7 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
         {
           enableAutoPrioritization: preferences.enableAutoPrioritization,
           autoPrioritizationThresholdHours: preferences.autoPrioritizationThresholdHours,
+          completedTaskRetentionDays: preferences.completedTaskRetentionDays,
         },
         {
           headers: {
@@ -319,6 +330,38 @@ export function UserSettings({ userName, userEmail, onClose }: UserSettingsProps
                     </p>
                   </div>
                 )}
+
+                {/* Completed Task Retention Setting */}
+                <div className="pt-4 border-t">
+                  <label htmlFor="retention" className="text-sm font-medium text-gray-900">
+                    Keep Completed Tasks For
+                  </label>
+                  <p className="text-xs text-gray-600 mt-1 mb-2">
+                    Completed tasks older than this will be automatically deleted
+                  </p>
+                  <select
+                    id="retention"
+                    value={preferences.completedTaskRetentionDays}
+                    onChange={(e) =>
+                      setPreferences({
+                        ...preferences,
+                        completedTaskRetentionDays: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  >
+                    {(RETENTION_OPTIONS[subscription?.plan || "FREE"] || RETENTION_OPTIONS.FREE).map((days) => (
+                      <option key={days} value={days}>
+                        {days === 365 ? "1 year" : days >= 30 ? `${days / 30} month${days > 30 ? "s" : ""}` : `${days} days`}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {subscription?.plan === "FREE"
+                      ? "Free plan: max 90 days. Upgrade for up to 1 year retention."
+                      : "PRO/Enterprise: up to 1 year retention available."}
+                  </p>
+                </div>
 
                 {/* Save Button */}
                 <div className="pt-4 border-t">

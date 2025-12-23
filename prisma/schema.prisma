@@ -54,6 +54,9 @@ model UserSettings {
   enableAutoPrioritization        Boolean  @default(true)  // Enable automatic priority adjustment based on due date
   autoPrioritizationThresholdHours Int     @default(48)    // Hours until due date to trigger auto-prioritization
 
+  // Completed task cleanup settings
+  completedTaskRetentionDays      Int      @default(30)    // Days to keep completed tasks (FREE: max 90, PRO/ENTERPRISE: max 365)
+
   createdAt                       DateTime @default(now())
   updatedAt                       DateTime @updatedAt
 

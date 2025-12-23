@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
           userId,
           enableAutoPrioritization: true,
           autoPrioritizationThresholdHours: 48,
+          completedTaskRetentionDays: 30,
         },
       });
     }
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
       data: {
         enableAutoPrioritization: settings.enableAutoPrioritization,
         autoPrioritizationThresholdHours: settings.autoPrioritizationThresholdHours,
+        completedTaskRetentionDays: settings.completedTaskRetentionDays,
       },
     });
   } catch (error) {
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { enableAutoPrioritization, autoPrioritizationThresholdHours } = body;
+    const { enableAutoPrioritization, autoPrioritizationThresholdHours, completedTaskRetentionDays } = body;
 
     // Validate input
     if (typeof enableAutoPrioritization !== "boolean") {
@@ -99,17 +101,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate retention days based on user's plan
+    let validatedRetentionDays = completedTaskRetentionDays ?? 30;
+    if (typeof completedTaskRetentionDays === "number") {
+      // Get user's subscription to enforce plan limits
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { subscription: true },
+      });
+
+      const plan = user?.subscription?.plan || "FREE";
+      const maxRetention = plan === "FREE" ? 90 : 365;
+
+      // Clamp to valid range
+      validatedRetentionDays = Math.max(7, Math.min(completedTaskRetentionDays, maxRetention));
+    }
+
     // Update or create user settings
     const settings = await prisma.userSettings.upsert({
       where: { userId },
       update: {
         enableAutoPrioritization,
         autoPrioritizationThresholdHours,
+        completedTaskRetentionDays: validatedRetentionDays,
       },
       create: {
         userId,
         enableAutoPrioritization,
         autoPrioritizationThresholdHours,
+        completedTaskRetentionDays: validatedRetentionDays,
       },
     });
 
@@ -118,6 +138,7 @@ export async function POST(request: NextRequest) {
       data: {
         enableAutoPrioritization: settings.enableAutoPrioritization,
         autoPrioritizationThresholdHours: settings.autoPrioritizationThresholdHours,
+        completedTaskRetentionDays: settings.completedTaskRetentionDays,
       },
     });
   } catch (error) {
