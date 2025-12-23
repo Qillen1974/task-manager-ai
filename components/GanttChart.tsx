@@ -675,7 +675,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                 >
                   <path
                     d="M 0 0 L 6 3 L 0 6 Z"
-                    fill="#8b5cf6"
+                    fill="#eab308"
                   />
                 </marker>
               </defs>
@@ -718,7 +718,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                     <path
                       d={pathD}
                       fill="none"
-                      stroke="#8b5cf6"
+                      stroke="#eab308"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -729,7 +729,7 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
                       cx={fromX}
                       cy={fromY}
                       r="4"
-                      fill="#8b5cf6"
+                      fill="#eab308"
                     />
                   </g>
                 );
@@ -842,9 +842,9 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
           </div>
           <div className="flex items-center gap-2">
             <svg width="36" height="16" viewBox="0 0 36 16">
-              <circle cx="4" cy="8" r="3" fill="#8b5cf6" />
-              <path d="M 7 8 L 28 8" stroke="#8b5cf6" strokeWidth="2" fill="none" strokeLinecap="round" />
-              <path d="M 26 5 L 32 8 L 26 11 Z" fill="#8b5cf6" />
+              <circle cx="4" cy="8" r="3" fill="#eab308" />
+              <path d="M 7 8 L 28 8" stroke="#eab308" strokeWidth="2" fill="none" strokeLinecap="round" />
+              <path d="M 26 5 L 32 8 L 26 11 Z" fill="#eab308" />
             </svg>
             <span className="text-gray-600">Task Dependency</span>
           </div>
