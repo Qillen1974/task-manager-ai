@@ -421,55 +421,6 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
     };
   }, [tasks]);
 
-  // Calculate dependency arrows
-  const dependencyArrows = useMemo((): DependencyArrow[] => {
-    if (ganttData.items.length === 0) return [];
-
-    const arrows: DependencyArrow[] = [];
-
-    // Create index map for quick lookup of row positions
-    const taskIndexMap = new Map<string, number>();
-    ganttData.items.forEach((item, index) => {
-      taskIndexMap.set(item.task.id, index);
-    });
-
-    // Create task data map for date lookups
-    const taskDataMap = new Map<string, GanttTask>();
-    ganttData.items.forEach((item) => {
-      taskDataMap.set(item.task.id, item);
-    });
-
-    // Find all tasks with dependencies and create arrows
-    ganttData.items.forEach((item, toIndex) => {
-      if (item.task.dependsOnTaskId) {
-        const fromIndex = taskIndexMap.get(item.task.dependsOnTaskId);
-        const fromTask = taskDataMap.get(item.task.dependsOnTaskId);
-
-        if (fromIndex !== undefined && fromTask) {
-          // Calculate positions as percentages
-          const fromEndPercent = fromTask.endDate
-            ? calculatePosition(fromTask.endDate)
-            : calculatePosition(fromTask.startDate);
-
-          const toStartPercent = item.startDate
-            ? calculatePosition(item.startDate)
-            : 0;
-
-          arrows.push({
-            fromTaskId: item.task.dependsOnTaskId,
-            toTaskId: item.task.id,
-            fromRowIndex: fromIndex,
-            toRowIndex: toIndex,
-            fromEndPercent,
-            toStartPercent,
-          });
-        }
-      }
-    });
-
-    return arrows;
-  }, [ganttData.items]);
-
   // Constants for row layout (must match the render layout)
   const ROW_HEIGHT = 68; // Height of each task row in pixels (h-14 = 56px + mb-3 = 12px)
   const TASK_BAR_HEIGHT = 56; // Height of the bar area (h-14)
@@ -523,6 +474,55 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
 
     return Math.max(endPos - startPos, 0.5); // Minimum 0.5% width
   };
+
+  // Calculate dependency arrows (must be after calculatePosition is defined)
+  const dependencyArrows = useMemo((): DependencyArrow[] => {
+    if (ganttData.items.length === 0) return [];
+
+    const arrows: DependencyArrow[] = [];
+
+    // Create index map for quick lookup of row positions
+    const taskIndexMap = new Map<string, number>();
+    ganttData.items.forEach((item, index) => {
+      taskIndexMap.set(item.task.id, index);
+    });
+
+    // Create task data map for date lookups
+    const taskDataMap = new Map<string, GanttTask>();
+    ganttData.items.forEach((item) => {
+      taskDataMap.set(item.task.id, item);
+    });
+
+    // Find all tasks with dependencies and create arrows
+    ganttData.items.forEach((item, toIndex) => {
+      if (item.task.dependsOnTaskId) {
+        const fromIndex = taskIndexMap.get(item.task.dependsOnTaskId);
+        const fromTask = taskDataMap.get(item.task.dependsOnTaskId);
+
+        if (fromIndex !== undefined && fromTask) {
+          // Calculate positions as percentages
+          const fromEndPercent = fromTask.endDate
+            ? calculatePosition(fromTask.endDate)
+            : calculatePosition(fromTask.startDate);
+
+          const toStartPercent = item.startDate
+            ? calculatePosition(item.startDate)
+            : 0;
+
+          arrows.push({
+            fromTaskId: item.task.dependsOnTaskId,
+            toTaskId: item.task.id,
+            fromRowIndex: fromIndex,
+            toRowIndex: toIndex,
+            fromEndPercent,
+            toStartPercent,
+          });
+        }
+      }
+    });
+
+    return arrows;
+  }, [ganttData.items, ganttData.minDate, ganttData.maxDate]);
 
   // Generate month labels for timeline header (equal width like mobile app)
   const generateMonthLabels = () => {
