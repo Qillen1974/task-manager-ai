@@ -8,9 +8,11 @@ import { verifyAdminToken } from "@/lib/adminAuth";
  * Get all beta testers with their activity stats
  */
 export async function GET(request: NextRequest) {
+  console.log("[Beta Testers API] GET request received");
   try {
     // Verify admin token
     const authHeader = request.headers.get("authorization");
+    console.log("[Beta Testers API] Auth header:", authHeader ? "present" : "missing");
     if (!authHeader?.startsWith("Bearer ")) {
       return error("Unauthorized", 401);
     }
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all beta testers with their activity stats
+    console.log("[Beta Testers API] Querying database...");
     const betaTesters = await db.user.findMany({
       where: {
         isBetaTester: true,
@@ -47,6 +50,7 @@ export async function GET(request: NextRequest) {
         betaJoinedAt: "desc",
       },
     });
+    console.log("[Beta Testers API] Found", betaTesters.length, "beta testers");
 
     // Get additional stats for each user
     const betaTestersWithStats = await Promise.all(
