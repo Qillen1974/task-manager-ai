@@ -175,6 +175,17 @@ class ApiClient {
     return tasks.filter((task: any) => task.isRecurring && !task.parentTaskId).length;
   }
 
+  // Mobile subscription endpoints
+  async getMobileSubscription() {
+    const response = await this.client.get('/mobile/subscription');
+    return response.data.data;
+  }
+
+  async markAsBetaTester() {
+    const response = await this.client.post('/mobile/subscription');
+    return response.data.data;
+  }
+
   // Generic methods for additional endpoints
   async post(endpoint: string, data?: any) {
     const response = await this.client.post(endpoint, data);

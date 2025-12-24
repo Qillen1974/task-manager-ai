@@ -1,0 +1,30 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- White background (required for iOS - no transparency) -->
+  <rect width="1024" height="1024" fill="#ffffff"/>
+
+  <!-- Quadrant grid - centered and sized for good visibility -->
+  <!-- Gap between quadrants: 20px, Quadrant size: 340x340, Starting at 162,162 -->
+
+  <!-- Quadrant 1: Purple (Top Left) - Brainstorm -->
+  <rect x="162" y="162" width="340" height="340" rx="40" fill="#8b5cf6"/>
+  <path d="M 242 380 Q 332 280 422 380" stroke="white" stroke-width="24" fill="none" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Quadrant 2: Blue (Top Right) - Planning/Ideas -->
+  <rect x="522" y="162" width="340" height="340" rx="40" fill="#3b82f6"/>
+  <circle cx="692" cy="302" r="60" fill="white" opacity="0.8"/>
+  <circle cx="772" cy="382" r="40" fill="white" opacity="0.6"/>
+
+  <!-- Quadrant 3: Green (Bottom Left) - Track Progress -->
+  <rect x="162" y="522" width="340" height="340" rx="40" fill="#10b981"/>
+  <circle cx="252" cy="612" r="32" fill="white" opacity="0.85"/>
+  <circle cx="332" cy="672" r="32" fill="white" opacity="0.85"/>
+  <circle cx="412" cy="612" r="32" fill="white" opacity="0.85"/>
+
+  <!-- Quadrant 4: Orange (Bottom Right) - Complete/Checkmark -->
+  <rect x="522" y="522" width="340" height="340" rx="40" fill="#f59e0b"/>
+  <!-- Checkmark -->
+  <path d="M 612 712 L 672 772 L 802 622" stroke="white" stroke-width="28" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+  <!-- Center accent dot -->
+  <circle cx="512" cy="512" r="36" fill="#1e293b"/>
+</svg>

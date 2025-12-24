@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../api/client';
-import { User, AuthState } from '../types';
+import { User, AuthState, MobileSubscription } from '../types';
 import { calculateSubscriptionLimits } from '../utils/subscriptionLimits';
 
 interface AuthStore extends AuthState {
@@ -13,6 +13,7 @@ interface AuthStore extends AuthState {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
   fetchSubscription: () => Promise<void>;
+  fetchMobileSubscription: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -24,6 +25,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isAuthenticated: false,
   subscription: null,
   subscriptionLimits: null,
+  mobileSubscription: null,
   isLoading: false,
   error: null,
 
@@ -63,6 +65,27 @@ export const useAuthStore = create<AuthStore>((set) => ({
           const limits = calculateSubscriptionLimits(subscription.plan);
           set({ subscriptionLimits: limits });
         }
+      }
+
+      // Fetch mobile-specific subscription and limits
+      try {
+        const mobileSubscription = await apiClient.getMobileSubscription();
+        set({ mobileSubscription });
+
+        // Auto-mark as beta tester if beta mode is active
+        if (mobileSubscription.betaModeActive && !mobileSubscription.isBetaTester) {
+          try {
+            await apiClient.markAsBetaTester();
+            // Refresh mobile subscription to get updated status
+            const updatedMobileSub = await apiClient.getMobileSubscription();
+            set({ mobileSubscription: updatedMobileSub });
+            console.log('User marked as beta tester');
+          } catch (betaError) {
+            console.error('Failed to mark as beta tester:', betaError);
+          }
+        }
+      } catch (mobileError) {
+        console.error('Failed to fetch mobile subscription:', mobileError);
       }
     } catch (error: any) {
       console.error('Login error details:', {
@@ -115,6 +138,27 @@ export const useAuthStore = create<AuthStore>((set) => ({
           set({ subscriptionLimits: limits });
         }
       }
+
+      // Fetch mobile-specific subscription and limits
+      try {
+        const mobileSubscription = await apiClient.getMobileSubscription();
+        set({ mobileSubscription });
+
+        // Auto-mark as beta tester if beta mode is active
+        if (mobileSubscription.betaModeActive && !mobileSubscription.isBetaTester) {
+          try {
+            await apiClient.markAsBetaTester();
+            // Refresh mobile subscription to get updated status
+            const updatedMobileSub = await apiClient.getMobileSubscription();
+            set({ mobileSubscription: updatedMobileSub });
+            console.log('User marked as beta tester');
+          } catch (betaError) {
+            console.error('Failed to mark as beta tester:', betaError);
+          }
+        }
+      } catch (mobileError) {
+        console.error('Failed to fetch mobile subscription:', mobileError);
+      }
     } catch (error: any) {
       console.error('Registration error details:', {
         message: error.message,
@@ -155,6 +199,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       isAuthenticated: false,
       subscription: null,
       subscriptionLimits: null,
+      mobileSubscription: null,
     });
   },
 
@@ -183,6 +228,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
           set({ subscription, subscriptionLimits: limits });
         } catch (error) {
           console.error('Failed to fetch subscription data:', error);
+        }
+
+        // Fetch mobile-specific subscription
+        try {
+          const mobileSubscription = await apiClient.getMobileSubscription();
+          set({ mobileSubscription });
+
+          // Auto-mark as beta tester if beta mode is active
+          if (mobileSubscription.betaModeActive && !mobileSubscription.isBetaTester) {
+            try {
+              await apiClient.markAsBetaTester();
+              const updatedMobileSub = await apiClient.getMobileSubscription();
+              set({ mobileSubscription: updatedMobileSub });
+              console.log('User marked as beta tester');
+            } catch (betaError) {
+              console.error('Failed to mark as beta tester:', betaError);
+            }
+          }
+        } catch (mobileError) {
+          console.error('Failed to fetch mobile subscription:', mobileError);
         }
       } else {
         set({ isLoading: false });
@@ -235,6 +300,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isAuthenticated: false,
         subscription: null,
         subscriptionLimits: null,
+        mobileSubscription: null,
         isLoading: false,
       });
     } catch (error: any) {
@@ -253,6 +319,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ subscription, subscriptionLimits: limits });
     } catch (error: any) {
       console.error('Failed to fetch subscription:', error);
+      throw error;
+    }
+  },
+
+  fetchMobileSubscription: async () => {
+    try {
+      const mobileSubscription = await apiClient.getMobileSubscription();
+      set({ mobileSubscription });
+    } catch (error: any) {
+      console.error('Failed to fetch mobile subscription:', error);
       throw error;
     }
   },

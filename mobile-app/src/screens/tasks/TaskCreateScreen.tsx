@@ -20,6 +20,7 @@ import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../api/client';
 import { Priority, Project, RecurringPattern, RecurringConfig } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 
 type TaskCreateNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskCreate'>;
 
@@ -59,6 +60,7 @@ export default function TaskCreateScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -103,6 +105,12 @@ export default function TaskCreateScreen() {
         return [...prev, day].sort();
       }
     });
+  };
+
+  const getProgressColor = (value: number) => {
+    if (value < 33) return Colors.error;
+    if (value < 67) return Colors.warning;
+    return Colors.success;
   };
 
   const handleToggleRecurring = () => {
@@ -181,6 +189,7 @@ export default function TaskCreateScreen() {
         priority,
         projectId: selectedProjectId,
         completed: false,
+        progress,
         startDate: startDate ? startDate.toISOString().split('T')[0] : undefined,
         dueDate: dueDate ? dueDate.toISOString().split('T')[0] : undefined,
       };
@@ -363,6 +372,28 @@ export default function TaskCreateScreen() {
               </View>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Progress */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Initial Progress</Text>
+          <View style={styles.progressContainer}>
+            <Slider
+              style={styles.progressSlider}
+              minimumValue={0}
+              maximumValue={100}
+              step={5}
+              value={progress}
+              onValueChange={setProgress}
+              minimumTrackTintColor={getProgressColor(progress)}
+              maximumTrackTintColor={Colors.border}
+              thumbTintColor={getProgressColor(progress)}
+              disabled={isCreating}
+            />
+            <View style={[styles.progressBadge, { backgroundColor: getProgressColor(progress) }]}>
+              <Text style={styles.progressBadgeText}>{Math.round(progress)}%</Text>
+            </View>
+          </View>
         </View>
 
         {/* Start Date */}
@@ -787,6 +818,27 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 120,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  progressSlider: {
+    flex: 1,
+    height: 40,
+  },
+  progressBadge: {
+    width: 52,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBadgeText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   priorityOption: {
     backgroundColor: Colors.white,

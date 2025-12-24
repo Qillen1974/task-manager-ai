@@ -18,6 +18,7 @@ import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { Task } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Slider from '@react-native-community/slider';
 
 type TaskDetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
 type TaskDetailNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
@@ -33,6 +34,7 @@ export default function TaskDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
+  const [progress, setProgress] = useState(task?.progress || 0);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task?.dueDate ? new Date(task.dueDate) : undefined
   );
@@ -43,6 +45,7 @@ export default function TaskDetailScreen() {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
+      setProgress(task.progress || 0);
       setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
     }
   }, [task]);
@@ -74,6 +77,7 @@ export default function TaskDetailScreen() {
       await updateTask(taskId, {
         title: title.trim(),
         description: description.trim(),
+        progress,
         dueDate: dueDate?.toISOString(),
       });
       setIsEditing(false);
@@ -141,6 +145,12 @@ export default function TaskDetailScreen() {
     }
   };
 
+  const getProgressColor = (value: number) => {
+    if (value < 33) return Colors.error;
+    if (value < 67) return Colors.warning;
+    return Colors.success;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.content}>
@@ -162,6 +172,47 @@ export default function TaskDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>Priority</Text>
           <Text style={styles.priorityText}>{getPriorityLabel(task.priority)}</Text>
+        </View>
+
+        {/* Progress */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Progress</Text>
+          {isEditing ? (
+            <View style={styles.progressContainer}>
+              <Slider
+                style={styles.progressSlider}
+                minimumValue={0}
+                maximumValue={100}
+                step={5}
+                value={progress}
+                onValueChange={setProgress}
+                minimumTrackTintColor={getProgressColor(progress)}
+                maximumTrackTintColor={Colors.border}
+                thumbTintColor={getProgressColor(progress)}
+                disabled={isSaving}
+              />
+              <View style={[styles.progressBadge, { backgroundColor: getProgressColor(progress) }]}>
+                <Text style={styles.progressBadgeText}>{Math.round(progress)}%</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${task.progress || 0}%`,
+                      backgroundColor: getProgressColor(task.progress || 0),
+                    },
+                  ]}
+                />
+              </View>
+              <View style={[styles.progressBadge, { backgroundColor: getProgressColor(task.progress || 0) }]}>
+                <Text style={styles.progressBadgeText}>{task.progress || 0}%</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Title */}
@@ -284,6 +335,7 @@ export default function TaskDetailScreen() {
                 setIsEditing(false);
                 setTitle(task.title);
                 setDescription(task.description || '');
+                setProgress(task.progress || 0);
                 setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
                 setShowDatePicker(false);
               }}
@@ -407,6 +459,38 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 120,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  progressSlider: {
+    flex: 1,
+    height: 40,
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: Colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBadge: {
+    width: 52,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBadgeText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   dateButtonsContainer: {
     flexDirection: 'row',

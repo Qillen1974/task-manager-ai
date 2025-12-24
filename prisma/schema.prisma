@@ -23,6 +23,11 @@ model User {
   updatedAt     DateTime   @updatedAt
   lastLoginAt   DateTime?
 
+  // Beta testing & mobile unlock fields
+  isBetaTester    Boolean   @default(false)   // True if user participated in beta testing
+  betaJoinedAt    DateTime?                   // When user joined beta program
+  mobileUnlocked  Boolean   @default(false)   // True if user purchased mobile unlock ($4.99)
+
   // Relations
   projects      Project[]
   tasks         Task[]

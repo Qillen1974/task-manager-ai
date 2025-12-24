@@ -129,4 +129,42 @@ export interface AuthState {
   isAuthenticated: boolean;
   subscription: Subscription | null;
   subscriptionLimits: SubscriptionLimits | null;
+  mobileSubscription: MobileSubscription | null;
+}
+
+// Mobile-specific subscription/unlock status
+export interface MobileSubscription {
+  // User status
+  isBetaTester: boolean;
+  betaJoinedAt: string | null;
+  mobileUnlocked: boolean;
+
+  // Beta mode status
+  betaModeActive: boolean;
+
+  // Computed access level
+  hasPremiumAccess: boolean;
+  accessReason: 'beta_mode' | 'purchased' | 'beta_reward' | 'free';
+
+  // Limits
+  limits: MobileLimits;
+
+  // Current usage
+  usage: {
+    projectCount: number;
+    activeTaskCount: number;
+    recurringTaskCount: number;
+  };
+
+  // Computed limit status
+  canCreateProject: boolean;
+  canCreateTask: boolean;
+  canCreateRecurringTask: boolean;
+}
+
+export interface MobileLimits {
+  maxProjects: number; // -1 = unlimited
+  maxTasks: number; // -1 = unlimited
+  maxRecurringTasks: number; // -1 = unlimited
+  aiButlerQueriesPerDay: number;
 }
