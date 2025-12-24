@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && next build",
-    "postbuild": "npx prisma db push --skip-generate || echo 'Database migration skipped'",
+    "build": "npx prisma generate && npx prisma db push --skip-generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
