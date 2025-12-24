@@ -7,6 +7,7 @@ import { AdminStaffManagement } from "./AdminStaffManagement";
 import { AdminKnowledgeBase } from "./AdminKnowledgeBase";
 import { AdminAIButlerConfig } from "./AdminAIButlerConfig";
 import { AdminChatReview } from "./AdminChatReview";
+import { AdminBetaTesters } from "./AdminBetaTesters";
 
 interface DatabaseUser {
   id: string;
@@ -40,7 +41,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type ActiveTab = "overview" | "users" | "knowledge-base" | "ai-butler" | "chat-review" | "staff" | "system-settings";
+type ActiveTab = "overview" | "users" | "beta-testers" | "knowledge-base" | "ai-butler" | "chat-review" | "staff" | "system-settings";
 
 export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
@@ -170,6 +171,7 @@ export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
             {[
               { id: "overview" as const, label: "Overview", icon: "📊" },
               { id: "users" as const, label: "Manage Users", icon: "👥" },
+              { id: "beta-testers" as const, label: "Beta Testers", icon: "🧪" },
               { id: "knowledge-base" as const, label: "Knowledge Base", icon: "📚" },
               { id: "ai-butler" as const, label: "AI Butler", icon: "🤖" },
               { id: "chat-review" as const, label: "Chat Review", icon: "💬" },
@@ -319,6 +321,8 @@ export function AdminDashboard({ admin, onLogout }: AdminDashboardProps) {
         ) : (
           <>
             {activeTab === "users" && <AdminUserManagement users={users} onUsersChange={setUsers} />}
+
+            {activeTab === "beta-testers" && <AdminBetaTesters />}
 
             {activeTab === "knowledge-base" && <AdminKnowledgeBase />}
 
