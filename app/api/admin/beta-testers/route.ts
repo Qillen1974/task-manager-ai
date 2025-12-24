@@ -8,7 +8,7 @@ import { verifyAdminToken } from "@/lib/adminAuth";
  * Get all beta testers with their activity stats
  */
 export async function GET(request: NextRequest) {
-  return handleApiError(async () => {
+  try {
     // Verify admin token
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -92,7 +92,10 @@ export async function GET(request: NextRequest) {
         pendingUnlock: pendingUnlockCount,
       },
     });
-  });
+  } catch (err) {
+    console.error("[Beta Testers API] Error:", err);
+    return error(`Failed to fetch beta testers: ${err instanceof Error ? err.message : String(err)}`, 500);
+  }
 }
 
 /**
