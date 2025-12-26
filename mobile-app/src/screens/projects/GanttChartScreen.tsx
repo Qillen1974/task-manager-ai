@@ -16,6 +16,7 @@ import { useTaskStore } from '../../store/taskStore';
 import { Task } from '../../types';
 import { useResponsive } from '../../hooks/useResponsive';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import Svg, { Path, Circle, Defs, Marker } from 'react-native-svg';
 
 type GanttChartScreenRouteProp = RouteProp<RootStackParamList, 'GanttChart'>;
 type GanttChartScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GanttChart'>;
@@ -26,6 +27,15 @@ interface GanttTask {
   endDate: Date | null;
   durationDays: number;
   percentComplete: number;
+}
+
+interface DependencyArrow {
+  fromTaskId: string;
+  toTaskId: string;
+  fromRowIndex: number;
+  toRowIndex: number;
+  fromEndX: number;
+  toStartX: number;
 }
 
 export default function GanttChartScreen() {
@@ -40,6 +50,7 @@ export default function GanttChartScreen() {
   // Responsive dimensions
   const MONTH_WIDTH = getDimension(120, 160); // 120 for phone, 160 for tablet
   const TASK_NAME_COLUMN_WIDTH = getDimension(150, 200); // 150 for phone, 200 for tablet
+  const ROW_HEIGHT = 60; // Height of each task row
 
   // Enable landscape mode when screen mounts
   useEffect(() => {
@@ -217,6 +228,44 @@ export default function GanttChartScreen() {
     return Math.max(endPos - startPos, 12); // Minimum 12px width
   };
 
+  // Calculate dependency arrows
+  const dependencyArrows = useMemo(() => {
+    const arrows: DependencyArrow[] = [];
+    const sortedItems = ganttData.items;
+
+    // Create a map of task id to row index
+    const taskIndexMap = new Map<string, number>();
+    sortedItems.forEach((item, index) => {
+      taskIndexMap.set(item.task.id, index);
+    });
+
+    // Find tasks with dependencies
+    sortedItems.forEach((item, toRowIndex) => {
+      const dependsOnId = item.task.dependsOnTaskId;
+      if (dependsOnId && taskIndexMap.has(dependsOnId)) {
+        const fromRowIndex = taskIndexMap.get(dependsOnId)!;
+        const fromItem = sortedItems[fromRowIndex];
+
+        // Calculate X positions
+        if (fromItem.startDate && fromItem.endDate && item.startDate) {
+          const fromEndX = calculatePosition(fromItem.startDate) + calculateWidth(fromItem.startDate, fromItem.endDate);
+          const toStartX = calculatePosition(item.startDate);
+
+          arrows.push({
+            fromTaskId: dependsOnId,
+            toTaskId: item.task.id,
+            fromRowIndex,
+            toRowIndex,
+            fromEndX,
+            toStartX,
+          });
+        }
+      }
+    });
+
+    return arrows;
+  }, [ganttData.items, calculatePosition, calculateWidth]);
+
   const totalResources = ganttData.items.reduce(
     (sum, item) => sum + (item.task.resourceCount || 0),
     0
@@ -302,6 +351,10 @@ export default function GanttChartScreen() {
             <View style={[styles.legendColor, { backgroundColor: '#22C55E' }]} />
             <Text style={styles.legendText}>100%</Text>
           </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#0d9488' }]} />
+            <Text style={styles.legendText}>Dependency</Text>
+          </View>
         </View>
 
         {/* Gantt Chart */}
@@ -330,6 +383,79 @@ export default function GanttChartScreen() {
                   ))}
                 </View>
               </View>
+
+              {/* Dependency Arrows SVG Overlay */}
+              {dependencyArrows.length > 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 60, // Below timeline header
+                    left: TASK_NAME_COLUMN_WIDTH,
+                    width: monthLabels.length * MONTH_WIDTH,
+                    height: ganttData.items.length * ROW_HEIGHT,
+                    zIndex: 10,
+                  }}
+                  pointerEvents="none"
+                >
+                  <Svg
+                    width={monthLabels.length * MONTH_WIDTH}
+                    height={ganttData.items.length * ROW_HEIGHT}
+                  >
+                    <Defs>
+                      <Marker
+                        id="arrowhead"
+                        markerWidth={6}
+                        markerHeight={6}
+                        refX={5}
+                        refY={3}
+                        orient="auto"
+                      >
+                        <Path d="M 0 0 L 6 3 L 0 6 Z" fill="#0d9488" />
+                      </Marker>
+                    </Defs>
+                    {dependencyArrows.map((arrow, index) => {
+                      // Calculate Y positions (center of each row)
+                      const fromY = arrow.fromRowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+                      const toY = arrow.toRowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+                      // X positions
+                      const fromX = arrow.fromEndX;
+                      const toX = Math.max(arrow.toStartX - 8, fromX + 20); // 8px before target bar
+
+                      // Build path
+                      let pathD: string;
+                      if (Math.abs(fromY - toY) < 5) {
+                        // Same row - horizontal line
+                        pathD = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                      } else {
+                        // Different rows - L-shaped path
+                        const verticalX = Math.min(fromX + 15, toX - 20);
+                        pathD = `M ${fromX} ${fromY} L ${verticalX} ${fromY} L ${verticalX} ${toY} L ${toX} ${toY}`;
+                      }
+
+                      return (
+                        <React.Fragment key={`dep-${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
+                          <Path
+                            d={pathD}
+                            fill="none"
+                            stroke="#0d9488"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            markerEnd="url(#arrowhead)"
+                          />
+                          <Circle
+                            cx={fromX}
+                            cy={fromY}
+                            r={4}
+                            fill="#0d9488"
+                          />
+                        </React.Fragment>
+                      );
+                    })}
+                  </Svg>
+                </View>
+              )}
 
               {/* Task Rows */}
               {ganttData.items.map((item, index) => (
