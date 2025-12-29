@@ -50,17 +50,25 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!/[a-z]/.test(password)) {
+      Alert.alert('Error', 'Password must contain at least one lowercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      Alert.alert('Error', 'Password must contain at least one number');
+      return;
+    }
+
     if (!/[!@#$%^&*]/.test(password)) {
       Alert.alert('Error', 'Password must contain at least one special character (!@#$%^&*)');
       return;
     }
 
     try {
-      console.log('Attempting registration with validated password');
       await register(email, password, firstName, lastName);
       // Navigation happens automatically via AppNavigator when isAuthenticated changes
     } catch (error: any) {
-      console.error('Registration failed in RegisterScreen:', error);
       Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
     }
   };
@@ -129,7 +137,7 @@ export default function RegisterScreen() {
             />
 
             <Text style={styles.passwordHint}>
-              Password must be at least 8 characters, contain one uppercase letter, and one special character (!@#$%^&*)
+              Password must be at least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
             </Text>
 
             <TextInput

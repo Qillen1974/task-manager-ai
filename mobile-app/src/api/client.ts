@@ -51,10 +51,10 @@ class ApiClient {
                 return this.client.request(error.config);
               }
             } catch (refreshError) {
-              // Refresh failed, clear tokens and redirect to login
+              // Refresh failed, clear tokens
+              // Auth store will handle redirect when it detects missing tokens
               await SecureStore.deleteItemAsync('authToken');
               await SecureStore.deleteItemAsync('refreshToken');
-              // TODO: Navigate to login screen
             }
           }
         }

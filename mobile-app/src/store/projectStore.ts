@@ -34,10 +34,8 @@ export const useProjectStore = create<ProjectStore>(
             set({ projects, isLoading: false, lastSync: Date.now() });
           } else {
             set({ isLoading: false });
-            console.log('Offline: Using cached projects');
           }
         } catch (error: any) {
-          console.error('Failed to fetch projects:', error);
           set({ error: error.message, isLoading: false });
         }
       },
@@ -78,7 +76,6 @@ export const useProjectStore = create<ProjectStore>(
             return optimisticProject;
           }
         } catch (error: any) {
-          console.error('Failed to create project:', error);
           set({ error: error.message, isLoading: false });
           throw error;
         }
@@ -111,7 +108,6 @@ export const useProjectStore = create<ProjectStore>(
             await syncQueue.addOperation('UPDATE', 'project', { id, updates });
           }
         } catch (error: any) {
-          console.error('Failed to update project:', error);
           set({ projects: originalProjects, error: error.message, isLoading: false });
           throw error;
         }
@@ -133,7 +129,6 @@ export const useProjectStore = create<ProjectStore>(
             await syncQueue.addOperation('DELETE', 'project', { id });
           }
         } catch (error: any) {
-          console.error('Failed to delete project:', error);
           set({ projects: originalProjects });
           throw error;
         }

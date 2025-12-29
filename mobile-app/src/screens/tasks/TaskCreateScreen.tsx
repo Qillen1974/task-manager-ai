@@ -90,7 +90,6 @@ export default function TaskCreateScreen() {
         setSelectedProjectId(projectsData[0].id);
       }
     } catch (error) {
-      console.error('Failed to load projects:', error);
       Alert.alert('Error', 'Failed to load projects. Please try again.');
     } finally {
       setIsLoading(false);
@@ -229,7 +228,6 @@ export default function TaskCreateScreen() {
         },
       ]);
     } catch (error: any) {
-      console.error('Create task error:', error);
       Alert.alert('Error', error.message || 'Failed to create task');
     } finally {
       setIsCreating(false);

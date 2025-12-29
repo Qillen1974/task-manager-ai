@@ -54,7 +54,6 @@ class NotificationService {
 
     // Don't schedule if the task is already overdue
     if (dueDate < now) {
-      console.log(`[Notifications] Skipping overdue task: ${task.title} (due: ${dueDate.toLocaleDateString()})`);
       return null;
     }
 
@@ -71,13 +70,10 @@ class NotificationService {
 
     // If reminder date is in the past, don't schedule
     if (reminderDate < now) {
-      console.log(`[Notifications] Skipping past reminder: ${task.title} (reminder: ${reminderDate.toLocaleString()})`);
       return null;
     }
 
     try {
-      console.log(`[Notifications] Scheduling: "${task.title}" for ${reminderDate.toLocaleString()} (due: ${dueDate.toLocaleDateString()})`);
-
       // Use CALENDAR trigger instead of DATE trigger to get absolute dates
       // This prevents the timeInterval conversion issue
       const notificationId = await Notifications.scheduleNotificationAsync({
@@ -98,10 +94,8 @@ class NotificationService {
         },
       });
 
-      console.log(`[Notifications] ✓ Scheduled notification ID: ${notificationId}`);
       return notificationId;
     } catch (error) {
-      console.error('Failed to schedule notification:', error);
       return null;
     }
   }
@@ -110,7 +104,7 @@ class NotificationService {
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
     } catch (error) {
-      console.error('Failed to cancel notification:', error);
+      // Notification cancellation failed - non-critical
     }
   }
 
@@ -118,14 +112,13 @@ class NotificationService {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (error) {
-      console.error('Failed to cancel all notifications:', error);
+      // Notification cancellation failed - non-critical
     }
   }
 
   async scheduleRemindersForTasks(tasks: Task[]): Promise<void> {
     // Prevent concurrent scheduling operations (race condition protection)
     if (this.isScheduling) {
-      console.log('[Notifications] Scheduling already in progress, skipping duplicate call');
       return;
     }
 
@@ -138,7 +131,6 @@ class NotificationService {
         return;
       }
 
-      console.log('[Notifications] Cancelling all existing notifications...');
       // Cancel all existing reminders first
       await this.cancelAllTaskReminders();
 
@@ -148,26 +140,18 @@ class NotificationService {
       // Verify all notifications are cleared
       const remaining = await Notifications.getAllScheduledNotificationsAsync();
       if (remaining.length > 0) {
-        console.log(`[Notifications] Warning: ${remaining.length} notifications still present after cancellation, clearing again...`);
         await this.cancelAllTaskReminders();
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      console.log(`[Notifications] Scheduling reminders for ${tasks.length} tasks...`);
       // Schedule reminders for all tasks with due dates
-      let scheduledCount = 0;
       for (const task of tasks) {
         if (!task.completed && task.dueDate) {
-          const notificationId = await this.scheduleTaskReminder(task);
-          if (notificationId) {
-            scheduledCount++;
-          }
+          await this.scheduleTaskReminder(task);
         }
       }
-
-      console.log(`[Notifications] ✓ Scheduled ${scheduledCount} notifications`);
     } catch (error) {
-      console.error('[Notifications] Error scheduling reminders:', error);
+      // Notification scheduling failed - non-critical
     } finally {
       this.isScheduling = false;
     }

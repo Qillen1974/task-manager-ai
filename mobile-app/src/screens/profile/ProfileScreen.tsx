@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -125,6 +126,16 @@ export default function ProfileScreen() {
 
     if (!/[A-Z]/.test(newPassword)) {
       Alert.alert('Error', 'Password must contain at least one uppercase letter');
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least one lowercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least one number');
       return;
     }
 
@@ -275,6 +286,20 @@ export default function ProfileScreen() {
             <Text style={styles.menuItemText}>Version</Text>
             <Text style={styles.menuItemValue}>1.0.0</Text>
           </View>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => Linking.openURL('https://taskquadrant.io/privacy')}
+          >
+            <Text style={styles.menuItemText}>Privacy Policy</Text>
+            <Text style={styles.menuItemArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => Linking.openURL('https://taskquadrant.io/terms')}
+          >
+            <Text style={styles.menuItemText}>Terms of Service</Text>
+            <Text style={styles.menuItemArrow}>›</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={handleClearNotifications}>
             <Text style={styles.menuItemText}>Clear Stale Notifications</Text>
             <Text style={styles.menuItemArrow}>›</Text>
@@ -417,7 +442,7 @@ export default function ProfileScreen() {
                   editable={!isChangingPassword}
                 />
                 <Text style={styles.passwordHint}>
-                  Must be at least 8 characters with uppercase and special character
+                  Must be at least 8 characters with uppercase, lowercase, number, and special character
                 </Text>
               </View>
 

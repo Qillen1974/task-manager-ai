@@ -20,7 +20,7 @@ export const persist = <T extends object>(
           const parsedState = JSON.parse(storedState);
           set(parsedState);
         } catch (error) {
-          console.error(`Failed to parse persisted state for ${name}:`, error);
+          // Failed to parse persisted state - will use defaults
         }
       }
     });
@@ -35,7 +35,7 @@ export const persist = <T extends object>(
 
       // Save to AsyncStorage
       AsyncStorage.setItem(name, JSON.stringify(stateToPersist)).catch((error) => {
-        console.error(`Failed to persist state for ${name}:`, error);
+        // State persistence failed - non-critical
       });
     };
 

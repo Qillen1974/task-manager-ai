@@ -46,10 +46,8 @@ export const useTaskStore = create<TaskStore>(
           } else {
             // Use cached tasks when offline
             set({ isLoading: false });
-            console.log('Offline: Using cached tasks');
           }
         } catch (error: any) {
-          console.error('Failed to fetch tasks:', error);
           set({ error: error.message, isLoading: false });
           // Keep cached tasks on error
         }
@@ -103,7 +101,6 @@ export const useTaskStore = create<TaskStore>(
             return optimisticTask;
           }
         } catch (error: any) {
-          console.error('Failed to create task:', error);
           set({ error: error.message, isLoading: false });
           throw error;
         }
@@ -137,7 +134,6 @@ export const useTaskStore = create<TaskStore>(
             await syncQueue.addOperation('UPDATE', 'task', { id, updates });
           }
         } catch (error: any) {
-          console.error('Failed to update task:', error);
           // Revert optimistic update on error
           set({ tasks: originalTasks, error: error.message, isLoading: false });
           throw error;
@@ -165,7 +161,6 @@ export const useTaskStore = create<TaskStore>(
             await syncQueue.addOperation('DELETE', 'task', { id });
           }
         } catch (error: any) {
-          console.error('Failed to delete task:', error);
           // Revert optimistic delete on error
           set({ tasks: originalTasks });
           throw error;

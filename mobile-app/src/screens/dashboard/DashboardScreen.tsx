@@ -40,7 +40,7 @@ export default function DashboardScreen() {
       ]);
       setProjects(projectsData);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      // Data load failed - non-critical
     } finally {
       setRefreshing(false);
     }
@@ -172,7 +172,7 @@ export default function DashboardScreen() {
         <View style={isAnyTablet && isLandscape ? styles.quadrantsGrid : styles.quadrantsStack}>
           {/* Urgent & Important */}
           <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
-            {renderQuadrant('urgent-important', '🔴 Do First', Colors.urgentImportant)}
+            {renderQuadrant('urgent-important', '🟣 Do First', Colors.urgentImportant)}
           </View>
 
           {/* Not Urgent & Important */}
@@ -182,12 +182,12 @@ export default function DashboardScreen() {
 
           {/* Urgent & Not Important */}
           <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
-            {renderQuadrant('urgent-not-important', '🟡 Delegate', Colors.urgentNotImportant)}
+            {renderQuadrant('urgent-not-important', '🟢 Delegate', Colors.urgentNotImportant)}
           </View>
 
           {/* Not Urgent & Not Important */}
           <View style={isAnyTablet && isLandscape ? styles.gridQuadrant : styles.stackQuadrant}>
-            {renderQuadrant('not-urgent-not-important', '⚪ Eliminate', Colors.notUrgentNotImportant)}
+            {renderQuadrant('not-urgent-not-important', '🟠 Eliminate', Colors.notUrgentNotImportant)}
           </View>
         </View>
 
@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dueTodayContainer: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#fee2e2',
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#fbbf24',
+    borderColor: '#ef4444',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -276,18 +276,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fbbf24',
+    backgroundColor: '#ef4444',
   },
   dueTodayTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#78350f',
+    color: '#ffffff',
   },
   dueTodayCount: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#78350f',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    color: '#ef4444',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: '#fecaca',
   },
   dueTodayItemContent: {
     flexDirection: 'row',
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   dueTodayArrow: {
     fontSize: 24,
-    color: '#d97706',
+    color: '#dc2626',
     fontWeight: '300',
   },
   quadrantsGrid: {

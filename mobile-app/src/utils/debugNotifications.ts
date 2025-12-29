@@ -3,15 +3,20 @@ import * as Notifications from 'expo-notifications';
 /**
  * Debug utility to inspect all scheduled notifications
  * Shows what's actually scheduled and when
+ * Only logs output in development mode
  */
 export async function debugScheduledNotifications() {
   try {
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
 
-    console.log(`\n📋 Total scheduled notifications: ${scheduledNotifications.length}\n`);
+    if (__DEV__) {
+      console.log(`\n📋 Total scheduled notifications: ${scheduledNotifications.length}\n`);
+    }
 
     if (scheduledNotifications.length === 0) {
-      console.log('No notifications scheduled');
+      if (__DEV__) {
+        console.log('No notifications scheduled');
+      }
       return {
         total: 0,
         notifications: [],
@@ -22,7 +27,9 @@ export async function debugScheduledNotifications() {
       const trigger = notification.trigger as any;
 
       // Debug: Log the raw trigger to see what we're getting
-      console.log(`[Debug] Notification "${notification.content.body}":`, JSON.stringify(trigger, null, 2));
+      if (__DEV__) {
+        console.log(`[Debug] Notification "${notification.content.body}":`, JSON.stringify(trigger, null, 2));
+      }
 
       let scheduledDate: Date | null = null;
 
@@ -65,7 +72,6 @@ export async function debugScheduledNotifications() {
           }
         }
       } catch (error) {
-        console.warn(`Failed to parse date for notification "${notification.content.body}":`, error);
         scheduledDate = null;
       }
 
@@ -92,15 +98,17 @@ export async function debugScheduledNotifications() {
       groupedByDate[dateKey].push(notif);
     });
 
-    console.log('📅 Notifications grouped by date:');
-    Object.entries(groupedByDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .forEach(([date, notifs]) => {
-        console.log(`\n${date}: ${notifs.length} notifications`);
-        notifs.forEach(n => {
-          console.log(`  - ${n.body} (${n.scheduledDateLocal})`);
+    if (__DEV__) {
+      console.log('📅 Notifications grouped by date:');
+      Object.entries(groupedByDate)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([date, notifs]) => {
+          console.log(`\n${date}: ${notifs.length} notifications`);
+          notifs.forEach(n => {
+            console.log(`  - ${n.body} (${n.scheduledDateLocal})`);
+          });
         });
-      });
+    }
 
     return {
       total: scheduledNotifications.length,
@@ -108,7 +116,6 @@ export async function debugScheduledNotifications() {
       groupedByDate,
     };
   } catch (error) {
-    console.error('Error debugging notifications:', error);
     return {
       total: 0,
       notifications: [],

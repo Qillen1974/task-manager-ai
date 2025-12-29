@@ -33,7 +33,7 @@ class SyncQueue {
         this.queue = JSON.parse(queueJson);
       }
     } catch (error) {
-      console.error('Failed to load sync queue:', error);
+      // Queue load failed - will start with empty queue
     }
   }
 
@@ -44,7 +44,7 @@ class SyncQueue {
     try {
       await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(this.queue));
     } catch (error) {
-      console.error('Failed to save sync queue:', error);
+      // Queue save failed - operations may be lost on app restart
     }
   }
 
@@ -128,18 +128,14 @@ class SyncQueue {
             // Remove from queue on success
             this.queue = this.queue.filter((op) => op.id !== operation.id);
           } else {
-            console.warn(`No sync callback registered for ${operation.entity}_${operation.type}`);
             // Remove operations with no handler
             this.queue = this.queue.filter((op) => op.id !== operation.id);
           }
         } catch (error) {
-          console.error(`Failed to sync operation ${operation.id}:`, error);
-
           // Increment retry count
           operation.retries += 1;
 
           if (operation.retries >= MAX_RETRIES) {
-            console.error(`Max retries reached for operation ${operation.id}, removing from queue`);
             this.queue = this.queue.filter((op) => op.id !== operation.id);
           } else {
             failedOperations.push(operation);

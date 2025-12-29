@@ -100,7 +100,6 @@ export default function AIButler() {
   };
 
   const handleClose = () => {
-    console.log('Close button pressed'); // Debug log
     setIsOpen(false);
     setMessages([]);
     setInput('');

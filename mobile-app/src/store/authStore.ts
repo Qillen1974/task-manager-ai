@@ -33,7 +33,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.login(email, password);
-      console.log('Login response:', response);
 
       // Backend returns: { user, tokens: { accessToken, refreshToken }, subscription }
       const { user, tokens, subscription } = response;
@@ -60,7 +59,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
           const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscriptionLimits: limits });
         } catch (error) {
-          console.error('Failed to calculate subscription limits:', error);
           // Fallback: calculate without current count
           const limits = calculateSubscriptionLimits(subscription.plan);
           set({ subscriptionLimits: limits });
@@ -79,21 +77,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
             // Refresh mobile subscription to get updated status
             const updatedMobileSub = await apiClient.getMobileSubscription();
             set({ mobileSubscription: updatedMobileSub });
-            console.log('User marked as beta tester');
           } catch (betaError) {
-            console.error('Failed to mark as beta tester:', betaError);
+            // Beta tester marking failed - non-critical error
           }
         }
       } catch (mobileError) {
-        console.error('Failed to fetch mobile subscription:', mobileError);
+        // Mobile subscription fetch failed - non-critical error
       }
     } catch (error: any) {
-      console.error('Login error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        code: error.code,
-      });
       const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       set({ error: errorMessage, isLoading: false });
       throw new Error(errorMessage);
@@ -103,9 +94,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   register: async (email: string, password: string, firstName?: string, lastName?: string) => {
     set({ isLoading: true, error: null });
     try {
-      console.log('Attempting registration with:', { email, firstName, lastName });
       const response = await apiClient.register(email, password, firstName, lastName);
-      console.log('Registration response:', response);
 
       // Backend returns: { user, tokens: { accessToken, refreshToken }, subscription }
       const { user, tokens, subscription } = response;
@@ -132,7 +121,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
           const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscriptionLimits: limits });
         } catch (error) {
-          console.error('Failed to calculate subscription limits:', error);
           // Fallback: calculate without current count
           const limits = calculateSubscriptionLimits(subscription.plan);
           set({ subscriptionLimits: limits });
@@ -151,25 +139,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
             // Refresh mobile subscription to get updated status
             const updatedMobileSub = await apiClient.getMobileSubscription();
             set({ mobileSubscription: updatedMobileSub });
-            console.log('User marked as beta tester');
           } catch (betaError) {
-            console.error('Failed to mark as beta tester:', betaError);
+            // Beta tester marking failed - non-critical error
           }
         }
       } catch (mobileError) {
-        console.error('Failed to fetch mobile subscription:', mobileError);
+        // Mobile subscription fetch failed - non-critical error
       }
     } catch (error: any) {
-      console.error('Registration error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        code: error.code,
-        config: {
-          url: error.config?.url,
-          baseURL: error.config?.baseURL,
-        },
-      });
       let errorMessage = 'Registration failed';
 
       if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
@@ -227,7 +204,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
           const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
           set({ subscription, subscriptionLimits: limits });
         } catch (error) {
-          console.error('Failed to fetch subscription data:', error);
+          // Subscription fetch failed - non-critical error
         }
 
         // Fetch mobile-specific subscription
@@ -241,13 +218,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
               await apiClient.markAsBetaTester();
               const updatedMobileSub = await apiClient.getMobileSubscription();
               set({ mobileSubscription: updatedMobileSub });
-              console.log('User marked as beta tester');
             } catch (betaError) {
-              console.error('Failed to mark as beta tester:', betaError);
+              // Beta tester marking failed - non-critical error
             }
           }
         } catch (mobileError) {
-          console.error('Failed to fetch mobile subscription:', mobileError);
+          // Mobile subscription fetch failed - non-critical error
         }
       } else {
         set({ isLoading: false });
@@ -266,7 +242,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const updatedUser = await apiClient.updateProfile(updates);
       set({ user: updatedUser, isLoading: false });
     } catch (error: any) {
-      console.error('Update profile error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
       set({ error: errorMessage, isLoading: false });
       throw new Error(errorMessage);
@@ -279,7 +254,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       await apiClient.changePassword(currentPassword, newPassword);
       set({ isLoading: false });
     } catch (error: any) {
-      console.error('Change password error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to change password';
       set({ error: errorMessage, isLoading: false });
       throw new Error(errorMessage);
@@ -304,7 +278,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isLoading: false,
       });
     } catch (error: any) {
-      console.error('Delete account error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete account';
       set({ error: errorMessage, isLoading: false });
       throw new Error(errorMessage);
@@ -318,7 +291,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const limits = calculateSubscriptionLimits(subscription.plan, recurringTaskCount);
       set({ subscription, subscriptionLimits: limits });
     } catch (error: any) {
-      console.error('Failed to fetch subscription:', error);
       throw error;
     }
   },
@@ -328,7 +300,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const mobileSubscription = await apiClient.getMobileSubscription();
       set({ mobileSubscription });
     } catch (error: any) {
-      console.error('Failed to fetch mobile subscription:', error);
       throw error;
     }
   },

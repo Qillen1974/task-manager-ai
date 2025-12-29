@@ -75,7 +75,7 @@ export async function cleanupCompletedTasks(): Promise<CleanupResult> {
         // Delete completed tasks that:
         // 1. Are completed
         // 2. Were completed before the cutoff date
-        // 3. Are NOT recurring task templates (isRecurring = false or null)
+        // 3. Are NOT recurring task templates (isRecurring = false)
         const result = await db.task.deleteMany({
           where: {
             userId: user.id,
@@ -84,10 +84,7 @@ export async function cleanupCompletedTasks(): Promise<CleanupResult> {
               lt: cutoffDate,
             },
             // Never delete recurring task templates
-            OR: [
-              { isRecurring: false },
-              { isRecurring: null },
-            ],
+            isRecurring: false,
           },
         });
 
@@ -173,10 +170,7 @@ export async function previewCleanupForUser(userId: string): Promise<{
       completedAt: {
         lt: cutoffDate,
       },
-      OR: [
-        { isRecurring: false },
-        { isRecurring: null },
-      ],
+      isRecurring: false,
     },
   });
 
@@ -184,10 +178,7 @@ export async function previewCleanupForUser(userId: string): Promise<{
     where: {
       userId: user.id,
       completed: true,
-      OR: [
-        { isRecurring: false },
-        { isRecurring: null },
-      ],
+      isRecurring: false,
     },
     orderBy: {
       completedAt: "asc",
