@@ -94,7 +94,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   register: async (email: string, password: string, firstName?: string, lastName?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.register(email, password, firstName, lastName);
+      // Check if this is a beta build (TestFlight)
+      const isBetaBuild = process.env.EXPO_PUBLIC_IS_BETA_BUILD === 'true';
+      const response = await apiClient.register(email, password, firstName, lastName, isBetaBuild);
 
       // Backend returns: { user, tokens: { accessToken, refreshToken }, subscription }
       const { user, tokens, subscription } = response;

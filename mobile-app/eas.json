@@ -12,10 +12,19 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_IS_BETA_BUILD": "true"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "charles.wee74@icloud.com",
+        "ascAppId": "6756943665",
+        "appleTeamId": "HAFB7WG7KT"
+      }
+    }
   }
 }

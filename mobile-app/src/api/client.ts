@@ -70,12 +70,13 @@ class ApiClient {
     return response.data.data;
   }
 
-  async register(email: string, password: string, firstName?: string, lastName?: string) {
+  async register(email: string, password: string, firstName?: string, lastName?: string, isBetaTester?: boolean) {
     const response = await this.client.post('/auth/register', {
       email,
       password,
       firstName,
       lastName,
+      isBetaTester,
     });
     // Backend returns: { success: true, data: { user, tokens, subscription } }
     return response.data.data;

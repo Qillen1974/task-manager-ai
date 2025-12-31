@@ -15,7 +15,7 @@ import { PROJECT_LIMITS, TASK_LIMITS } from "@/lib/projectLimits";
 export async function POST(request: NextRequest) {
   return handleApiError(async () => {
     const body = await request.json();
-    const { email, password, firstName, lastName } = body;
+    const { email, password, firstName, lastName, isBetaTester } = body;
 
     // Validation
     if (!email || !password) {
@@ -52,6 +52,9 @@ export async function POST(request: NextRequest) {
         passwordHash,
         firstName: firstName?.trim() || undefined,
         lastName: lastName?.trim() || undefined,
+        // Mark as beta tester if registering from TestFlight
+        isBetaTester: isBetaTester === true,
+        betaJoinedAt: isBetaTester === true ? new Date() : undefined,
         subscription: {
           create: {
             plan: SubscriptionPlan.FREE,
