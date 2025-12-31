@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -16,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
+import { useProjectStore } from '../../store/projectStore';
 import { Task } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
@@ -29,24 +32,35 @@ export default function TaskDetailScreen() {
   const { taskId } = route.params;
 
   const { tasks, updateTask, deleteTask, toggleComplete } = useTaskStore();
+  const { projects } = useProjectStore();
   const task = tasks.find((t) => t.id === taskId);
 
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [progress, setProgress] = useState(task?.progress || 0);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    task?.startDate ? new Date(task.startDate) : undefined
+  );
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task?.dueDate ? new Date(task.dueDate) : undefined
   );
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(task?.projectId || null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [isSaving, setSaving] = useState(false);
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
       setProgress(task.progress || 0);
+      setStartDate(task.startDate ? new Date(task.startDate) : undefined);
       setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
+      setSelectedProjectId(task.projectId || null);
     }
   }, [task]);
 
@@ -72,13 +86,21 @@ export default function TaskDetailScreen() {
       return;
     }
 
+    // Validate that due date is not before start date
+    if (startDate && dueDate && dueDate < startDate) {
+      Alert.alert('Error', 'Due date cannot be before start date');
+      return;
+    }
+
     setSaving(true);
     try {
       await updateTask(taskId, {
         title: title.trim(),
         description: description.trim(),
         progress,
+        startDate: startDate?.toISOString(),
         dueDate: dueDate?.toISOString(),
+        projectId: selectedProjectId,
       });
       setIsEditing(false);
       Alert.alert('Success', 'Task updated successfully');
@@ -119,11 +141,22 @@ export default function TaskDetailScreen() {
     );
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setStartDate(selectedDate);
+    }
+  };
+
+  const handleDueDateChange = (event: any, selectedDate?: Date) => {
+    setShowDueDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       setDueDate(selectedDate);
     }
+  };
+
+  const handleClearStartDate = () => {
+    setStartDate(undefined);
   };
 
   const handleClearDueDate = () => {
@@ -252,6 +285,60 @@ export default function TaskDetailScreen() {
           )}
         </View>
 
+        {/* Start Date */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Start Date</Text>
+          {isEditing ? (
+            <>
+              <View style={styles.dateButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.dateButton, styles.selectDateButton]}
+                  onPress={() => setShowStartDatePicker(true)}
+                  disabled={isSaving}
+                >
+                  <Text style={styles.dateButtonText}>
+                    {startDate
+                      ? startDate.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Select Start Date'}
+                  </Text>
+                </TouchableOpacity>
+                {startDate && (
+                  <TouchableOpacity
+                    style={[styles.dateButton, styles.clearDateButton]}
+                    onPress={handleClearStartDate}
+                    disabled={isSaving}
+                  >
+                    <Text style={styles.clearDateButtonText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {showStartDatePicker && (
+                <DateTimePicker
+                  value={startDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleStartDateChange}
+                />
+              )}
+            </>
+          ) : (
+            <Text style={styles.valueText}>
+              {task.startDate
+                ? new Date(task.startDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : 'No start date'}
+            </Text>
+          )}
+        </View>
+
         {/* Due Date */}
         <View style={styles.section}>
           <Text style={styles.label}>Due Date</Text>
@@ -260,7 +347,7 @@ export default function TaskDetailScreen() {
               <View style={styles.dateButtonsContainer}>
                 <TouchableOpacity
                   style={[styles.dateButton, styles.selectDateButton]}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => setShowDueDatePicker(true)}
                   disabled={isSaving}
                 >
                   <Text style={styles.dateButtonText}>
@@ -283,13 +370,13 @@ export default function TaskDetailScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-              {showDatePicker && (
+              {showDueDatePicker && (
                 <DateTimePicker
                   value={dueDate || new Date()}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleDateChange}
-                  minimumDate={new Date()}
+                  onChange={handleDueDateChange}
+                  minimumDate={startDate || undefined}
                 />
               )}
             </>
@@ -304,6 +391,41 @@ export default function TaskDetailScreen() {
                   })
                 : 'No due date'}
             </Text>
+          )}
+        </View>
+
+        {/* Project */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Project</Text>
+          {isEditing ? (
+            <TouchableOpacity
+              style={styles.projectSelector}
+              onPress={() => setShowProjectPicker(true)}
+              disabled={isSaving}
+            >
+              {selectedProject ? (
+                <View style={styles.selectedProjectContainer}>
+                  <View style={[styles.projectColorDot, { backgroundColor: selectedProject.color }]} />
+                  <Text style={styles.projectSelectorText}>{selectedProject.name}</Text>
+                </View>
+              ) : (
+                <Text style={styles.projectSelectorPlaceholder}>Select a project</Text>
+              )}
+              <Text style={styles.projectSelectorArrow}>▼</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.projectDisplayContainer}>
+              {task.projectId ? (
+                <>
+                  <View style={[styles.projectColorDot, { backgroundColor: projects.find(p => p.id === task.projectId)?.color || Colors.primary }]} />
+                  <Text style={styles.valueText}>
+                    {projects.find(p => p.id === task.projectId)?.name || 'Unknown Project'}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.valueText}>No project</Text>
+              )}
+            </View>
           )}
         </View>
 
@@ -336,8 +458,12 @@ export default function TaskDetailScreen() {
                 setTitle(task.title);
                 setDescription(task.description || '');
                 setProgress(task.progress || 0);
+                setStartDate(task.startDate ? new Date(task.startDate) : undefined);
                 setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
-                setShowDatePicker(false);
+                setSelectedProjectId(task.projectId || null);
+                setShowStartDatePicker(false);
+                setShowDueDatePicker(false);
+                setShowProjectPicker(false);
               }}
               disabled={isSaving}
             >
@@ -387,6 +513,53 @@ export default function TaskDetailScreen() {
           </>
         )}
       </View>
+
+      {/* Project Picker Modal */}
+      <Modal
+        visible={showProjectPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProjectPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Project</Text>
+              <TouchableOpacity onPress={() => setShowProjectPicker(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={[{ id: null, name: 'No Project', color: Colors.textSecondary }, ...projects]}
+              keyExtractor={(item) => item.id || 'no-project'}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.projectItem,
+                    selectedProjectId === item.id && styles.projectItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedProjectId(item.id);
+                    setShowProjectPicker(false);
+                  }}
+                >
+                  <View style={[styles.projectColorDot, { backgroundColor: item.color }]} />
+                  <Text style={[
+                    styles.projectItemText,
+                    selectedProjectId === item.id && styles.projectItemTextSelected,
+                  ]}>
+                    {item.name}
+                  </Text>
+                  {selectedProjectId === item.id && (
+                    <Text style={styles.projectItemCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              style={styles.projectList}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -577,6 +750,100 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.white,
     fontSize: 16,
+    fontWeight: '600',
+  },
+  // Project picker styles
+  projectSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+  },
+  selectedProjectContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  projectColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  projectSelectorText: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  projectSelectorPlaceholder: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  projectSelectorArrow: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  projectDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  modalCloseButton: {
+    fontSize: 20,
+    color: Colors.textSecondary,
+    padding: 4,
+  },
+  projectList: {
+    padding: 8,
+  },
+  projectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  projectItemSelected: {
+    backgroundColor: Colors.infoBackground,
+  },
+  projectItemText: {
+    fontSize: 16,
+    color: Colors.text,
+    flex: 1,
+  },
+  projectItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  projectItemCheck: {
+    fontSize: 18,
+    color: Colors.primary,
     fontWeight: '600',
   },
 });

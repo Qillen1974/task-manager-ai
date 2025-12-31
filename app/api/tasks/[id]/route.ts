@@ -5,6 +5,75 @@ import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { sendTaskCompletionNotification } from "@/lib/notificationService";
 
 /**
+ * Cascade start date updates to dependent tasks
+ * When a predecessor task's due date changes, dependent tasks need their dates adjusted
+ */
+async function cascadeDependentTaskDates(
+  predecessorTaskId: string,
+  predecessorDueDate: Date | null
+): Promise<{ taskId: string; oldStartDate: Date | null; newStartDate: Date | null }[]> {
+  const cascadedUpdates: { taskId: string; oldStartDate: Date | null; newStartDate: Date | null }[] = [];
+
+  if (!predecessorDueDate) {
+    return cascadedUpdates;
+  }
+
+  // Find all tasks that depend on this task
+  const dependentTasks = await db.task.findMany({
+    where: {
+      dependsOnTaskId: predecessorTaskId,
+    },
+    select: {
+      id: true,
+      startDate: true,
+      dueDate: true,
+    },
+  });
+
+  for (const dependent of dependentTasks) {
+    // If dependent task has a start date before or on the predecessor's due date, push it forward
+    if (dependent.startDate && dependent.startDate <= predecessorDueDate) {
+      // New start date is the day after predecessor's due date
+      const newStartDate = new Date(predecessorDueDate);
+      newStartDate.setDate(newStartDate.getDate() + 1);
+
+      // Calculate the shift in days
+      const shiftDays = Math.ceil((newStartDate.getTime() - dependent.startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Prepare update data
+      const updateData: { startDate: Date; dueDate?: Date } = {
+        startDate: newStartDate,
+      };
+
+      // If dependent task has a due date, shift it by the same amount
+      if (dependent.dueDate) {
+        const newDueDate = new Date(dependent.dueDate);
+        newDueDate.setDate(newDueDate.getDate() + shiftDays);
+        updateData.dueDate = newDueDate;
+      }
+
+      // Update the dependent task
+      await db.task.update({
+        where: { id: dependent.id },
+        data: updateData,
+      });
+
+      cascadedUpdates.push({
+        taskId: dependent.id,
+        oldStartDate: dependent.startDate,
+        newStartDate: newStartDate,
+      });
+
+      // Recursively cascade to tasks that depend on this dependent task
+      const nestedCascades = await cascadeDependentTaskDates(dependent.id, updateData.dueDate || null);
+      cascadedUpdates.push(...nestedCascades);
+    }
+  }
+
+  return cascadedUpdates;
+}
+
+/**
  * GET /api/tasks/[id] - Get a specific task
  */
 export async function GET(
@@ -359,6 +428,15 @@ export async function PATCH(
       }
     }
 
+    // Cascade date changes to dependent tasks if start date or due date was updated
+    let cascadedTasks: { taskId: string; oldStartDate: Date | null; newStartDate: Date | null }[] = [];
+    if (startDate !== undefined || dueDate !== undefined) {
+      const newDueDate = updated.dueDate;
+      if (newDueDate) {
+        cascadedTasks = await cascadeDependentTaskDates(params.id, newDueDate);
+      }
+    }
+
     // Fetch user data for assignments
     const updatedAssignmentUserIds = updated.assignments?.map(a => a.userId) || [];
     const updatedUsers = updatedAssignmentUserIds.length > 0
@@ -411,6 +489,8 @@ export async function PATCH(
         ...a,
         user: updatedUserMap.get(a.userId),
       })),
+      // Include cascaded dependent task updates in response
+      cascadedUpdates: cascadedTasks.length > 0 ? cascadedTasks : undefined,
     };
 
     return success(formattedTask);
