@@ -31,14 +31,21 @@ async function cascadeDependentTaskDates(
   });
 
   for (const dependent of dependentTasks) {
-    // If dependent task has a start date before or on the predecessor's due date, push it forward
-    if (dependent.startDate && dependent.startDate <= predecessorDueDate) {
-      // New start date is the day after predecessor's due date
-      const newStartDate = new Date(predecessorDueDate);
-      newStartDate.setDate(newStartDate.getDate() + 1);
+    // New start date should be the day after predecessor's due date
+    const newStartDate = new Date(predecessorDueDate);
+    newStartDate.setDate(newStartDate.getDate() + 1);
 
-      // Calculate the shift in days
-      const shiftDays = Math.ceil((newStartDate.getTime() - dependent.startDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Check if we need to update this dependent task:
+    // 1. If it has no start date, set it to day after predecessor's due date
+    // 2. If it has a start date that's before or on the predecessor's due date, push it forward
+    const needsUpdate = !dependent.startDate || dependent.startDate <= predecessorDueDate;
+
+    if (needsUpdate) {
+      // Calculate the shift in days (for shifting due date proportionally)
+      let shiftDays = 0;
+      if (dependent.startDate) {
+        shiftDays = Math.ceil((newStartDate.getTime() - dependent.startDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
 
       // Prepare update data
       const updateData: { startDate: Date; dueDate?: Date } = {
@@ -46,7 +53,7 @@ async function cascadeDependentTaskDates(
       };
 
       // If dependent task has a due date, shift it by the same amount
-      if (dependent.dueDate) {
+      if (dependent.dueDate && shiftDays > 0) {
         const newDueDate = new Date(dependent.dueDate);
         newDueDate.setDate(newDueDate.getDate() + shiftDays);
         updateData.dueDate = newDueDate;
@@ -65,7 +72,7 @@ async function cascadeDependentTaskDates(
       });
 
       // Recursively cascade to tasks that depend on this dependent task
-      const nestedCascades = await cascadeDependentTaskDates(dependent.id, updateData.dueDate || null);
+      const nestedCascades = await cascadeDependentTaskDates(dependent.id, updateData.dueDate || dependent.dueDate || null);
       cascadedUpdates.push(...nestedCascades);
     }
   }
