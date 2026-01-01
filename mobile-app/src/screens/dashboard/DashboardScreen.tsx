@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -20,6 +22,8 @@ import { Colors, getPriorityColor, getPriorityLabel } from '../../constants/colo
 import { useTaskStore } from '../../store/taskStore';
 import { useResponsive } from '../../hooks/useResponsive';
 
+const WEB_PROMO_DISMISSED_KEY = 'webPromoDismissed';
+
 type DashboardNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabsParamList, 'Dashboard'>,
   NativeStackNavigationProp<RootStackParamList>
@@ -30,7 +34,32 @@ export default function DashboardScreen() {
   const { tasks, isLoading, fetchTasks } = useTaskStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showWebPromo, setShowWebPromo] = useState(false);
   const { isAnyTablet, isLandscape } = useResponsive();
+
+  // Check if web promo should be shown
+  useEffect(() => {
+    const checkPromoStatus = async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem(WEB_PROMO_DISMISSED_KEY);
+        if (dismissed !== 'true') {
+          setShowWebPromo(true);
+        }
+      } catch {
+        setShowWebPromo(true);
+      }
+    };
+    checkPromoStatus();
+  }, []);
+
+  const dismissWebPromo = async () => {
+    try {
+      await AsyncStorage.setItem(WEB_PROMO_DISMISSED_KEY, 'true');
+      setShowWebPromo(false);
+    } catch {
+      setShowWebPromo(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -138,6 +167,28 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Web App Promo Card */}
+        {showWebPromo && (
+          <View style={styles.webPromoCard}>
+            <TouchableOpacity
+              style={styles.webPromoDismiss}
+              onPress={dismissWebPromo}
+            >
+              <Text style={styles.webPromoDismissText}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.webPromoTitle}>Want more features?</Text>
+            <Text style={styles.webPromoText}>
+              Team collaboration, advanced reports, and more on the web app
+            </Text>
+            <TouchableOpacity
+              style={styles.webPromoButton}
+              onPress={() => Linking.openURL('https://taskquadrant.io')}
+            >
+              <Text style={styles.webPromoButtonText}>Visit taskquadrant.io</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Due Today Section */}
         {getDueTodayTasks().length > 0 && (
           <View style={styles.dueTodayContainer}>
@@ -448,5 +499,55 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '300',
     lineHeight: 32,
+  },
+  webPromoCard: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    position: 'relative',
+  },
+  webPromoDismiss: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  webPromoDismissText: {
+    fontSize: 18,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  webPromoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  webPromoText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  webPromoButton: {
+    backgroundColor: '#0ea5e9',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  webPromoButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

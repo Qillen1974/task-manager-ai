@@ -280,6 +280,25 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Web App Promotion */}
+        <View style={styles.webPromoSection}>
+          <View style={styles.webPromoContent}>
+            <Text style={styles.webPromoIcon}>🌐</Text>
+            <View style={styles.webPromoText}>
+              <Text style={styles.webPromoTitle}>Use TaskQuadrant on Web</Text>
+              <Text style={styles.webPromoSubtitle}>
+                Team collaboration, advanced reports, and more
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.webPromoButton}
+            onPress={() => Linking.openURL('https://taskquadrant.io')}
+          >
+            <Text style={styles.webPromoButtonText}>Open Web App</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>App Info</Text>
           <View style={styles.menuItem}>
@@ -746,6 +765,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   upgradeButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  webPromoSection: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  webPromoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  webPromoIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  webPromoText: {
+    flex: 1,
+  },
+  webPromoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  webPromoSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  webPromoButton: {
+    backgroundColor: '#0ea5e9',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  webPromoButtonText: {
     color: Colors.white,
     fontSize: 14,
     fontWeight: '600',
