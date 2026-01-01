@@ -323,10 +323,17 @@ export default function ProjectsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📁</Text>
               <Text style={styles.emptyText}>No projects yet</Text>
               <Text style={styles.emptySubtext}>
-                Tap the + button to create your first project
+                Create your first project to start organizing your tasks
               </Text>
+              <TouchableOpacity
+                style={styles.emptyCreateButton}
+                onPress={() => setShowCreateModal(true)}
+              >
+                <Text style={styles.emptyCreateButtonText}>+ Create Project</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -731,17 +738,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  emptyCreateButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  emptyCreateButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   fab: {
     position: 'absolute',
