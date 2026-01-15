@@ -187,6 +187,20 @@ class ApiClient {
     return response.data.data;
   }
 
+  // Mobile unlock (In-App Purchase)
+  async verifyMobileUnlock(receiptData: string, transactionId: string) {
+    const response = await this.client.post('/mobile/unlock', {
+      receiptData,
+      transactionId,
+    });
+    return response.data.data;
+  }
+
+  async getMobileUnlockStatus() {
+    const response = await this.client.get('/mobile/unlock');
+    return response.data.data;
+  }
+
   // Generic methods for additional endpoints
   async post(endpoint: string, data?: any) {
     const response = await this.client.post(endpoint, data);

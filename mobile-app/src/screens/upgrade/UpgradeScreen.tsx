@@ -5,125 +5,143 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Linking,
   Alert,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
+import { useInAppPurchases, MOBILE_UNLOCK_PRODUCT_ID } from '../../hooks/useInAppPurchases';
 import { Colors } from '../../constants/colors';
 
 export default function UpgradeScreen() {
   const navigation = useNavigation();
-  const { subscription, user } = useAuthStore();
+  const { subscription, mobileSubscription } = useAuthStore();
+  const {
+    isConnected,
+    isLoading,
+    isPurchasing,
+    mobileUnlockProduct,
+    purchaseProduct,
+    restorePurchases,
+    error,
+  } = useInAppPurchases();
 
   const currentPlan = subscription?.plan || 'FREE';
+  const hasMobileUnlock = mobileSubscription?.mobileUnlocked || mobileSubscription?.hasPremiumAccess;
 
-  const handleUpgrade = () => {
-    Alert.alert(
-      'Upgrade Your Plan',
-      `To upgrade to PRO or ENTERPRISE:\n\n1. Open TaskQuadrant on your web browser\n\n2. Log in with your account (${user?.email})\n\n3. Go to Settings → Subscription → Upgrade\n\n4. Choose your plan and complete the payment\n\nYour upgrade will be available on the mobile app immediately after payment!`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open Web App',
-          onPress: () => Linking.openURL('https://taskquadrant.io/auth?mode=login'),
-        },
-      ]
-    );
+  const handleMobileUnlockPurchase = () => {
+    if (!isConnected) {
+      Alert.alert('Error', 'Unable to connect to App Store. Please try again later.');
+      return;
+    }
+
+    if (hasMobileUnlock) {
+      Alert.alert('Already Unlocked', 'You already have Pro features unlocked!');
+      return;
+    }
+
+    purchaseProduct(MOBILE_UNLOCK_PRODUCT_ID);
   };
+
+  const handleRestorePurchases = () => {
+    if (!isConnected) {
+      Alert.alert('Error', 'Unable to connect to App Store. Please try again later.');
+      return;
+    }
+
+    restorePurchases();
+  };
+
+  // Get display price (from App Store or fallback)
+  const unlockPrice = mobileUnlockProduct?.price || '$4.99';
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Upgrade Your Plan</Text>
+          <Text style={styles.title}>Upgrade to Pro</Text>
           <Text style={styles.subtitle}>
-            Unlock powerful features to boost your productivity
+            Unlock unlimited projects, tasks, and more
           </Text>
         </View>
 
-        {/* Current Plan */}
-        <View style={styles.currentPlanCard}>
-          <Text style={styles.currentPlanLabel}>Current Plan</Text>
-          <Text style={styles.currentPlanName}>{currentPlan}</Text>
-        </View>
-
-        {/* PRO Plan */}
-        <View style={[styles.planCard, currentPlan === 'PRO' && styles.activePlan]}>
-          <View style={styles.planHeader}>
-            <Text style={styles.planName}>PRO</Text>
-            {currentPlan === 'PRO' && (
-              <View style={styles.activeBadge}>
-                <Text style={styles.activeBadgeText}>Active</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.planPrice}>$9.99/month</Text>
-          <Text style={styles.planDescription}>Perfect for individuals and small teams</Text>
-
-          <View style={styles.features}>
-            <Text style={styles.featureTitle}>Features:</Text>
-            <Text style={styles.feature}>✓ Up to 10 recurring tasks</Text>
-            <Text style={styles.feature}>✓ 1 level of sub-projects</Text>
-            <Text style={styles.feature}>✓ Up to 5 mind maps</Text>
-            <Text style={styles.feature}>✓ Up to 50 nodes per mind map</Text>
-            <Text style={styles.feature}>✓ Priority email support</Text>
-            <Text style={styles.feature}>✓ Advanced analytics</Text>
-          </View>
-
-          {currentPlan !== 'PRO' && (
-            <TouchableOpacity
-              style={styles.upgradeButton}
-              onPress={handleUpgrade}
-            >
-              <Text style={styles.upgradeButtonText}>Upgrade to PRO</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* ENTERPRISE Plan */}
-        <View style={[styles.planCard, currentPlan === 'ENTERPRISE' && styles.activePlan]}>
-          <View style={styles.planHeader}>
-            <Text style={styles.planName}>ENTERPRISE</Text>
-            {currentPlan === 'ENTERPRISE' && (
-              <View style={styles.activeBadge}>
-                <Text style={styles.activeBadgeText}>Active</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.planPrice}>$29.99/month</Text>
-          <Text style={styles.planDescription}>For teams that need unlimited power</Text>
-
-          <View style={styles.features}>
-            <Text style={styles.featureTitle}>Everything in PRO, plus:</Text>
-            <Text style={styles.feature}>✓ Unlimited recurring tasks</Text>
-            <Text style={styles.feature}>✓ Unlimited sub-project levels</Text>
-            <Text style={styles.feature}>✓ Unlimited mind maps</Text>
-            <Text style={styles.feature}>✓ Up to 200 nodes per mind map</Text>
-            <Text style={styles.feature}>✓ Team collaboration</Text>
-            <Text style={styles.feature}>✓ Priority phone support</Text>
-            <Text style={styles.feature}>✓ Custom integrations</Text>
-          </View>
-
-          {currentPlan !== 'ENTERPRISE' && (
-            <TouchableOpacity
-              style={[styles.upgradeButton, styles.enterpriseButton]}
-              onPress={handleUpgrade}
-            >
-              <Text style={styles.upgradeButtonText}>Upgrade to ENTERPRISE</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            💡 Note: Payment processing is handled through the web application for security.
-            Tap any "Upgrade" button above for step-by-step instructions on how to upgrade your account.
+        {/* Current Status */}
+        <View style={styles.statusCard}>
+          <Text style={styles.statusLabel}>Current Status</Text>
+          <Text style={styles.statusValue}>
+            {hasMobileUnlock ? 'Pro (Unlocked)' : 'Free'}
           </Text>
+          {mobileSubscription?.accessReason === 'beta_mode' && (
+            <Text style={styles.betaBadge}>Beta Access Active</Text>
+          )}
+          {mobileSubscription?.accessReason === 'beta_reward' && (
+            <Text style={styles.betaBadge}>Beta Tester Reward</Text>
+          )}
         </View>
+
+        {/* Mobile Unlock - Main Purchase Option */}
+        {Platform.OS === 'ios' && (
+          <View style={[styles.planCard, styles.featuredPlan]}>
+            <View style={styles.featuredBadge}>
+              <Text style={styles.featuredBadgeText}>Best Value</Text>
+            </View>
+
+            <Text style={styles.planName}>Pro Unlock</Text>
+            <Text style={styles.planPrice}>{unlockPrice}</Text>
+            <Text style={styles.planPriceNote}>One-time purchase</Text>
+
+            <View style={styles.features}>
+              <Text style={styles.feature}>✓ Unlimited projects</Text>
+              <Text style={styles.feature}>✓ Unlimited tasks</Text>
+              <Text style={styles.feature}>✓ Recurring tasks (up to 10)</Text>
+              <Text style={styles.feature}>✓ Sub-projects (1 level)</Text>
+              <Text style={styles.feature}>✓ Works on web too!</Text>
+            </View>
+
+            {hasMobileUnlock ? (
+              <View style={styles.unlockedBadge}>
+                <Text style={styles.unlockedBadgeText}>Already Unlocked</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.purchaseButton, (isPurchasing || isLoading) && styles.disabledButton]}
+                onPress={handleMobileUnlockPurchase}
+                disabled={isPurchasing || isLoading}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.purchaseButtonText}>
+                    Unlock for {unlockPrice}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Restore Purchases */}
+        {Platform.OS === 'ios' && !hasMobileUnlock && (
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={handleRestorePurchases}
+            disabled={isPurchasing}
+          >
+            <Text style={styles.restoreButtonText}>
+              Restore Previous Purchase
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Close Button */}
@@ -163,22 +181,28 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  currentPlanCard: {
+  statusCard: {
     backgroundColor: Colors.infoBackground,
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
     alignItems: 'center',
   },
-  currentPlanLabel: {
+  statusLabel: {
     fontSize: 14,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
-  currentPlanName: {
+  statusValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.primary,
+  },
+  betaBadge: {
+    marginTop: 8,
+    fontSize: 12,
+    color: Colors.success,
+    fontWeight: '600',
   },
   planCard: {
     backgroundColor: Colors.white,
@@ -188,39 +212,36 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.border,
   },
-  activePlan: {
+  featuredPlan: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.infoBackground,
+    position: 'relative',
   },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  featuredBadge: {
+    position: 'absolute',
+    top: -12,
+    right: 16,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  featuredBadgeText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.text,
-  },
-  activeBadge: {
-    backgroundColor: Colors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  activeBadgeText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '600',
+    marginBottom: 4,
   },
   planPrice: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 32,
+    fontWeight: 'bold',
     color: Colors.primary,
-    marginBottom: 8,
   },
-  planDescription: {
+  planPriceNote: {
     fontSize: 14,
     color: Colors.textSecondary,
     marginBottom: 16,
@@ -228,43 +249,55 @@ const styles = StyleSheet.create({
   features: {
     marginBottom: 16,
   },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 8,
-  },
   feature: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.text,
     marginBottom: 6,
-    paddingLeft: 8,
   },
-  upgradeButton: {
+  purchaseButton: {
     backgroundColor: Colors.primary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
-  enterpriseButton: {
-    backgroundColor: Colors.urgentImportant,
+  disabledButton: {
+    opacity: 0.6,
   },
-  upgradeButtonText: {
+  purchaseButtonText: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  unlockedBadge: {
+    backgroundColor: Colors.success,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  unlockedBadgeText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  infoBox: {
-    backgroundColor: Colors.infoBackground,
-    borderRadius: 8,
+  restoreButton: {
     padding: 16,
-    marginTop: 8,
-    marginBottom: 16,
+    alignItems: 'center',
   },
-  infoText: {
+  restoreButtonText: {
+    color: Colors.primary,
     fontSize: 14,
-    color: Colors.text,
-    lineHeight: 20,
+    textDecorationLine: 'underline',
+  },
+  errorBox: {
+    backgroundColor: Colors.errorBackground,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
   footer: {
     padding: 16,
