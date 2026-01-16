@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.taskquadrant.mobile",
-      "buildNumber": "2",
+      "buildNumber": "23",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserNotificationsUsageDescription": "TaskQuadrant needs notification access to remind you about your tasks and deadlines."

@@ -19,6 +19,7 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../constants/colors';
 import { useTaskStore } from '../../store/taskStore';
 import { useProjectStore } from '../../store/projectStore';
+import { useStoreReview } from '../../hooks/useStoreReview';
 import { Task } from '../../types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Slider from '@react-native-community/slider';
@@ -32,8 +33,14 @@ export default function TaskDetailScreen() {
   const { taskId } = route.params;
 
   const { tasks, updateTask, deleteTask, toggleComplete } = useTaskStore();
-  const { projects } = useProjectStore();
+  const { projects, fetchProjects } = useProjectStore();
+  const { onTaskCompleted } = useStoreReview();
   const task = tasks.find((t) => t.id === taskId);
+
+  // Fetch projects when screen loads to ensure project picker has data
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task?.title || '');
@@ -46,12 +53,21 @@ export default function TaskDetailScreen() {
     task?.dueDate ? new Date(task.dueDate) : undefined
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(task?.projectId || null);
+  const [selectedPriority, setSelectedPriority] = useState<string | undefined>(task?.priority);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false);
   const [isSaving, setSaving] = useState(false);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+  const priorityOptions = [
+    { value: 'urgent-important', label: 'Do First', emoji: '🔴', color: Colors.urgentImportant },
+    { value: 'not-urgent-important', label: 'Schedule', emoji: '🔵', color: Colors.notUrgentImportant },
+    { value: 'urgent-not-important', label: 'Delegate', emoji: '🟡', color: Colors.urgentNotImportant },
+    { value: 'not-urgent-not-important', label: 'Eliminate', emoji: '⚪', color: Colors.notUrgentNotImportant },
+  ];
 
   useEffect(() => {
     if (task) {
@@ -61,6 +77,7 @@ export default function TaskDetailScreen() {
       setStartDate(task.startDate ? new Date(task.startDate) : undefined);
       setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
       setSelectedProjectId(task.projectId || null);
+      setSelectedPriority(task.priority);
     }
   }, [task]);
 
@@ -101,6 +118,7 @@ export default function TaskDetailScreen() {
         startDate: startDate?.toISOString(),
         dueDate: dueDate?.toISOString(),
         projectId: selectedProjectId,
+        priority: selectedPriority,
       });
       setIsEditing(false);
       Alert.alert('Success', 'Task updated successfully');
@@ -113,7 +131,12 @@ export default function TaskDetailScreen() {
 
   const handleToggleComplete = async () => {
     try {
+      const wasCompleted = task?.completed;
       await toggleComplete(taskId);
+      // If task was just marked as complete (not incomplete), trigger review check
+      if (!wasCompleted) {
+        onTaskCompleted();
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update task');
     }
@@ -203,8 +226,23 @@ export default function TaskDetailScreen() {
 
         {/* Priority */}
         <View style={styles.section}>
-          <Text style={styles.label}>Priority</Text>
-          <Text style={styles.priorityText}>{getPriorityLabel(task.priority)}</Text>
+          <Text style={styles.label}>Priority (Quadrant)</Text>
+          {isEditing ? (
+            <TouchableOpacity
+              style={styles.prioritySelector}
+              onPress={() => setShowPriorityPicker(true)}
+              disabled={isSaving}
+            >
+              <Text style={styles.prioritySelectorText}>
+                {selectedPriority
+                  ? `${priorityOptions.find(p => p.value === selectedPriority)?.emoji} ${priorityOptions.find(p => p.value === selectedPriority)?.label}`
+                  : 'Select Priority'}
+              </Text>
+              <Text style={styles.prioritySelectorArrow}>▼</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.priorityText}>{getPriorityLabel(task.priority)}</Text>
+          )}
         </View>
 
         {/* Progress */}
@@ -461,9 +499,11 @@ export default function TaskDetailScreen() {
                 setStartDate(task.startDate ? new Date(task.startDate) : undefined);
                 setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
                 setSelectedProjectId(task.projectId || null);
+                setSelectedPriority(task.priority);
                 setShowStartDatePicker(false);
                 setShowDueDatePicker(false);
                 setShowProjectPicker(false);
+                setShowPriorityPicker(false);
               }}
               disabled={isSaving}
             >
@@ -556,6 +596,53 @@ export default function TaskDetailScreen() {
                 </TouchableOpacity>
               )}
               style={styles.projectList}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Priority Picker Modal */}
+      <Modal
+        visible={showPriorityPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPriorityPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Quadrant</Text>
+              <TouchableOpacity onPress={() => setShowPriorityPicker(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={priorityOptions}
+              keyExtractor={(item) => item.value}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.priorityItem,
+                    selectedPriority === item.value && styles.priorityItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedPriority(item.value);
+                    setShowPriorityPicker(false);
+                  }}
+                >
+                  <View style={[styles.priorityColorDot, { backgroundColor: item.color }]} />
+                  <Text style={[
+                    styles.priorityItemText,
+                    selectedPriority === item.value && styles.priorityItemTextSelected,
+                  ]}>
+                    {item.emoji} {item.label}
+                  </Text>
+                  {selectedPriority === item.value && (
+                    <Text style={styles.priorityItemCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              style={styles.priorityList}
             />
           </View>
         </View>
@@ -842,6 +929,58 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   projectItemCheck: {
+    fontSize: 18,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  // Priority picker styles
+  prioritySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    padding: 12,
+  },
+  prioritySelectorText: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  prioritySelectorArrow: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  priorityList: {
+    padding: 8,
+  },
+  priorityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  priorityItemSelected: {
+    backgroundColor: Colors.infoBackground,
+  },
+  priorityColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  priorityItemText: {
+    fontSize: 16,
+    color: Colors.text,
+    flex: 1,
+  },
+  priorityItemTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  priorityItemCheck: {
     fontSize: 18,
     color: Colors.primary,
     fontWeight: '600',
