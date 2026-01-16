@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronRight, CheckCircle, BarChart3, Clock, Zap, Brain, Map, Lightbulb } from "lucide-react";
+import { ChevronRight, CheckCircle, BarChart3, Clock, Zap, Brain, Map, Lightbulb, Smartphone, Bell, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { HeroDashboardPreview } from "@/components/HeroDashboardPreview";
 import { HeroRecurringTasksPreview } from "@/components/HeroRecurringTasksPreview";
@@ -17,6 +17,8 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const appStoreUrl = "https://apps.apple.com/app/id6756943665";
 
   // Check if user is logged in
   useEffect(() => {
@@ -37,8 +39,18 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* iOS App Announcement Banner */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-2.5 px-4 text-center text-sm font-medium fixed w-full z-[60]">
+        <a href={appStoreUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:opacity-90 transition">
+          <span className="animate-pulse">🎉</span>
+          <span><strong>NEW!</strong> TaskQuadrant is now available on iOS</span>
+          <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">Download Free</span>
+          <ChevronRight className="w-4 h-4" />
+        </a>
+      </div>
+
       {/* Navigation */}
-      <nav className="fixed w-full bg-white border-b border-gray-100 z-50">
+      <nav className="fixed w-full bg-white border-b border-gray-100 z-50 top-[42px]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
@@ -78,7 +90,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="pt-44 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Prioritize What Matters Most
@@ -88,7 +100,7 @@ export default function LandingPage() {
           </p>
 
           {/* CTA Form */}
-          <form onSubmit={handleGetStarted} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-12">
+          <form onSubmit={handleGetStarted} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-8">
             <input
               type="email"
               placeholder="Enter your email"
@@ -107,7 +119,22 @@ export default function LandingPage() {
             </button>
           </form>
 
-          <p className="text-sm text-gray-500">No credit card required. Start in seconds.</p>
+          <p className="text-sm text-gray-500 mb-6">No credit card required. Start in seconds.</p>
+
+          {/* App Store Badge */}
+          <div className="flex justify-center">
+            <a
+              href={appStoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 transition transform hover:scale-105"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              <span className="text-sm font-medium">Download on App Store</span>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -213,6 +240,135 @@ export default function LandingPage() {
                   Know exactly what to do next. Track progress, celebrate wins, and adjust as you go.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile App Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Phone Mockup */}
+            <div className="flex justify-center order-2 md:order-1">
+              <div className="relative">
+                {/* Phone Frame */}
+                <div className="w-72 h-[580px] bg-black rounded-[3rem] p-3 shadow-2xl shadow-blue-500/20">
+                  <div className="w-full h-full bg-gray-100 rounded-[2.5rem] overflow-hidden relative">
+                    {/* Status Bar */}
+                    <div className="h-12 bg-white flex items-center justify-center">
+                      <div className="w-20 h-6 bg-black rounded-full"></div>
+                    </div>
+                    {/* App Content */}
+                    <div className="p-4 bg-gray-50">
+                      <div className="text-gray-900 font-bold text-lg mb-4">Dashboard</div>
+                      {/* Mini Quadrant */}
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-purple-500 rounded-lg p-3 text-white">
+                          <div className="text-xs font-semibold opacity-80">Do First</div>
+                          <div className="text-2xl font-bold">3</div>
+                        </div>
+                        <div className="bg-blue-500 rounded-lg p-3 text-white">
+                          <div className="text-xs font-semibold opacity-80">Schedule</div>
+                          <div className="text-2xl font-bold">5</div>
+                        </div>
+                        <div className="bg-green-500 rounded-lg p-3 text-white">
+                          <div className="text-xs font-semibold opacity-80">Delegate</div>
+                          <div className="text-2xl font-bold">2</div>
+                        </div>
+                        <div className="bg-orange-500 rounded-lg p-3 text-white">
+                          <div className="text-xs font-semibold opacity-80">Eliminate</div>
+                          <div className="text-2xl font-bold">1</div>
+                        </div>
+                      </div>
+                      {/* Task List */}
+                      <div className="bg-white rounded-xl p-3 shadow-sm">
+                        <div className="text-sm font-semibold text-gray-900 mb-2">Due Today</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                            <span className="text-sm text-gray-700">Review project proposal</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                            <span className="text-sm text-gray-700">Team meeting prep</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                            <span className="text-sm text-gray-700">Client call at 3pm</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Floating badges */}
+                <div className="absolute -left-8 top-20 bg-white rounded-xl shadow-lg p-3 animate-bounce">
+                  <Bell className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="absolute -right-8 top-40 bg-white rounded-xl shadow-lg p-3">
+                  <WifiOff className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Content */}
+            <div className="order-1 md:order-2">
+              <div className="flex items-center gap-2 mb-4">
+                <Smartphone className="w-5 h-5 text-blue-400" />
+                <span className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Now on iOS</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 leading-tight">
+                Your Tasks,<br />Everywhere You Go
+              </h2>
+              <p className="text-lg text-blue-100 mb-8 leading-relaxed">
+                Take TaskQuadrant with you. Our native iOS app syncs seamlessly with the web, so you're always on top of your priorities - even offline.
+              </p>
+
+              <div className="space-y-4 mb-10">
+                <div className="flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Smart Notifications</h3>
+                    <p className="text-blue-200 text-sm">Get reminders for due tasks and never miss a deadline</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <WifiOff className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Works Offline</h3>
+                    <p className="text-blue-200 text-sm">Create and manage tasks even without internet - syncs when you're back online</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Instant Sync</h3>
+                    <p className="text-blue-200 text-sm">Changes sync instantly between your phone and web app</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* App Store Button */}
+              <a
+                href={appStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-white text-gray-900 px-6 py-3 rounded-xl font-semibold hover:bg-gray-100 transition transform hover:scale-105"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Download on App Store
+              </a>
             </div>
           </div>
         </div>
@@ -542,6 +698,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/features" className="hover:text-white transition">Features</Link></li>
                 <li><a href="#pricing" className="hover:text-white transition">Pricing</a></li>
+                <li><a href={appStoreUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition">iOS App</a></li>
                 <li><Link href="/security" className="hover:text-white transition">Security</Link></li>
               </ul>
             </div>
@@ -561,7 +718,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2024 TaskQuadrant. All rights reserved.</p>
+            <p>&copy; 2026 TaskQuadrant. All rights reserved.</p>
           </div>
         </div>
       </footer>
