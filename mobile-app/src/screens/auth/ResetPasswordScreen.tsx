@@ -13,29 +13,84 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
 import { Colors } from '../../constants/colors';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type ResetPasswordScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResetPassword'>;
+type ResetPasswordScreenRouteProp = RouteProp<RootStackParamList, 'ResetPassword'>;
 
-export default function LoginScreen() {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuthStore();
+export default function ResetPasswordScreen() {
+  const navigation = useNavigation<ResetPasswordScreenNavigationProp>();
+  const route = useRoute<ResetPasswordScreenRouteProp>();
+  const email = route.params?.email || '';
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const { resetPassword, isLoading } = useAuthStore();
+
+  const validatePassword = (password: string): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (password.length < 8) {
+      errors.push('At least 8 characters');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('One uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('One lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('One number');
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+      errors.push('One special character (!@#$%^&*)');
+    }
+
+    return { valid: errors.length === 0, errors };
+  };
+
+  const handleResetPassword = async () => {
+    // Validate code
+    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+      Alert.alert('Error', 'Please enter a valid 6-digit code');
+      return;
+    }
+
+    // Validate password
+    if (!newPassword) {
+      Alert.alert('Error', 'Please enter a new password');
+      return;
+    }
+
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      Alert.alert('Password Requirements', 'Missing:\n- ' + passwordCheck.errors.join('\n- '));
+      return;
+    }
+
+    // Confirm password match
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
     try {
-      await login(email, password);
-      // Navigation happens automatically via AppNavigator when isAuthenticated changes
+      await resetPassword(email, code, newPassword);
+      Alert.alert(
+        'Success',
+        'Your password has been reset successfully. Please log in with your new password.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
+      );
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -59,57 +114,67 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>TaskQuadrant</Text>
-          <Text style={styles.subtitle}>Organize. Prioritize. Achieve.</Text>
+          <Text style={styles.title}>Reset Password</Text>
+          <Text style={styles.subtitle}>Enter the code sent to {email}</Text>
 
           <View style={styles.formContainer}>
+            <Text style={styles.inputLabel}>6-Digit Code</Text>
+            <TextInput
+              style={[styles.input, styles.codeInput]}
+              placeholder="000000"
+              placeholderTextColor={Colors.textLight}
+              value={code}
+              onChangeText={(text) => setCode(text.replace(/[^0-9]/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              editable={!isLoading}
+              autoFocus
+            />
+
+            <Text style={styles.inputLabel}>New Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="New Password"
               placeholderTextColor={Colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
               editable={!isLoading}
             />
 
+            <Text style={styles.passwordHint}>
+              Must be at least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
+            </Text>
+
+            <Text style={styles.inputLabel}>Confirm Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Confirm New Password"
               placeholderTextColor={Colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
               secureTextEntry
               editable={!isLoading}
             />
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              disabled={isLoading}
-              style={styles.forgotPasswordContainer}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handleLogin}
+              onPress={handleResetPassword}
               disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={Colors.white} />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Reset Password</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => navigation.navigate('Login')}
               disabled={isLoading}
             >
               <Text style={styles.linkText}>
-                Don't have an account? <Text style={styles.linkTextBold}>Sign Up</Text>
+                Back to <Text style={styles.linkTextBold}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -131,16 +196,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 32,
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 24,
   },
   logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -153,16 +218,16 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   quadrantGrid: {
-    width: 80,
-    height: 80,
+    width: 64,
+    height: 64,
     flexDirection: 'row',
     flexWrap: 'wrap',
     position: 'relative',
   },
   quadrant: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 5,
     margin: 2,
   },
   quadrantTopLeft: {
@@ -179,17 +244,17 @@ const styles = StyleSheet.create({
   },
   centerDot: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#1a202c',
     top: '50%',
     left: '50%',
-    marginTop: -6,
-    marginLeft: -6,
+    marginTop: -5,
+    marginLeft: -5,
   },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: Colors.primary,
     marginBottom: 8,
@@ -197,9 +262,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: 40,
+    marginBottom: 32,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -213,6 +278,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 8,
+  },
   input: {
     backgroundColor: '#f8fafc',
     borderWidth: 1,
@@ -223,15 +294,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.text,
   },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-end',
-    marginBottom: 8,
-    marginTop: -8,
-  },
-  forgotPasswordText: {
-    color: Colors.primary,
-    fontSize: 14,
+  codeInput: {
+    fontSize: 24,
+    textAlign: 'center',
+    letterSpacing: 8,
     fontWeight: '600',
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: -12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+    lineHeight: 16,
   },
   button: {
     backgroundColor: Colors.primary,

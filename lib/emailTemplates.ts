@@ -511,3 +511,84 @@ The TaskQuadrant Team
 
   return { html, text };
 }
+
+/**
+ * Password Reset Code Email Template
+ */
+export function passwordResetCodeEmailTemplate(
+  recipientName: string,
+  resetCode: string
+): { html: string; text: string } {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>${baseStyles}</style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div style="font-size: 32px; margin-bottom: 10px;">🔐</div>
+            <h1>Password Reset Request</h1>
+            <p>Use the code below to reset your password</p>
+          </div>
+
+          <div class="content">
+            <p>Hi ${recipientName || 'there'},</p>
+
+            <p>We received a request to reset your password for your TaskQuadrant account. Use the code below to complete the password reset process.</p>
+
+            <div class="card" style="text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Your reset code:</p>
+              <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #3B82F6; font-family: monospace; background: #EFF6FF; padding: 20px; border-radius: 8px;">
+                ${resetCode}
+              </div>
+              <p style="margin: 15px 0 0 0; font-size: 13px; color: #6b7280;">This code expires in 15 minutes</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <p style="font-size: 13px; color: #6b7280;">
+              <strong>Security Notice:</strong> If you did not request a password reset, please ignore this email. Your password will remain unchanged, and the code will expire automatically.
+            </p>
+
+            <p style="font-size: 13px; color: #6b7280;">
+              Never share this code with anyone. TaskQuadrant staff will never ask for your password or reset code.
+            </p>
+
+            <p>Stay secure,<br>The TaskQuadrant Team</p>
+          </div>
+
+          <div class="footer">
+            <p>&copy; 2024 TaskQuadrant. All rights reserved.</p>
+            <p><a href="https://taskquadrant.com/privacy" style="color: #3B82F6; text-decoration: none;">Privacy Policy</a> | <a href="https://taskquadrant.com/terms" style="color: #3B82F6; text-decoration: none;">Terms of Service</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+Password Reset Request
+
+Hi ${recipientName || 'there'},
+
+We received a request to reset your password for your TaskQuadrant account.
+
+Your reset code: ${resetCode}
+
+This code expires in 15 minutes.
+
+SECURITY NOTICE: If you did not request a password reset, please ignore this email. Your password will remain unchanged, and the code will expire automatically.
+
+Never share this code with anyone. TaskQuadrant staff will never ask for your password or reset code.
+
+Stay secure,
+The TaskQuadrant Team
+
+© 2024 TaskQuadrant. All rights reserved.
+  `;
+
+  return { html, text };
+}

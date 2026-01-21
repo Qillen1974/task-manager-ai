@@ -17,25 +17,43 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
-export default function LoginScreen() {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
+export default function ForgotPasswordScreen() {
+  const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuthStore();
+  const { requestPasswordReset, isLoading } = useAuthStore();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSendCode = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
     try {
-      await login(email, password);
-      // Navigation happens automatically via AppNavigator when isAuthenticated changes
+      await requestPasswordReset(email.toLowerCase().trim());
+      Alert.alert(
+        'Code Sent',
+        'If an account with that email exists, a reset code has been sent. Please check your email.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('ResetPassword', { email: email.toLowerCase().trim() }),
+          },
+        ]
+      );
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -59,8 +77,8 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>TaskQuadrant</Text>
-          <Text style={styles.subtitle}>Organize. Prioritize. Achieve.</Text>
+          <Text style={styles.title}>Forgot Password?</Text>
+          <Text style={styles.subtitle}>Enter your email to receive a reset code</Text>
 
           <View style={styles.formContainer}>
             <TextInput
@@ -72,44 +90,27 @@ export default function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               editable={!isLoading}
+              autoFocus
             />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={Colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              disabled={isLoading}
-              style={styles.forgotPasswordContainer}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handleLogin}
+              onPress={handleSendCode}
               disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={Colors.white} />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Send Reset Code</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => navigation.navigate('Login')}
               disabled={isLoading}
             >
               <Text style={styles.linkText}>
-                Don't have an account? <Text style={styles.linkTextBold}>Sign Up</Text>
+                Back to <Text style={styles.linkTextBold}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -138,9 +139,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -153,16 +154,16 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   quadrantGrid: {
-    width: 80,
-    height: 80,
+    width: 64,
+    height: 64,
     flexDirection: 'row',
     flexWrap: 'wrap',
     position: 'relative',
   },
   quadrant: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 5,
     margin: 2,
   },
   quadrantTopLeft: {
@@ -179,17 +180,17 @@ const styles = StyleSheet.create({
   },
   centerDot: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#1a202c',
     top: '50%',
     left: '50%',
-    marginTop: -6,
-    marginLeft: -6,
+    marginTop: -5,
+    marginLeft: -5,
   },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: Colors.primary,
     marginBottom: 8,
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: Colors.textSecondary,
-    marginBottom: 40,
+    marginBottom: 32,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -222,16 +223,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     color: Colors.text,
-  },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-end',
-    marginBottom: 8,
-    marginTop: -8,
-  },
-  forgotPasswordText: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
   },
   button: {
     backgroundColor: Colors.primary,

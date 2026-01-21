@@ -45,6 +45,7 @@ model User {
   workspaceActivities WorkspaceActivity[]  // Activities performed by user
   notifications Notification[]  // Notifications sent to user
   notificationPreferences NotificationPreference?  // User's notification settings
+  passwordResets PasswordReset[]  // Password reset requests
 
   @@index([email])
 }
@@ -700,6 +701,19 @@ model NotificationPreference {
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// PasswordReset model - for password reset flow
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String   // 6-digit code (hashed)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }

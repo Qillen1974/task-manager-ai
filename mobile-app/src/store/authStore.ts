@@ -14,6 +14,8 @@ interface AuthStore extends AuthState {
   deleteAccount: () => Promise<void>;
   fetchSubscription: () => Promise<void>;
   fetchMobileSubscription: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -303,6 +305,30 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ mobileSubscription });
     } catch (error: any) {
       throw error;
+    }
+  },
+
+  requestPasswordReset: async (email: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.requestPasswordReset(email);
+      set({ isLoading: false });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to send reset code';
+      set({ error: errorMessage, isLoading: false });
+      throw new Error(errorMessage);
+    }
+  },
+
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.resetPassword(email, code, newPassword);
+      set({ isLoading: false });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to reset password';
+      set({ error: errorMessage, isLoading: false });
+      throw new Error(errorMessage);
     }
   },
 }));

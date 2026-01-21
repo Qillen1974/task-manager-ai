@@ -101,6 +101,20 @@ class ApiClient {
     return response.data.data;
   }
 
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/forgot-password', { email });
+    return response.data.data;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/reset-password', {
+      email,
+      code,
+      newPassword,
+    });
+    return response.data.data;
+  }
+
   async deleteAccount() {
     const response = await this.client.delete('/auth/account');
     return response.data.data;

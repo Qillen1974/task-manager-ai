@@ -8,6 +8,8 @@ import { useAuthStore } from '../store/authStore';
 // Import screens (we'll create these next)
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import TaskListScreen from '../screens/tasks/TaskListScreen';
 import TaskDetailScreen from '../screens/tasks/TaskDetailScreen';
@@ -21,6 +23,8 @@ import UpgradeScreen from '../screens/upgrade/UpgradeScreen';
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { email: string };
   MainTabs: undefined;
   TaskDetail: { taskId: string };
   TaskCreate: undefined;
@@ -109,6 +113,8 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </>
         ) : (
           <>
