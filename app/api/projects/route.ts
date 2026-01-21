@@ -173,22 +173,25 @@ export async function POST(request: NextRequest) {
       return ApiErrors.MISSING_REQUIRED_FIELD("name");
     }
 
-    // Get user subscription
-    let subscription;
+    // Get user with subscription and mobile unlock status
+    let user;
     try {
-      subscription = await db.subscription.findUnique({
-        where: { userId: auth.userId },
+      user = await db.user.findUnique({
+        where: { id: auth.userId },
+        include: { subscription: true },
       });
     } catch (err) {
-      console.error("[API] Failed to fetch subscription:", err);
-      // If subscription query fails, return error
+      console.error("[API] Failed to fetch user:", err);
       throw err;
     }
 
-    if (!subscription) {
-      console.warn("[API] No subscription found for user:", auth.userId);
+    if (!user || !user.subscription) {
+      console.warn("[API] No user or subscription found for:", auth.userId);
       return ApiErrors.UNAUTHORIZED();
     }
+
+    const subscription = user.subscription;
+    const mobileUnlocked = user.mobileUnlocked || false;
 
     // If creating a team project, validate team access
     if (teamId) {
@@ -238,7 +241,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const canCreate = canCreateRootProject(subscription.plan, rootProjectCount);
+      const canCreate = canCreateRootProject(subscription.plan, rootProjectCount, mobileUnlocked);
       if (!canCreate.allowed) {
         return ApiErrors.RESOURCE_LIMIT_EXCEEDED("root projects");
       }
@@ -271,7 +274,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user can create subprojects
-      const canCreate = canCreateSubproject(subscription.plan, parentProject.projectLevel);
+      const canCreate = canCreateSubproject(subscription.plan, parentProject.projectLevel, mobileUnlocked);
       if (!canCreate.allowed) {
         return ApiErrors.RESOURCE_LIMIT_EXCEEDED("subprojects");
       }

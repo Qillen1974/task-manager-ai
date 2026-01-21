@@ -28,9 +28,11 @@ export interface SubscriptionLimits {
   currentRecurringTaskCount?: number;
   canCreateRootProject: boolean;
   rootProjectLimit: number;
+  taskLimit: number;
   currentRootProjectCount?: number;
   canCreateSubproject: boolean;
   subprojectLevels: number;
+  mobileUnlocked: boolean;
 }
 
 export interface TaskAssignment {
@@ -54,6 +56,9 @@ export interface User {
   lastName?: string;
   name?: string;
   isAdmin: boolean;
+  isBetaTester?: boolean;
+  betaJoinedAt?: string;
+  mobileUnlocked?: boolean;
   createdAt: string;
   updatedAt: string;
   subscription?: Subscription;

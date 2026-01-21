@@ -34,8 +34,8 @@ interface DependencyArrow {
   toTaskId: string;
   fromRowIndex: number;
   toRowIndex: number;
-  fromEndX: number;
-  toStartX: number;
+  fromEndX: number;    // End edge of predecessor bar
+  toStartX: number;    // Start edge of dependent bar
 }
 
 export default function GanttChartScreen() {
@@ -51,6 +51,8 @@ export default function GanttChartScreen() {
   const MONTH_WIDTH = getDimension(120, 160); // 120 for phone, 160 for tablet
   const TASK_NAME_COLUMN_WIDTH = getDimension(150, 200); // 150 for phone, 200 for tablet
   const ROW_HEIGHT = 60; // Height of each task row
+  const TIMELINE_HEADER_HEIGHT = 50; // Fixed height for timeline header
+  const PROGRESS_BAR_HEIGHT = 28; // Height of progress bars
 
   // Enable landscape mode when screen mounts
   useEffect(() => {
@@ -171,7 +173,7 @@ export default function GanttChartScreen() {
   }, [projectTasks]);
 
   const getProgressColor = (progress: number) => {
-    if (progress === 0) return Colors.backgroundGray;
+    if (progress === 0) return '#9CA3AF'; // Medium gray - more visible than light gray
     if (progress < 33) return '#EF4444'; // red
     if (progress < 100) return '#EAB308'; // yellow
     return '#22C55E'; // green
@@ -246,10 +248,13 @@ export default function GanttChartScreen() {
         const fromRowIndex = taskIndexMap.get(dependsOnId)!;
         const fromItem = sortedItems[fromRowIndex];
 
-        // Calculate X positions
+        // Calculate X positions (end edge of predecessor, start edge of dependent)
         if (fromItem.startDate && fromItem.endDate && item.startDate) {
-          const fromEndX = calculatePosition(fromItem.startDate) + calculateWidth(fromItem.startDate, fromItem.endDate);
-          const toStartX = calculatePosition(item.startDate);
+          const fromBarStart = calculatePosition(fromItem.startDate);
+          const fromBarWidth = calculateWidth(fromItem.startDate, fromItem.endDate);
+          const fromEndX = fromBarStart + fromBarWidth; // End edge of predecessor bar
+
+          const toStartX = calculatePosition(item.startDate); // Start edge of dependent bar
 
           arrows.push({
             fromTaskId: dependsOnId,
@@ -367,7 +372,7 @@ export default function GanttChartScreen() {
           >
             <View style={styles.ganttContent}>
               {/* Timeline Header */}
-              <View style={styles.timelineHeader}>
+              <View style={[styles.timelineHeader, { height: TIMELINE_HEADER_HEIGHT }]}>
                 <View style={[styles.taskNameColumn, { width: TASK_NAME_COLUMN_WIDTH }]}>
                   <Text style={styles.columnHeaderText}>Task</Text>
                 </View>
@@ -389,7 +394,7 @@ export default function GanttChartScreen() {
                 <View
                   style={{
                     position: 'absolute',
-                    top: 60, // Below timeline header
+                    top: TIMELINE_HEADER_HEIGHT, // Below timeline header
                     left: TASK_NAME_COLUMN_WIDTH,
                     width: monthLabels.length * MONTH_WIDTH,
                     height: ganttData.items.length * ROW_HEIGHT,
@@ -401,40 +406,51 @@ export default function GanttChartScreen() {
                     width={monthLabels.length * MONTH_WIDTH}
                     height={ganttData.items.length * ROW_HEIGHT}
                   >
+                    {/* Arrow marker definition - matching web app exactly */}
                     <Defs>
                       <Marker
-                        id="arrowhead"
+                        id="dependency-arrow"
                         markerWidth={6}
                         markerHeight={6}
                         refX={5}
                         refY={3}
                         orient="auto"
+                        markerUnits="strokeWidth"
                       >
                         <Path d="M 0 0 L 6 3 L 0 6 Z" fill="#0d9488" />
                       </Marker>
                     </Defs>
+
                     {dependencyArrows.map((arrow, index) => {
-                      // Calculate Y positions (center of each row)
+                      // Calculate Y positions (center of each row = center of progress bar)
                       const fromY = arrow.fromRowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
                       const toY = arrow.toRowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-                      // X positions
+                      // X positions (end edge of predecessor, start edge of dependent)
                       const fromX = arrow.fromEndX;
-                      const toX = Math.max(arrow.toStartX - 8, fromX + 20); // 8px before target bar
+                      const toX = arrow.toStartX;
 
-                      // Build path
+                      // Arrow should ALWAYS point RIGHT toward the dependent task
+                      // Matching web app logic exactly
                       let pathD: string;
+                      const arrowEndX = toX - 8; // Where arrowhead ends (8px before target bar start)
+
                       if (Math.abs(fromY - toY) < 5) {
-                        // Same row - horizontal line
-                        pathD = `M ${fromX} ${fromY} L ${toX} ${toY}`;
+                        // Same row - simple horizontal line
+                        pathD = `M ${fromX} ${fromY} L ${arrowEndX} ${toY}`;
                       } else {
-                        // Different rows - L-shaped path
-                        const verticalX = Math.min(fromX + 15, toX - 20);
-                        pathD = `M ${fromX} ${fromY} L ${verticalX} ${fromY} L ${verticalX} ${toY} L ${toX} ${toY}`;
+                        // Different rows - need to route the line properly
+                        // Key: vertical line should be positioned so we approach target from the LEFT
+                        // Position vertical line to the LEFT of the target
+                        const verticalX = Math.min(fromX + 15, arrowEndX - 20);
+
+                        // Path: start → go to vertical line X → drop to target row → go right to target
+                        pathD = `M ${fromX} ${fromY} L ${verticalX} ${fromY} L ${verticalX} ${toY} L ${arrowEndX} ${toY}`;
                       }
 
                       return (
                         <React.Fragment key={`dep-${arrow.fromTaskId}-${arrow.toTaskId}-${index}`}>
+                          {/* Connection line with arrow marker - matching web app */}
                           <Path
                             d={pathD}
                             fill="none"
@@ -442,8 +458,9 @@ export default function GanttChartScreen() {
                             strokeWidth={2}
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            markerEnd="url(#arrowhead)"
+                            markerEnd="url(#dependency-arrow)"
                           />
+                          {/* Small circle at the predecessor (start of dependency) */}
                           <Circle
                             cx={fromX}
                             cy={fromY}
@@ -461,7 +478,7 @@ export default function GanttChartScreen() {
               {ganttData.items.map((item, index) => (
                 <View
                   key={item.task.id}
-                  style={[styles.taskRow, index % 2 === 0 && styles.taskRowEven]}
+                  style={[styles.taskRow, { height: ROW_HEIGHT }, index % 2 === 0 && styles.taskRowEven]}
                 >
                   {/* Task Name */}
                   <View style={[styles.taskNameColumn, { width: TASK_NAME_COLUMN_WIDTH }]}>
@@ -659,10 +676,10 @@ const styles = StyleSheet.create({
   },
   taskRow: {
     flexDirection: 'row',
-    minHeight: 60,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
+    overflow: 'hidden',
   },
   taskRowEven: {
     backgroundColor: '#FAFAFA',

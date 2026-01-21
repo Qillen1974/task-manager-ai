@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
-import { canCreateRecurringTask, TASK_LIMITS } from "@/lib/projectLimits";
+import { canCreateRecurringTask, TASK_LIMITS, getEffectiveTier } from "@/lib/projectLimits";
 import { calculateNextOccurrenceDate, calculateInitialNextGenerationDate } from "@/lib/utils";
 
 /**
@@ -273,18 +273,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get subscription
-    const subscription = await db.subscription.findUnique({
-      where: { userId: auth.userId },
+    // Get user with subscription and mobile unlock status
+    const user = await db.user.findUnique({
+      where: { id: auth.userId },
+      include: { subscription: true },
     });
 
-    // Check task limit
+    const subscription = user?.subscription;
+    const mobileUnlocked = user?.mobileUnlocked || false;
+    const effectiveTier = getEffectiveTier(subscription?.plan || "FREE", mobileUnlocked);
+
+    // Check task limit using effective tier
     const taskCount = await db.task.count({
       where: { userId: auth.userId },
     });
 
-    const taskLimit = subscription?.taskLimit || TASK_LIMITS.FREE.maxTasks;
-    if (taskCount >= taskLimit) {
+    const taskLimits = TASK_LIMITS[effectiveTier];
+    if (taskLimits.maxTasks !== -1 && taskCount >= taskLimits.maxTasks) {
       return ApiErrors.RESOURCE_LIMIT_EXCEEDED("task");
     }
 
@@ -297,7 +302,7 @@ export async function POST(request: NextRequest) {
         where: { userId: auth.userId, isRecurring: true, parentTaskId: null },
       });
 
-      const canCreate = canCreateRecurringTask(subscription?.plan || "FREE", recurringTaskCount);
+      const canCreate = canCreateRecurringTask(subscription?.plan || "FREE", recurringTaskCount, mobileUnlocked);
       if (!canCreate.allowed) {
         return error(canCreate.message || "Cannot create recurring task", 403, "SUBSCRIPTION_LIMIT");
       }

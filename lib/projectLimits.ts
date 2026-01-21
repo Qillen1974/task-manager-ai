@@ -2,19 +2,32 @@ import { SubscriptionPlan } from "@prisma/client";
 
 /**
  * Subscription plan limits for project hierarchy
+ *
+ * Tier Structure:
+ * - FREE: 3 projects, 10 tasks, no recurring, no subprojects
+ * - MOBILE_UNLOCK ($4.99 one-time): Unlimited projects/tasks, 10 recurring, 1 level subprojects
+ * - PRO ($4.99/month): Same as Mobile Unlock + Mind Maps + Exports
+ * - ENTERPRISE ($9.99/month): Unlimited everything + Teams
  */
 export const PROJECT_LIMITS = {
   FREE: {
-    maxProjects: 10,
+    maxProjects: 3,
     maxProjectNestingLevel: 0, // No subprojects
     maxSubprojectsPerProject: 0,
-    description: "Single-level projects only",
+    description: "Up to 3 projects only",
   },
-  PRO: {
-    maxProjects: 30,
+  // Mobile Unlock uses same limits as PRO for projects
+  MOBILE_UNLOCK: {
+    maxProjects: -1, // Unlimited
     maxProjectNestingLevel: 1, // One level of nesting (projects + subprojects)
     maxSubprojectsPerProject: -1, // Unlimited subprojects per project
-    description: "Up to 30 root projects with unlimited subprojects",
+    description: "Unlimited projects with one level of subprojects",
+  },
+  PRO: {
+    maxProjects: -1, // Unlimited
+    maxProjectNestingLevel: 1, // One level of nesting (projects + subprojects)
+    maxSubprojectsPerProject: -1, // Unlimited subprojects per project
+    description: "Unlimited projects with one level of subprojects",
   },
   ENTERPRISE: {
     maxProjects: -1, // Unlimited
@@ -26,12 +39,16 @@ export const PROJECT_LIMITS = {
 
 export const TASK_LIMITS = {
   FREE: {
-    maxTasks: 50,
-    description: "50 tasks per user",
+    maxTasks: 10,
+    description: "Up to 10 tasks",
+  },
+  MOBILE_UNLOCK: {
+    maxTasks: -1, // Unlimited
+    description: "Unlimited tasks",
   },
   PRO: {
-    maxTasks: 200,
-    description: "Up to 200 tasks",
+    maxTasks: -1, // Unlimited
+    description: "Unlimited tasks",
   },
   ENTERPRISE: {
     maxTasks: -1, // Unlimited
@@ -43,6 +60,10 @@ export const RECURRING_TASK_LIMITS = {
   FREE: {
     maxRecurringTasks: 0, // Disabled
     description: "Recurring tasks not available",
+  },
+  MOBILE_UNLOCK: {
+    maxRecurringTasks: 10,
+    description: "Up to 10 recurring task templates",
   },
   PRO: {
     maxRecurringTasks: 10,
@@ -56,13 +77,19 @@ export const RECURRING_TASK_LIMITS = {
 
 /**
  * Mind mapping feature limits
- * Mind maps can be created by PRO and ENTERPRISE users
+ * Mind maps can be created by PRO and ENTERPRISE users only
+ * Mobile Unlock does NOT include mind maps
  */
 export const MIND_MAP_LIMITS = {
   FREE: {
     maxMindMaps: 0, // Disabled
     maxNodesPerMindMap: 0,
     description: "Mind mapping not available",
+  },
+  MOBILE_UNLOCK: {
+    maxMindMaps: 0, // Disabled - Mind maps are PRO+ feature
+    maxNodesPerMindMap: 0,
+    description: "Mind mapping not available - upgrade to PRO",
   },
   PRO: {
     maxMindMaps: 5,
@@ -77,16 +104,73 @@ export const MIND_MAP_LIMITS = {
 };
 
 /**
- * Get limits for a subscription plan
+ * Effective tier type that includes Mobile Unlock
  */
-export function getPlanLimits(plan: SubscriptionPlan) {
+export type EffectiveTier = SubscriptionPlan | "MOBILE_UNLOCK";
+
+/**
+ * Determine the effective tier for a user
+ * Mobile Unlock takes precedence over FREE but not over PRO/ENTERPRISE
+ * @param plan - User's subscription plan
+ * @param mobileUnlocked - Whether user has purchased mobile unlock
+ * @returns Effective tier for limit calculations
+ */
+export function getEffectiveTier(
+  plan: SubscriptionPlan,
+  mobileUnlocked: boolean
+): EffectiveTier {
+  // PRO and ENTERPRISE always take precedence
+  if (plan === "PRO" || plan === "ENTERPRISE") {
+    return plan;
+  }
+  // Mobile Unlock upgrades FREE users
+  if (mobileUnlocked) {
+    return "MOBILE_UNLOCK";
+  }
+  return plan;
+}
+
+/**
+ * Get limits for a user considering mobile unlock status
+ */
+export function getEffectiveLimits(
+  plan: SubscriptionPlan,
+  mobileUnlocked: boolean
+): {
+  projectLimit: number;
+  taskLimit: number;
+  recurringTaskLimit: number;
+  maxProjectNestingLevel: number;
+  canUseMindMaps: boolean;
+  mindMapLimit: number;
+} {
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const projectLimits = PROJECT_LIMITS[tier];
+  const taskLimits = TASK_LIMITS[tier];
+  const recurringLimits = RECURRING_TASK_LIMITS[tier];
+  const mindMapLimits = MIND_MAP_LIMITS[tier];
+
+  return {
+    projectLimit: projectLimits.maxProjects,
+    taskLimit: taskLimits.maxTasks,
+    recurringTaskLimit: recurringLimits.maxRecurringTasks,
+    maxProjectNestingLevel: projectLimits.maxProjectNestingLevel,
+    canUseMindMaps: mindMapLimits.maxMindMaps !== 0,
+    mindMapLimit: mindMapLimits.maxMindMaps,
+  };
+}
+
+/**
+ * Get limits for a subscription plan (or effective tier)
+ */
+export function getPlanLimits(plan: EffectiveTier) {
   return PROJECT_LIMITS[plan];
 }
 
 /**
- * Get task limits for a subscription plan
+ * Get task limits for a subscription plan (or effective tier)
  */
-export function getTaskLimitForPlan(plan: SubscriptionPlan) {
+export function getTaskLimitForPlan(plan: EffectiveTier) {
   return TASK_LIMITS[plan];
 }
 
@@ -94,13 +178,16 @@ export function getTaskLimitForPlan(plan: SubscriptionPlan) {
  * Check if user can create a root project
  * @param plan - User's subscription plan
  * @param currentRootProjectCount - Current number of root projects user has
+ * @param mobileUnlocked - Whether user has mobile unlock
  * @returns Object with allowed boolean and message
  */
 export function canCreateRootProject(
   plan: SubscriptionPlan,
-  currentRootProjectCount: number
+  currentRootProjectCount: number,
+  mobileUnlocked: boolean = false
 ): { allowed: boolean; message?: string } {
-  const limits = getPlanLimits(plan);
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const limits = getPlanLimits(tier);
 
   // Unlimited projects for unlimited plans
   if (limits.maxProjects === -1) {
@@ -111,7 +198,7 @@ export function canCreateRootProject(
   if (currentRootProjectCount >= limits.maxProjects) {
     return {
       allowed: false,
-      message: `You have reached your project limit (${limits.maxProjects}) on the ${plan} plan. Upgrade to create more projects.`,
+      message: `You have reached your project limit (${limits.maxProjects}). Upgrade to create more projects.`,
     };
   }
 
@@ -122,19 +209,22 @@ export function canCreateRootProject(
  * Check if user can create a subproject
  * @param plan - User's subscription plan
  * @param parentProjectNestingLevel - Nesting level of parent project
+ * @param mobileUnlocked - Whether user has mobile unlock
  * @returns Object with allowed boolean and message
  */
 export function canCreateSubproject(
   plan: SubscriptionPlan,
-  parentProjectNestingLevel: number
+  parentProjectNestingLevel: number,
+  mobileUnlocked: boolean = false
 ): { allowed: boolean; message?: string } {
-  const limits = getPlanLimits(plan);
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const limits = getPlanLimits(tier);
 
   // Check nesting level
   if (limits.maxProjectNestingLevel === 0) {
     return {
       allowed: false,
-      message: "Your current plan does not support subprojects. Upgrade to PRO to create subprojects.",
+      message: "Your current plan does not support subprojects. Upgrade to unlock subprojects.",
     };
   }
 
@@ -177,9 +267,9 @@ export function calculateChildNestingLevel(parentNestingLevel: number): number {
 }
 
 /**
- * Get recurring task limits for a subscription plan
+ * Get recurring task limits for a subscription plan (or effective tier)
  */
-export function getRecurringTaskLimit(plan: SubscriptionPlan) {
+export function getRecurringTaskLimit(plan: EffectiveTier) {
   return RECURRING_TASK_LIMITS[plan];
 }
 
@@ -187,19 +277,22 @@ export function getRecurringTaskLimit(plan: SubscriptionPlan) {
  * Check if user can create a recurring task
  * @param plan - User's subscription plan
  * @param currentRecurringTaskCount - Current number of recurring tasks user has
+ * @param mobileUnlocked - Whether user has mobile unlock
  * @returns Object with allowed boolean and message
  */
 export function canCreateRecurringTask(
   plan: SubscriptionPlan,
-  currentRecurringTaskCount: number
+  currentRecurringTaskCount: number,
+  mobileUnlocked: boolean = false
 ): { allowed: boolean; message?: string } {
-  const limits = getRecurringTaskLimit(plan);
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const limits = getRecurringTaskLimit(tier);
 
   // Check if plan supports recurring tasks at all
   if (limits.maxRecurringTasks === 0) {
     return {
       allowed: false,
-      message: "Recurring tasks are not available on your current plan. Upgrade to PRO to create recurring tasks.",
+      message: "Recurring tasks are not available on your current plan. Upgrade to unlock recurring tasks.",
     };
   }
 
@@ -212,7 +305,7 @@ export function canCreateRecurringTask(
   if (currentRecurringTaskCount >= limits.maxRecurringTasks) {
     return {
       allowed: false,
-      message: `You have reached your recurring task limit (${limits.maxRecurringTasks}) on the ${plan} plan. Upgrade to ENTERPRISE for unlimited recurring tasks.`,
+      message: `You have reached your recurring task limit (${limits.maxRecurringTasks}). Upgrade to ENTERPRISE for unlimited recurring tasks.`,
     };
   }
 
@@ -224,31 +317,49 @@ export function canCreateRecurringTask(
  */
 export function getUpgradeMessage(
   currentPlan: SubscriptionPlan,
-  reason: "subprojects" | "more_projects" | "recurring_tasks"
+  reason: "subprojects" | "more_projects" | "recurring_tasks" | "mind_maps",
+  mobileUnlocked: boolean = false
 ): string {
+  const tier = getEffectiveTier(currentPlan, mobileUnlocked);
+
   if (reason === "subprojects") {
-    return `Upgrade to PRO to unlock subprojects and advanced project management.`;
+    if (tier === "FREE") {
+      return `Unlock for $4.99 to enable subprojects and unlimited projects.`;
+    }
+    return `Upgrade to PRO to unlock deeper project nesting.`;
   }
   if (reason === "more_projects") {
-    return `Upgrade to PRO to create up to 5 projects, or ENTERPRISE for unlimited projects.`;
+    if (tier === "FREE") {
+      return `Unlock for $4.99 to create unlimited projects.`;
+    }
+    return `Upgrade to ENTERPRISE for unlimited projects.`;
   }
   if (reason === "recurring_tasks") {
-    return `Upgrade to PRO to unlock recurring tasks and automate your workflow.`;
+    if (tier === "FREE") {
+      return `Unlock for $4.99 to enable recurring tasks.`;
+    }
+    return `Upgrade to ENTERPRISE for unlimited recurring tasks.`;
+  }
+  if (reason === "mind_maps") {
+    return `Upgrade to PRO to unlock mind mapping features.`;
   }
   return `Upgrade your plan to unlock this feature.`;
 }
 
 /**
- * Get correct subscription limits for a plan
+ * Get correct subscription limits for a plan considering mobile unlock
  * Converts -1 (unlimited) to 999999 for display purposes
  */
-export function getCorrectLimitsForPlan(plan: string): {
+export function getCorrectLimitsForPlan(
+  plan: string,
+  mobileUnlocked: boolean = false
+): {
   projectLimit: number;
   taskLimit: number;
 } {
-  const planKey = plan as keyof typeof PROJECT_LIMITS;
-  const projectLimitValue = PROJECT_LIMITS[planKey];
-  const taskLimitValue = TASK_LIMITS[planKey];
+  const tier = getEffectiveTier(plan as SubscriptionPlan, mobileUnlocked);
+  const projectLimitValue = PROJECT_LIMITS[tier];
+  const taskLimitValue = TASK_LIMITS[tier];
 
   if (!projectLimitValue || !taskLimitValue) {
     // Default to FREE plan if invalid plan
@@ -265,9 +376,10 @@ export function getCorrectLimitsForPlan(plan: string): {
 }
 
 /**
- * Get mind map limits for a subscription plan
+ * Get mind map limits for a subscription plan (or effective tier)
+ * Note: Mobile Unlock does NOT include mind maps
  */
-export function getMindMapLimit(plan: SubscriptionPlan) {
+export function getMindMapLimit(plan: EffectiveTier) {
   return MIND_MAP_LIMITS[plan];
 }
 
@@ -275,19 +387,23 @@ export function getMindMapLimit(plan: SubscriptionPlan) {
  * Check if user can create a mind map
  * @param plan - User's subscription plan
  * @param currentMindMapCount - Current number of mind maps user has
+ * @param mobileUnlocked - Whether user has mobile unlock (does NOT grant mind map access)
  * @returns Object with allowed boolean and message
  */
 export function canCreateMindMap(
   plan: SubscriptionPlan,
-  currentMindMapCount: number
+  currentMindMapCount: number,
+  mobileUnlocked: boolean = false
 ): { allowed: boolean; message?: string } {
-  const limits = getMindMapLimit(plan);
+  // Mind maps are only available on PRO and ENTERPRISE, not Mobile Unlock
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const limits = getMindMapLimit(tier);
 
   // Check if plan supports mind maps at all
   if (limits.maxMindMaps === 0) {
     return {
       allowed: false,
-      message: "Mind mapping is not available on your current plan. Upgrade to PRO to create mind maps.",
+      message: "Mind mapping is not available on your current plan. Upgrade to PRO ($4.99/month) to create mind maps.",
     };
   }
 
@@ -300,7 +416,7 @@ export function canCreateMindMap(
   if (currentMindMapCount >= limits.maxMindMaps) {
     return {
       allowed: false,
-      message: `You have reached your mind map limit (${limits.maxMindMaps}) on the ${plan} plan. Upgrade to ENTERPRISE for unlimited mind maps.`,
+      message: `You have reached your mind map limit (${limits.maxMindMaps}). Upgrade to ENTERPRISE for unlimited mind maps.`,
     };
   }
 
@@ -311,19 +427,22 @@ export function canCreateMindMap(
  * Check if a mind map can have a certain number of nodes
  * @param plan - User's subscription plan
  * @param nodeCount - Number of nodes in the mind map
+ * @param mobileUnlocked - Whether user has mobile unlock (does NOT grant mind map access)
  * @returns Object with allowed boolean and message
  */
 export function canCreateMindMapWithNodes(
   plan: SubscriptionPlan,
-  nodeCount: number
+  nodeCount: number,
+  mobileUnlocked: boolean = false
 ): { allowed: boolean; message?: string } {
-  const limits = getMindMapLimit(plan);
+  const tier = getEffectiveTier(plan, mobileUnlocked);
+  const limits = getMindMapLimit(tier);
 
   // Check if plan supports mind maps at all
   if (limits.maxMindMaps === 0) {
     return {
       allowed: false,
-      message: "Mind mapping is not available on your current plan. Upgrade to PRO to create mind maps.",
+      message: "Mind mapping is not available on your current plan. Upgrade to PRO ($4.99/month) to create mind maps.",
     };
   }
 
@@ -336,7 +455,7 @@ export function canCreateMindMapWithNodes(
   if (nodeCount > limits.maxNodesPerMindMap) {
     return {
       allowed: false,
-      message: `Your mind map exceeds the node limit (${limits.maxNodesPerMindMap}) for the ${plan} plan. Upgrade to ENTERPRISE for unlimited nodes per mind map.`,
+      message: `Your mind map exceeds the node limit (${limits.maxNodesPerMindMap}). Upgrade to ENTERPRISE for unlimited nodes per mind map.`,
     };
   }
 

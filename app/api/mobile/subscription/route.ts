@@ -7,17 +7,20 @@ import { success, error, handleApiError } from "@/lib/apiResponse";
 export const dynamic = "force-dynamic";
 
 // Mobile-specific limits based on pricing strategy
+// Aligned with web app tier structure
 const MOBILE_LIMITS = {
   FREE: {
     maxProjects: 3,
-    maxTasks: 15,
+    maxTasks: 10,
     maxRecurringTasks: 0,
+    maxSubprojectLevel: 0, // No subprojects
     aiButlerQueriesPerDay: 5,
   },
   UNLOCKED: {
     maxProjects: -1, // Unlimited
     maxTasks: -1, // Unlimited
-    maxRecurringTasks: -1, // Unlimited
+    maxRecurringTasks: 10, // Up to 10 recurring tasks
+    maxSubprojectLevel: 1, // One level of subprojects
     aiButlerQueriesPerDay: 20,
   },
 };
@@ -112,6 +115,7 @@ export async function GET(request: NextRequest) {
         maxProjects: limits.maxProjects,
         maxTasks: limits.maxTasks,
         maxRecurringTasks: limits.maxRecurringTasks,
+        maxSubprojectLevel: limits.maxSubprojectLevel,
         aiButlerQueriesPerDay: limits.aiButlerQueriesPerDay,
       },
 

@@ -4,11 +4,11 @@ export const Colors = {
   primaryDark: '#2563EB',
   primaryLight: '#60A5FA',
 
-  // Eisenhower Matrix colors
-  urgentImportant: '#EF4444',      // Red - Do First
-  notUrgentImportant: '#3B82F6',   // Blue - Schedule
-  urgentNotImportant: '#EAB308',   // Yellow - Delegate
-  notUrgentNotImportant: '#9CA3AF', // Gray - Eliminate
+  // Eisenhower Matrix colors (matching logo quadrant colors)
+  urgentImportant: '#8b5cf6',      // Purple - Do First
+  notUrgentImportant: '#3b82f6',   // Blue - Schedule
+  urgentNotImportant: '#10b981',   // Green - Delegate
+  notUrgentNotImportant: '#f59e0b', // Orange - Eliminate
 
   // Background colors
   background: '#FFFFFF',
@@ -28,6 +28,7 @@ export const Colors = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
+  errorBackground: '#FEF2F2',
   info: '#3B82F6',
 
   // Other
