@@ -15,7 +15,7 @@ import {
 } from "@/lib/emailTemplates";
 
 export interface NotificationPayload {
-  type: "task_assigned" | "team_invitation" | "document_uploaded" | "sticky_note_received" | "task_completed";
+  type: "task_assigned" | "team_invitation" | "document_uploaded" | "sticky_note_received" | "task_completed" | "task_starting_today";
   title: string;
   message: string;
   userId: string;
@@ -584,6 +584,53 @@ export async function sendTaskCompletionNotification(
     console.log("[Notification] Task completion notifications sent");
   } catch (error) {
     console.error("[Notification] Failed to send task completion notification:", error);
+    throw error;
+  }
+}
+
+/**
+ * Send task start date notification
+ * Creates in-app notification when a task's start date arrives
+ */
+export async function sendTaskStartDateNotification(
+  userId: string,
+  taskId: string,
+  taskTitle: string,
+  startTime: string | null
+) {
+  try {
+    const preferences = await getNotificationPreferences(userId);
+
+    // Check if user has start date notifications enabled
+    if (!preferences.inAppTaskStartDate) {
+      console.log("[Notification] Start date notifications disabled for user:", userId);
+      return;
+    }
+
+    // Check if notifications are muted
+    if (preferences.notificationsMuted) {
+      console.log("[Notification] Notifications muted for user:", userId);
+      return;
+    }
+
+    const timeInfo = startTime ? ` at ${startTime}` : "";
+    const message = `Your task "${taskTitle}" is scheduled to start today${timeInfo}.`;
+
+    await createNotification({
+      type: "task_starting_today",
+      title: `Task Starting Today: ${taskTitle}`,
+      message,
+      userId,
+      relatedTaskId: taskId,
+      metadata: {
+        taskTitle,
+        startTime,
+      },
+    });
+
+    console.log("[Notification] Task start date notification sent for task:", taskId);
+  } catch (error) {
+    console.error("[Notification] Failed to send task start date notification:", error);
     throw error;
   }
 }

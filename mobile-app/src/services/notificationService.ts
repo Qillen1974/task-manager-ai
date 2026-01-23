@@ -100,6 +100,65 @@ class NotificationService {
     }
   }
 
+  async scheduleStartDateReminder(task: Task): Promise<string | null> {
+    if (!task.startDate) return null;
+
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return null;
+
+    // Parse the start date - handle both string and Date objects
+    const startDate = typeof task.startDate === 'string'
+      ? new Date(task.startDate)
+      : new Date(task.startDate);
+
+    const now = new Date();
+
+    // Don't schedule if the start date is in the past
+    if (startDate < now) {
+      return null;
+    }
+
+    // Schedule notification for 9 AM on the start date (local timezone)
+    const reminderDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate(),
+      9, // 9 AM
+      0, // 0 minutes
+      0, // 0 seconds
+      0  // 0 milliseconds
+    );
+
+    // If reminder date is in the past, don't schedule
+    if (reminderDate < now) {
+      return null;
+    }
+
+    try {
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Task Starting Today',
+          body: task.title,
+          data: { taskId: task.id, type: 'start_date' },
+          sound: true,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          repeats: false,
+          year: reminderDate.getFullYear(),
+          month: reminderDate.getMonth() + 1, // Calendar months are 1-12, JS months are 0-11
+          day: reminderDate.getDate(),
+          hour: reminderDate.getHours(),
+          minute: reminderDate.getMinutes(),
+        },
+      });
+
+      return notificationId;
+    } catch (error) {
+      return null;
+    }
+  }
+
   async cancelTaskReminder(notificationId: string): Promise<void> {
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
@@ -144,10 +203,15 @@ class NotificationService {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Schedule reminders for all tasks with due dates
+      // Schedule reminders for all tasks with due dates or start dates
       for (const task of tasks) {
-        if (!task.completed && task.dueDate) {
-          await this.scheduleTaskReminder(task);
+        if (!task.completed) {
+          if (task.dueDate) {
+            await this.scheduleTaskReminder(task);
+          }
+          if (task.startDate) {
+            await this.scheduleStartDateReminder(task);
+          }
         }
       }
     } catch (error) {

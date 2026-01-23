@@ -7,7 +7,8 @@ export type NotificationType =
   | "team_invitation"
   | "document_uploaded"
   | "sticky_note_received"
-  | "task_completed";
+  | "task_completed"
+  | "task_starting_today";
 
 export interface Notification {
   id: string;
@@ -41,6 +42,7 @@ export interface NotificationPreference {
   inAppDocumentUploads: boolean;
   inAppStickyNotes: boolean;
   inAppTaskCompletions: boolean;
+  inAppTaskStartDate: boolean;
   digestFrequency: "immediate" | "daily" | "weekly" | "never";
   notificationsMuted: boolean;
   createdAt: string;
@@ -64,6 +66,7 @@ export const notificationTypeIcons: Record<NotificationType, string> = {
   document_uploaded: "📄",
   sticky_note_received: "📝",
   task_completed: "🎉",
+  task_starting_today: "🚀",
 };
 
 // Color mapping for notification types
@@ -73,6 +76,7 @@ export const notificationTypeColors: Record<NotificationType, string> = {
   document_uploaded: "bg-amber-50 border-amber-200",
   sticky_note_received: "bg-yellow-50 border-yellow-200",
   task_completed: "bg-green-50 border-green-200",
+  task_starting_today: "bg-indigo-50 border-indigo-200",
 };
 
 // Readable labels for notification types
@@ -82,4 +86,5 @@ export const notificationTypeLabels: Record<NotificationType, string> = {
   document_uploaded: "Document Upload",
   sticky_note_received: "Sticky Note",
   task_completed: "Task Completed",
+  task_starting_today: "Task Starting",
 };

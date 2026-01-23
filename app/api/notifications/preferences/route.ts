@@ -18,6 +18,7 @@ const preferencesSchema = z.object({
   inAppDocumentUploads: z.boolean().optional(),
   inAppStickyNotes: z.boolean().optional(),
   inAppTaskCompletions: z.boolean().optional(),
+  inAppTaskStartDate: z.boolean().optional(),
 
   // General preferences
   digestFrequency: z.enum(["immediate", "daily", "weekly", "never"]).optional(),
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
         inAppDocumentUploads: true,
         inAppStickyNotes: true,
         inAppTaskCompletions: true,
+        inAppTaskStartDate: true,
         digestFrequency: "immediate",
         notificationsMuted: false,
       },
