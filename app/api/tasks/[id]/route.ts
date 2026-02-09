@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { sendTaskCompletionNotification } from "@/lib/notificationService";
+import { notifyBotsOfTaskEvent } from "@/lib/webhookService";
 
 /**
  * Cascade start date updates to dependent tasks
@@ -443,6 +444,9 @@ export async function PATCH(
         cascadedTasks = await cascadeDependentTaskDates(params.id, newDueDate);
       }
     }
+
+    // Notify bots of task update
+    notifyBotsOfTaskEvent(updated.projectId, "task.updated", updated).catch(() => {});
 
     // Fetch user data for assignments
     const updatedAssignmentUserIds = updated.assignments?.map(a => a.userId) || [];

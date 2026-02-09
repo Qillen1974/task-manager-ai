@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { generateRecurringTaskInstances, countPendingGenerations } from '@/lib/recurringTaskGenerator';
 import { cleanupCompletedTasks } from '@/lib/completedTaskCleanup';
 import { processStartDateNotifications, countTasksNeedingNotification } from '@/lib/startDateNotificationJob';
+import { processWebhookQueue } from '@/lib/webhookService';
 
 /**
  * Recurring Task Scheduler
@@ -49,6 +50,14 @@ export function startRecurringTaskScheduler() {
     cron.schedule('0 9 * * *', async () => {
       await runStartDateNotificationTask();
     });
+
+    // Run webhook processor every 30 seconds (only if enabled)
+    if (process.env.BOT_WEBHOOKS_ENABLED === 'true') {
+      cron.schedule('*/30 * * * * *', async () => {
+        await runWebhookProcessor();
+      });
+      console.log('[Scheduler] ✓ Bot webhook processor started (every 30 seconds)');
+    }
 
     schedulerStarted = true;
     console.log('[Scheduler] ✓ Recurring task scheduler started (daily at 00:00 UTC)');
@@ -156,6 +165,20 @@ async function runGenerationTask() {
     } catch (stateError) {
       console.error('[Scheduler] Could not update scheduler state:', stateError);
     }
+  }
+}
+
+/**
+ * Internal function to process pending webhook deliveries
+ */
+async function runWebhookProcessor() {
+  try {
+    const result = await processWebhookQueue();
+    if (result.processed > 0) {
+      console.log(`[Webhook] Processed ${result.processed} deliveries: ${result.delivered} delivered, ${result.failed} failed`);
+    }
+  } catch (error) {
+    console.error('[Webhook] Processor error:', error);
   }
 }
 

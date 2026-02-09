@@ -111,6 +111,18 @@ export const ApiErrors = {
 
   // Rate limiting
   TOO_MANY_REQUESTS: () => error("Too many requests. Please try again later", 429, "RATE_LIMIT"),
+
+  // Bot API errors
+  BOT_NOT_FOUND: () => error("Bot not found", 404, "BOT_NOT_FOUND"),
+  BOT_INACTIVE: () => error("Bot is inactive", 403, "BOT_INACTIVE"),
+  BOT_PERMISSION_DENIED: (permission?: string) =>
+    error(`Bot does not have ${permission || "required"} permission`, 403, "BOT_PERMISSION_DENIED"),
+  BOT_PROJECT_ACCESS_DENIED: () =>
+    error("Bot cannot access this project", 403, "BOT_PROJECT_ACCESS_DENIED"),
+  ARTIFACT_TOO_LARGE: () =>
+    error("Artifact too large. Maximum size is 1MB", 413, "ARTIFACT_TOO_LARGE"),
+  INVALID_API_KEY: () => error("Invalid or missing API key", 401, "INVALID_API_KEY"),
+  BOT_RATE_LIMITED: () => error("Rate limit exceeded", 429, "BOT_RATE_LIMITED"),
 };
 
 /**

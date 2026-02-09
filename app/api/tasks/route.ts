@@ -4,6 +4,7 @@ import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { canCreateRecurringTask, TASK_LIMITS, getEffectiveTier } from "@/lib/projectLimits";
 import { calculateNextOccurrenceDate, calculateInitialNextGenerationDate } from "@/lib/utils";
+import { notifyBotsOfTaskEvent } from "@/lib/webhookService";
 
 /**
  * GET /api/tasks - List all tasks for the user
@@ -418,6 +419,9 @@ export async function POST(request: NextRequest) {
       updatedAt: task.updatedAt,
       project: task.project,
     };
+
+    // Notify bots of task creation
+    notifyBotsOfTaskEvent(projectId, "task.created", task).catch(() => {});
 
     return success(formattedTask, 201);
   });

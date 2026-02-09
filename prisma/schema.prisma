@@ -34,6 +34,7 @@ model User {
   subscription  Subscription?
   sessions      Session[]
   settings      UserSettings?
+  bots          Bot[]          @relation("BotOwner")
   mindMaps      MindMap[]
   assignments   TaskAssignment[]
   teamMemberships TeamMember[]
@@ -236,8 +237,14 @@ model Task {
   // Start date notification tracking
   startDateNotificationSent    Boolean  @default(false)
 
+  // Bot assignment (optional - null for human-created tasks)
+  assignedToBotId String?
+  assignedToBot   Bot?     @relation("BotAssignedTasks", fields: [assignedToBotId], references: [id], onDelete: SetNull)
+
   // Relations
   assignments   TaskAssignment[]  // Task assignments to team members
+  comments      TaskComment[]
+  artifacts     TaskArtifact[]
 
   @@index([userId])
   @@index([projectId])
@@ -246,6 +253,7 @@ model Task {
   @@index([parentTaskId])
   @@index([isRecurring])
   @@index([nextGenerationDate])
+  @@index([assignedToBotId])
 }
 
 enum TaskAssignmentRole {
@@ -720,4 +728,99 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Bot model - represents an external bot/agent that can interact with tasks
+model Bot {
+  id                 String   @id @default(cuid())
+  ownerId            String
+  owner              User     @relation("BotOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  name               String
+  description        String?
+  apiKeyHash         String   @unique  // SHA-256 hash of the API key
+  apiKeyPrefix       String             // First 8 chars of key for identification
+  projectIds         String[]           // Array of project IDs the bot can access
+  permissions        String   @default("tasks:read,tasks:write,comments:read,comments:write")  // Comma-separated permissions
+  webhookUrl         String?            // URL to send webhook events to
+  webhookSecret      String?            // HMAC secret for signing webhook payloads
+  rateLimitPerMinute Int      @default(60)
+  isActive           Boolean  @default(true)
+  lastUsedAt         DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  assignedTasks      Task[]             @relation("BotAssignedTasks")
+  comments           TaskComment[]
+  artifacts          TaskArtifact[]
+  webhookDeliveries  WebhookDelivery[]
+
+  @@index([ownerId])
+  @@index([apiKeyHash])
+  @@index([isActive])
+}
+
+// TaskComment model - comments on tasks from humans or bots
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  userId    String?  // Human author (nullable)
+  botId     String?  // Bot author (nullable)
+  bot       Bot?     @relation(fields: [botId], references: [id], onDelete: SetNull)
+
+  body      String   @db.Text
+  metadata  Json?    // Optional structured data
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([botId])
+}
+
+// TaskArtifact model - files/artifacts attached to tasks by bots
+model TaskArtifact {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  fileName  String
+  mimeType  String
+  content   String   @db.Text  // Base64-encoded content, max ~1MB
+  sizeBytes Int
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([botId])
+}
+
+// WebhookDelivery model - tracks webhook delivery attempts
+model WebhookDelivery {
+  id            String   @id @default(cuid())
+  botId         String
+  bot           Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  event         String   // e.g., "task.created", "task.updated", "comment.added"
+  payload       Json
+  status        String   @default("pending")  // pending, delivered, failed
+  httpStatus    Int?
+  response      String?  @db.Text
+  attempts      Int      @default(0)
+  lastAttemptAt DateTime?
+  deliveredAt   DateTime?
+  nextRetryAt   DateTime?
+
+  createdAt     DateTime @default(now())
+
+  @@index([botId])
+  @@index([status])
+  @@index([nextRetryAt])
 }
