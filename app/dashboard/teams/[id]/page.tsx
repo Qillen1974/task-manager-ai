@@ -6,7 +6,7 @@ import { Navigation } from "@/components/Navigation";
 import { useApi } from "@/lib/useApi";
 import { AuthPage } from "@/components/AuthPage";
 import WorkspacePanel from "@/components/WorkspacePanel";
-import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus } from "lucide-react";
+import { ArrowLeft, Users, Mail, Trash2, Edit2, Check, X, Plus, Loader, FolderPlus, Bot } from "lucide-react";
 import Link from "next/link";
 
 interface TeamMember {
@@ -25,6 +25,16 @@ interface TeamMember {
   };
 }
 
+interface TeamBot {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  lastUsedAt: string | null;
+  permissions: string;
+  owner: { id: string; email: string; name: string | null };
+}
+
 interface Team {
   id: string;
   name: string;
@@ -33,6 +43,7 @@ interface Team {
   ownerId: string;
   userRole: string;
   members: TeamMember[];
+  bots?: TeamBot[];
 }
 
 interface PendingInvitation {
@@ -457,6 +468,52 @@ export default function TeamDetailsPage() {
             )}
           </div>
         </div>
+
+        {/* Bot Agents Section */}
+        {team.bots && team.bots.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mt-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Bot className="w-5 h-5 text-purple-600" />
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Bot Agents</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {team.bots.length} bot{team.bots.length !== 1 ? "s" : ""} connected
+                </p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {team.bots.map((bot) => (
+                <div key={bot.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{bot.name}</p>
+                    {bot.description && (
+                      <p className="text-sm text-gray-600">{bot.description}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Owner: {bot.owner?.name || bot.owner?.email}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      BOT
+                    </span>
+                    <span className={`w-2 h-2 rounded-full ${bot.isActive ? "bg-green-500" : "bg-gray-400"}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mt-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Bot className="w-5 h-5 text-gray-400" />
+              <h2 className="text-xl font-bold text-gray-900">Bot Agents</h2>
+            </div>
+            <div className="text-center py-8 text-gray-500">
+              <p>No bot agents connected</p>
+            </div>
+          </div>
+        )}
 
         {/* Pending Invitations */}
         {isAdmin && invitations.length > 0 && (

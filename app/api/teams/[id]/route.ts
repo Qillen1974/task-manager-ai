@@ -81,9 +81,30 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return ApiErrors.NOT_FOUND("Team not found");
     }
 
+    // Find bots scoped to this team's projects
+    const teamProjects = await db.project.findMany({
+      where: { teamId: id },
+      select: { id: true },
+    });
+    const teamProjectIds = new Set(teamProjects.map((p) => p.id));
+
+    const allActiveBots = await db.bot.findMany({
+      where: { isActive: true },
+      include: {
+        owner: {
+          select: { id: true, email: true, name: true },
+        },
+      },
+    });
+
+    const bots = allActiveBots.filter((bot) =>
+      bot.projectIds.some((pid) => teamProjectIds.has(pid))
+    ).map(({ apiKeyHash, apiKeyPrefix, webhookUrl, webhookSecret, rateLimitPerMinute, ...bot }) => bot);
+
     return success({
       ...team,
       userRole: access.membership?.role,
+      bots,
     });
   });
 }
