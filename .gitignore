@@ -58,5 +58,8 @@ Thumbs.db
 logs
 *.log
 
+# Daemon env files
+daemons/.env
+
 # Prisma
 prisma/dev.db

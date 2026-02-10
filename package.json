@@ -13,7 +13,8 @@
     "prisma:migrate": "npx prisma migrate deploy",
     "prisma:generate": "npx prisma generate",
     "delete-teams": "ts-node scripts/delete-teams.ts",
-    "list-teams": "ts-node scripts/delete-teams.ts"
+    "list-teams": "ts-node scripts/delete-teams.ts",
+    "john": "ts-node --project daemons/tsconfig.json daemons/john/index.ts"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
