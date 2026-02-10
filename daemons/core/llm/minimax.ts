@@ -11,10 +11,15 @@ export class MiniMaxClient implements LLMClient {
   private http: AxiosInstance;
 
   constructor(apiKey: string) {
+    const trimmedKey = apiKey.trim();
+    log.debug("MiniMax client initialized", {
+      keyLength: trimmedKey.length,
+      keyPrefix: trimmedKey.slice(0, 8) + "...",
+    });
     this.http = axios.create({
       baseURL: MINIMAX_BASE_URL,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${trimmedKey}`,
         "Content-Type": "application/json",
       },
       timeout: 120_000, // LLM calls can be slow

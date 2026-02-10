@@ -22,7 +22,7 @@ function requireEnv(name: string): string {
     console.error(`[FATAL] Missing required environment variable: ${name}`);
     process.exit(1);
   }
-  return value;
+  return value.trim();
 }
 
 function optionalInt(name: string, defaultValue: number): number {
