@@ -120,6 +120,13 @@ export async function GET(
             completed: true,
           },
         },
+        assignedToBotId: true,
+        assignedToBot: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         // Recurring task fields
         isRecurring: true,
         recurringPattern: true,
@@ -228,6 +235,8 @@ export async function GET(
       nextGenerationDate: task.nextGenerationDate,
       lastGeneratedDate: task.lastGeneratedDate,
       parentTaskId: task.parentTaskId,
+      assignedToBotId: task.assignedToBotId,
+      assignedToBot: task.assignedToBot,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
@@ -255,7 +264,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, completed, progress, resourceCount, manhours, dependsOnTaskId } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, completed, progress, resourceCount, manhours, dependsOnTaskId, assignedToBotId } = body;
 
     // Find task
     const task = await db.task.findUnique({
@@ -358,6 +367,7 @@ export async function PATCH(
         ...(resourceCount !== undefined && { resourceCount }),
         ...(manhours !== undefined && { manhours }),
         ...(dependsOnTaskId !== undefined && { dependsOnTaskId: dependsOnTaskId || null }),
+        ...(assignedToBotId !== undefined && { assignedToBotId: assignedToBotId || null }),
         ...(completed !== undefined && {
           completed,
           completedAt: completed ? new Date() : null,
@@ -387,6 +397,13 @@ export async function PATCH(
             id: true,
             title: true,
             completed: true,
+          },
+        },
+        assignedToBotId: true,
+        assignedToBot: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         // Recurring task fields
@@ -493,6 +510,8 @@ export async function PATCH(
       nextGenerationDate: updated.nextGenerationDate,
       lastGeneratedDate: updated.lastGeneratedDate,
       parentTaskId: updated.parentTaskId,
+      assignedToBotId: updated.assignedToBotId,
+      assignedToBot: updated.assignedToBot,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
       project: updated.project,

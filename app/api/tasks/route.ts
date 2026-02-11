@@ -134,6 +134,13 @@ export async function GET(request: NextRequest) {
             color: true,
           },
         },
+        assignedToBotId: true,
+        assignedToBot: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         assignments: {
           select: {
             id: true,
@@ -194,6 +201,8 @@ export async function GET(request: NextRequest) {
       nextGenerationDate: task.nextGenerationDate,
       lastGeneratedDate: task.lastGeneratedDate,
       parentTaskId: task.parentTaskId,
+      assignedToBotId: task.assignedToBotId,
+      assignedToBot: task.assignedToBot,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,
@@ -218,7 +227,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, resourceCount, manhours, dependsOnTaskId, isRecurring, recurringPattern, recurringConfig, recurringStartDate, recurringEndDate } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, resourceCount, manhours, dependsOnTaskId, isRecurring, recurringPattern, recurringConfig, recurringStartDate, recurringEndDate, assignedToBotId } = body;
 
     // Validation
     if (!title || title.trim().length === 0) {
@@ -334,6 +343,7 @@ export async function POST(request: NextRequest) {
         resourceCount: resourceCount || null,
         manhours: manhours || null,
         dependsOnTaskId: dependsOnTaskId || null,
+        assignedToBotId: assignedToBotId || null,
         // Recurring task fields
         isRecurring: processedIsRecurring,
         recurringPattern: processedIsRecurring ? recurringPattern : null,
@@ -364,6 +374,13 @@ export async function POST(request: NextRequest) {
             id: true,
             title: true,
             completed: true,
+          },
+        },
+        assignedToBotId: true,
+        assignedToBot: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         // Recurring task fields
@@ -415,6 +432,8 @@ export async function POST(request: NextRequest) {
       nextGenerationDate: task.nextGenerationDate,
       lastGeneratedDate: task.lastGeneratedDate,
       parentTaskId: task.parentTaskId,
+      assignedToBotId: task.assignedToBotId,
+      assignedToBot: task.assignedToBot,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       project: task.project,

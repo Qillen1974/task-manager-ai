@@ -6,6 +6,12 @@ import { generateId, getPriorityLabel, formatRecurringDescription } from "@/lib/
 import { ProgressSlider } from "./ProgressSlider";
 import ManpowerCalculator from "./ManpowerCalculator";
 
+interface AvailableBot {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface TaskFormProps {
   projects: Project[];
   tasks?: Task[]; // All tasks for dependency selection
@@ -19,6 +25,7 @@ interface TaskFormProps {
   childProjects?: Project[];
   allProjects?: Project[]; // Flattened list of all projects including nested ones
   canCreateRecurringTasks?: boolean; // Whether user can create recurring tasks
+  availableBots?: AvailableBot[]; // Bots available for assignment
 }
 
 export function TaskForm({
@@ -33,7 +40,8 @@ export function TaskForm({
   activeProjectId,
   childProjects = [],
   allProjects = [],
-  canCreateRecurringTasks = false
+  canCreateRecurringTasks = false,
+  availableBots = []
 }: TaskFormProps) {
   const [title, setTitle] = useState(editingTask?.title || "");
   const [description, setDescription] = useState(editingTask?.description || "");
@@ -49,6 +57,7 @@ export function TaskForm({
   const [resourceCount, setResourceCount] = useState<number | undefined>(editingTask?.resourceCount || undefined);
   const [manhours, setManhours] = useState<number | undefined>(editingTask?.manhours || undefined);
   const [dependsOnTaskId, setDependsOnTaskId] = useState<string | undefined>(editingTask?.dependsOnTaskId || undefined);
+  const [assignedToBotId, setAssignedToBotId] = useState<string>(editingTask?.assignedToBotId || "");
 
   // Recurring task fields - Initialize from editingTask recurringConfig if available
   const [isRecurring, setIsRecurring] = useState(editingTask?.isRecurring || false);
@@ -192,6 +201,7 @@ export function TaskForm({
       resourceCount: resourceCount,
       manhours: manhours,
       dependsOnTaskId: dependsOnTaskId || undefined,
+      assignedToBotId: assignedToBotId || undefined,
       // Recurring task fields
       isRecurring: isRecurring && canCreateRecurringTasks,
       recurringPattern: isRecurring && canCreateRecurringTasks ? recurringPattern : undefined,
@@ -309,6 +319,28 @@ export function TaskForm({
               ))}
             </select>
           </div>
+
+          {/* Assign to Bot Agent */}
+          {availableBots.length > 0 && (
+            <div>
+              <label htmlFor="assignedToBotId" className="block text-sm font-medium text-gray-700 mb-1">
+                Assign to Bot Agent (Optional)
+              </label>
+              <select
+                id="assignedToBotId"
+                value={assignedToBotId}
+                onChange={(e) => setAssignedToBotId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              >
+                <option value="">No bot agent — Task is for human team members</option>
+                {availableBots.map((bot) => (
+                  <option key={bot.id} value={bot.id}>
+                    {bot.name}{bot.description ? ` — ${bot.description}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Start Date and Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

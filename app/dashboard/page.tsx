@@ -104,6 +104,9 @@ export default function Home() {
   const [teamMembers, setTeamMembers] = useState<Array<{ userId: string; name?: string; email?: string; role: string }>>([]);
   const [userTeamRole, setUserTeamRole] = useState<string | undefined>();
 
+  // Available bots for task assignment
+  const [availableBots, setAvailableBots] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+
   // User preferences state
   const [userPreferences, setUserPreferences] = useState<{
     enableAutoPrioritization: boolean;
@@ -409,6 +412,7 @@ export default function Home() {
         resourceCount: task.resourceCount,
         manhours: task.manhours,
         dependsOnTaskId: task.dependsOnTaskId,
+        assignedToBotId: task.assignedToBotId || null,
         isRecurring: task.isRecurring,
         recurringPattern: task.recurringPattern,
         recurringConfig: task.recurringConfig,
@@ -440,6 +444,7 @@ export default function Home() {
         resourceCount: updatedTask.resourceCount,
         manhours: updatedTask.manhours,
         dependsOnTaskId: updatedTask.dependsOnTaskId,
+        assignedToBotId: updatedTask.assignedToBotId || null,
         isRecurring: updatedTask.isRecurring,
         recurringPattern: updatedTask.recurringPattern,
         recurringConfig: updatedTask.recurringConfig,
@@ -505,8 +510,33 @@ export default function Home() {
     }
   };
 
+  const fetchBotsForProject = async (projectId: string) => {
+    if (!projectId) {
+      setAvailableBots([]);
+      return;
+    }
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      const response = await fetch(`/api/bots?projectId=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setAvailableBots(result.data);
+          return;
+        }
+      }
+      setAvailableBots([]);
+    } catch {
+      setAvailableBots([]);
+    }
+  };
+
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
+    fetchBotsForProject(task.projectId);
     setShowTaskForm(true);
   };
 
@@ -1023,6 +1053,7 @@ export default function Home() {
                   onClick={() => {
                     setEditingTask(undefined);
                     setDefaultProjectId(projects[0]?.id || "");
+                    fetchBotsForProject(projects[0]?.id || "");
                     setShowTaskForm(true);
                   }}
                   className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 whitespace-nowrap text-sm sm:text-base"
@@ -1131,6 +1162,7 @@ export default function Home() {
                   onClick={() => {
                     setEditingTask(undefined);
                     setDefaultProjectId(projects[0]?.id || "");
+                    fetchBotsForProject(projects[0]?.id || "");
                     setShowTaskForm(true);
                   }}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
@@ -1220,6 +1252,7 @@ export default function Home() {
                     onClick={() => {
                       setEditingTask(undefined);
                       setDefaultProjectId(activeProjectId);
+                      fetchBotsForProject(activeProjectId);
                       setShowTaskForm(true);
                     }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
@@ -1295,6 +1328,7 @@ export default function Home() {
               activeProjectId={activeProjectId}
               childProjects={childProjects}
               canCreateRecurringTasks={canCreateRecurringTasks}
+              availableBots={availableBots}
               onClose={() => {
                 setShowTaskForm(false);
                 setEditingTask(undefined);

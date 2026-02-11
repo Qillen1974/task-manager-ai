@@ -112,6 +112,16 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign
             </div>
           </div>
 
+          {/* Bot Assignment */}
+          {task.assignedToBot && (
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs text-gray-600 font-medium">Bot agent:</span>
+              <span className="text-xs px-2 py-1 rounded font-medium bg-teal-100 text-teal-800">
+                {task.assignedToBot.name}
+              </span>
+            </div>
+          )}
+
           {/* Assignments */}
           {task.assignments && task.assignments.length > 0 && (
             <div className="mb-3 flex items-center gap-2">

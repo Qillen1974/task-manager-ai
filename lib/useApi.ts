@@ -304,6 +304,7 @@ export function useApi() {
       resourceCount?: number;
       manhours?: number;
       dependsOnTaskId?: string;
+      assignedToBotId?: string | null;
     }) => call('POST', '/tasks', data),
     [call]
   );
@@ -325,6 +326,7 @@ export function useApi() {
         resourceCount?: number;
         manhours?: number;
         dependsOnTaskId?: string | null;
+        assignedToBotId?: string | null;
       }
     ) => call('PATCH', `/tasks/${id}`, data),
     [call]

@@ -67,6 +67,9 @@ export interface Task {
   parentTaskId?: string; // Reference to parent recurring task
   createdAt: string;
   updatedAt: string;
+  // Bot assignment
+  assignedToBotId?: string; // Bot assigned to this task
+  assignedToBot?: { id: string; name: string }; // Bot info for display
   // Task assignments
   assignments?: TaskAssignment[]; // Team members assigned to this task
   userId?: string; // Creator of the task
