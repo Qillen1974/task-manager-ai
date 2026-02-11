@@ -10,10 +10,11 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onAssign?: (task: Task) => void;
+  onViewDetails?: (task: Task) => void;
   showProject?: boolean;
 }
 
-export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign, showProject = false }: TaskCardProps) {
+export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign, onViewDetails, showProject = false }: TaskCardProps) {
   const isTaskOverdue = isOverdue(task.deadline);
   const isTaskSoon = isDeadlineSoon(task.deadline);
 
@@ -190,6 +191,18 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign
 
         {/* Actions */}
         <div className="flex gap-1 ml-2 flex-shrink-0">
+          {onViewDetails && task.assignedToBot && (
+            <button
+              onClick={() => onViewDetails(task)}
+              className="p-2 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded transition"
+              title="View activity"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
           {onAssign && (
             <button
               onClick={() => onAssign(task)}

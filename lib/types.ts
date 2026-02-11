@@ -86,6 +86,19 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  body: string;
+  metadata?: any;
+  author: {
+    type: "bot" | "user" | "unknown";
+    id?: string;
+    name?: string;
+  };
+  createdAt: string;
+}
+
 export interface AppState {
   projects: Project[];
   tasks: Task[];

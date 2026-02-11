@@ -11,6 +11,7 @@ import { Navigation } from "@/components/Navigation";
 import { TaskForm } from "@/components/TaskForm";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskAssignmentModal } from "@/components/TaskAssignmentModal";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { EisenhowerMatrix } from "@/components/EisenhowerMatrix";
 import { UserSettings } from "@/components/UserSettings";
 import { AuthPage } from "@/components/AuthPage";
@@ -103,6 +104,10 @@ export default function Home() {
   const [assignmentIsLoading, setAssignmentIsLoading] = useState(false);
   const [teamMembers, setTeamMembers] = useState<Array<{ userId: string; name?: string; email?: string; role: string }>>([]);
   const [userTeamRole, setUserTeamRole] = useState<string | undefined>();
+
+  // Task detail modal state
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
+  const [detailTask, setDetailTask] = useState<Task | undefined>();
 
   // Available bots for task assignment
   const [availableBots, setAvailableBots] = useState<Array<{ id: string; name: string; description?: string }>>([]);
@@ -654,6 +659,11 @@ export default function Home() {
     setShowAssignmentModal(true);
   };
 
+  const handleViewTaskDetails = (task: Task) => {
+    setDetailTask(task);
+    setShowTaskDetail(true);
+  };
+
   // Build hierarchical project tree (root projects only)
   const rootProjects = useMemo(() => {
     return projects.filter((p) => !p.parentProjectId);
@@ -1149,6 +1159,7 @@ export default function Home() {
                 onTaskEdit={handleEditTask}
                 onTaskDelete={handleDeleteTask}
                 onTaskAssign={openAssignmentModal}
+                onTaskViewDetails={handleViewTaskDetails}
               />
             </div>
           )}
@@ -1184,6 +1195,7 @@ export default function Home() {
                       onEdit={() => handleEditTask(task)}
                       onDelete={() => handleDeleteTask(task.id)}
                       onAssign={() => openAssignmentModal(task)}
+                      onViewDetails={() => handleViewTaskDetails(task)}
                     />
                   ))
                 )}
@@ -1276,6 +1288,7 @@ export default function Home() {
                           onEdit={() => handleEditTask(task)}
                           onDelete={() => handleDeleteTask(task.id)}
                           onAssign={() => openAssignmentModal(task)}
+                          onViewDetails={() => handleViewTaskDetails(task)}
                         />
                       ))
                   )}
@@ -1400,6 +1413,17 @@ export default function Home() {
             setUserTeamRole(undefined);
           }}
           isLoading={assignmentIsLoading}
+        />
+      )}
+
+      {/* Task Detail Modal */}
+      {showTaskDetail && detailTask && (
+        <TaskDetailModal
+          task={detailTask}
+          onClose={() => {
+            setShowTaskDetail(false);
+            setDetailTask(undefined);
+          }}
         />
       )}
 
