@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Task, Project, TaskAssignmentRole } from "@/lib/types";
 
 // Note: Metadata export removed because this component uses "use client"
@@ -289,22 +289,16 @@ export default function Home() {
 
   // Handle search params for initial view and project selection
   useEffect(() => {
-    try {
-      const searchParams = useSearchParams();
-      if (searchParams) {
-        const view = searchParams.get("view");
-        const projectId = searchParams.get("projectId");
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get("view");
+    const projectId = params.get("projectId");
 
-        if (view) {
-          setActiveView(view);
-        }
-        if (projectId) {
-          setActiveProjectId(projectId);
-        }
-      }
-    } catch (e) {
-      // useSearchParams not available, use defaults
-      console.debug("useSearchParams not available, using defaults");
+    if (view) {
+      setActiveView(view);
+    }
+    if (projectId) {
+      setActiveProjectId(projectId);
     }
   }, []);
 
