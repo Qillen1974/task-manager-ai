@@ -390,7 +390,7 @@ export default function Home() {
   }, [filteredTasksForDashboard, userPreferences]);
 
   // Task operations
-  const handleAddTask = async (task: Task) => {
+  const handleAddTask = async (task: Task, file?: File) => {
     try {
       // Check task limit for FREE users
       const taskLimit = TASK_LIMITS[userPlan];
@@ -421,6 +421,34 @@ export default function Home() {
 
       if (response.success && response.data) {
         setTasks([...tasks, response.data]);
+
+        // Upload file attachment if provided
+        if (file && response.data.id) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              const base64 = (reader.result as string).split(",")[1];
+              const token = localStorage.getItem("accessToken");
+              if (token) {
+                await fetch(`/api/tasks/${response.data.id}/artifacts`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    fileName: file.name,
+                    mimeType: file.type || "application/octet-stream",
+                    content: base64,
+                  }),
+                });
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (uploadErr) {
+            console.error("Failed to upload file attachment:", uploadErr);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to create task:", error);
@@ -1340,11 +1368,11 @@ export default function Home() {
                 setShowTaskForm(false);
                 setEditingTask(undefined);
               }}
-              onSubmit={async (task) => {
+              onSubmit={async (task, file) => {
                 if (editingTask) {
                   await handleUpdateTask(task);
                 } else {
-                  await handleAddTask(task);
+                  await handleAddTask(task, file);
                 }
                 setShowTaskForm(false);
                 setEditingTask(undefined);

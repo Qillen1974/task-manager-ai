@@ -38,7 +38,7 @@ export interface TaskComment {
 export interface TaskArtifact {
   id: string;
   taskId: string;
-  botId: string;
+  botId: string | null;
   fileName: string;
   mimeType: string;
   sizeBytes: number;
@@ -216,5 +216,22 @@ export class TaskQuadrantClient {
       mimeType,
       content,
     });
+  }
+
+  async getArtifact(
+    taskId: string,
+    artifactId: string
+  ): Promise<ApiResponse<TaskArtifact & { content: string }>> {
+    return this.request<TaskArtifact & { content: string }>(
+      "GET",
+      `/api/v1/bot/tasks/${taskId}/artifacts/${artifactId}`
+    );
+  }
+
+  async listArtifacts(taskId: string): Promise<ApiResponse<{ artifacts: TaskArtifact[] }>> {
+    return this.request<{ artifacts: TaskArtifact[] }>(
+      "GET",
+      `/api/v1/bot/tasks/${taskId}/artifacts`
+    );
   }
 }

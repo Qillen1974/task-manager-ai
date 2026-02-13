@@ -99,6 +99,19 @@ export interface TaskComment {
   createdAt: string;
 }
 
+export interface TaskArtifact {
+  id: string;
+  taskId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  author: {
+    type: "bot" | "user";
+    name: string;
+  };
+  createdAt: string;
+}
+
 export interface AppState {
   projects: Project[];
   tasks: Task[];

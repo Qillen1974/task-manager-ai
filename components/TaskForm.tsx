@@ -20,7 +20,7 @@ interface TaskFormProps {
   editingTask?: Task;
   onTaskUpdate?: (task: Task) => void;
   defaultProjectId?: string;
-  onSubmit?: (task: Task) => void | Promise<void>;
+  onSubmit?: (task: Task, file?: File) => void | Promise<void>;
   activeProjectId?: string;
   childProjects?: Project[];
   allProjects?: Project[]; // Flattened list of all projects including nested ones
@@ -106,6 +106,7 @@ export function TaskForm({
   );
 
   const [showCalculator, setShowCalculator] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -214,7 +215,7 @@ export function TaskForm({
 
     // Use onSubmit if provided (new way), otherwise use the old callbacks
     if (onSubmit) {
-      await onSubmit(task);
+      await onSubmit(task, selectedFile || undefined);
     } else if (editingTask && onTaskUpdate) {
       onTaskUpdate(task);
     } else if (onTaskAdd) {
@@ -275,6 +276,53 @@ export function TaskForm({
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             />
+          </div>
+
+          {/* Attach File */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Attach File (Optional)
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.onchange = (ev) => {
+                    const file = (ev.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      if (file.size > 750_000) {
+                        alert("File too large. Maximum size is ~750KB.");
+                        return;
+                      }
+                      setSelectedFile(file);
+                    }
+                  };
+                  input.click();
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                Choose File
+              </button>
+              {selectedFile ? (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                  <span className="text-gray-400 text-xs">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFile(null)}
+                    className="text-red-400 hover:text-red-600 text-xs"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <span className="text-sm text-gray-400">No file selected</span>
+              )}
+            </div>
           </div>
 
           {/* Project */}

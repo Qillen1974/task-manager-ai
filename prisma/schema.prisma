@@ -788,8 +788,8 @@ model TaskArtifact {
   taskId    String
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  botId     String
-  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  botId     String?
+  bot       Bot?     @relation(fields: [botId], references: [id], onDelete: Cascade)
 
   fileName  String
   mimeType  String
