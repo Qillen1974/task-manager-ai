@@ -13,6 +13,7 @@ interface NavigationProps {
   onViewChange: (view: string) => void;
   onProjectSelect: (projectId: string) => void;
   pendingTaskCount: number;
+  userPlan?: "FREE" | "PRO" | "ENTERPRISE";
   userName?: string;
   userEmail?: string;
   isAdmin?: boolean;
@@ -48,6 +49,7 @@ export function Navigation({
   onViewChange,
   onProjectSelect,
   pendingTaskCount,
+  userPlan,
   userName,
   userEmail,
   isAdmin,
@@ -125,6 +127,21 @@ export function Navigation({
               }`}
             >
               Projects
+            </button>
+            <button
+              onClick={() => onViewChange("kanban")}
+              className={`pb-2 font-medium transition border-b-2 flex items-center gap-1 ${
+                activeView === "kanban"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Kanban
+              {userPlan !== "ENTERPRISE" && (
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
             <Link
               href="/dashboard/mindmaps"
@@ -312,6 +329,24 @@ export function Navigation({
               }`}
             >
               Projects
+            </button>
+            <button
+              onClick={() => {
+                onViewChange("kanban");
+                setShowMobileMenu(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm font-medium transition flex items-center gap-1 ${
+                activeView === "kanban"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Kanban
+              {userPlan !== "ENTERPRISE" && (
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
             <Link
               href="/dashboard/mindmaps"

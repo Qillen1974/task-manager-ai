@@ -19,7 +19,7 @@ export async function processTask(
 
   try {
     // ── Step 1: CLAIM ──
-    await api.updateTask(taskId, { progress: 10 });
+    await api.updateTask(taskId, { progress: 10, status: "IN_PROGRESS" });
     await api.addComment(taskId, `[John] Picking up task: "${task.title}"`);
 
     // ── Step 2: SANITIZE ──
@@ -143,7 +143,7 @@ export async function processTask(
     }
 
     // ── Step 6: MARK COMPLETE ──
-    await api.updateTask(taskId, { progress: 100, completed: true });
+    await api.updateTask(taskId, { progress: 100, completed: true, status: "REVIEW" });
     await api.addComment(taskId, "[John] Task completed.");
 
     log.info("Task completed successfully", { taskId });

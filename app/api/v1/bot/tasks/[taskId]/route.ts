@@ -134,7 +134,13 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, quadrant, progress, completed } = body;
+    const { title, description, quadrant, progress, completed, status } = body;
+
+    // Validate status if provided
+    const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+    if (status !== undefined && !validStatuses.includes(status)) {
+      return error("Invalid status. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+    }
 
     // Map quadrant to priority
     let priority: string | undefined;
@@ -148,17 +154,34 @@ export async function PATCH(
       }
     }
 
+    // Bidirectional sync between status and completed
+    let syncedCompleted = completed;
+    let syncedStatus = status;
+    let syncedProgress = progress;
+
+    if (status === "DONE") {
+      syncedCompleted = true;
+      syncedProgress = 100;
+    }
+    if (completed === true && status === undefined) {
+      syncedStatus = "REVIEW";
+    }
+    if (status !== undefined && status !== "DONE" && task.status === "DONE") {
+      syncedCompleted = false;
+    }
+
     const updated = await db.task.update({
       where: { id: params.taskId },
       data: {
         ...(title !== undefined && { title: title.trim() }),
         ...(description !== undefined && { description: description?.trim() || null }),
         ...(priority !== undefined && { priority }),
-        ...(progress !== undefined && { progress: Math.min(Math.max(progress, 0), 100) }),
-        ...(completed !== undefined && {
-          completed,
-          completedAt: completed ? new Date() : null,
-          ...(completed && { progress: 100 }),
+        ...(syncedProgress !== undefined && { progress: Math.min(Math.max(syncedProgress, 0), 100) }),
+        ...(syncedStatus !== undefined && { status: syncedStatus as any }),
+        ...(syncedCompleted !== undefined && {
+          completed: syncedCompleted,
+          completedAt: syncedCompleted ? new Date() : null,
+          ...(syncedCompleted && { progress: 100 }),
         }),
       },
       include: {

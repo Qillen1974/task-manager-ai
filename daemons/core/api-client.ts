@@ -13,6 +13,7 @@ export interface TaskQuadrantTask {
   completed: boolean;
   completedAt: string | null;
   progress: number;
+  status: string;
   startDate: string | null;
   startTime: string | null;
   dueDate: string | null;
@@ -189,6 +190,7 @@ export class TaskQuadrantClient {
       completed: boolean;
       startDate: string;
       dueDate: string;
+      status: string;
     }>
   ): Promise<ApiResponse<TaskQuadrantTask>> {
     return this.request<TaskQuadrantTask>("PATCH", `/api/v1/bot/tasks/${taskId}`, updates);

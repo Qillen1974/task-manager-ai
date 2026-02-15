@@ -106,6 +106,7 @@ export async function GET(
         completed: true,
         completedAt: true,
         progress: true,
+        status: true,
         startDate: true,
         startTime: true,
         dueDate: true,
@@ -222,6 +223,7 @@ export async function GET(
       dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
       dueTime: task.dueTime,
       progress: task.progress,
+      status: task.status,
       resourceCount: task.resourceCount,
       manhours: task.manhours,
       dependsOnTaskId: task.dependsOnTaskId,
@@ -264,7 +266,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, completed, progress, resourceCount, manhours, dependsOnTaskId, assignedToBotId } = body;
+    const { title, description, projectId, priority, startDate, startTime, dueDate, dueTime, completed, progress, resourceCount, manhours, dependsOnTaskId, assignedToBotId, status } = body;
 
     // Find task
     const task = await db.task.findUnique({
@@ -351,6 +353,35 @@ export async function PATCH(
       }
     }
 
+    // Validate status if provided
+    const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+    if (status !== undefined && !validStatuses.includes(status)) {
+      return error("Invalid status. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+    }
+
+    // Bidirectional sync between status and completed
+    let syncedCompleted = completed;
+    let syncedStatus = status;
+    let syncedProgress = progress;
+
+    // status: DONE → auto-set completed: true, progress: 100
+    if (status === "DONE") {
+      syncedCompleted = true;
+      syncedProgress = 100;
+    }
+    // completed: true (explicit) → auto-set status: DONE
+    if (completed === true && status === undefined) {
+      syncedStatus = "DONE";
+    }
+    // Moving away from DONE → completed: false
+    if (status !== undefined && status !== "DONE" && task.status === "DONE") {
+      syncedCompleted = false;
+    }
+    // completed: false (explicit) and currently DONE → move to TODO
+    if (completed === false && status === undefined && task.status === "DONE") {
+      syncedStatus = "TODO";
+    }
+
     // Update task
     const updated = await db.task.update({
       where: { id: params.id },
@@ -363,16 +394,16 @@ export async function PATCH(
         ...(startTime !== undefined && { startTime }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
         ...(dueTime !== undefined && { dueTime }),
-        ...(progress !== undefined && { progress }),
+        ...(syncedProgress !== undefined && { progress: syncedProgress }),
         ...(resourceCount !== undefined && { resourceCount }),
         ...(manhours !== undefined && { manhours }),
         ...(dependsOnTaskId !== undefined && { dependsOnTaskId: dependsOnTaskId || null }),
         ...(assignedToBotId !== undefined && { assignedToBotId: assignedToBotId || null }),
-        ...(completed !== undefined && {
-          completed,
-          completedAt: completed ? new Date() : null,
-          // Automatically set progress to 100 when task is completed
-          ...(completed && { progress: 100 }),
+        ...(syncedStatus !== undefined && { status: syncedStatus as any }),
+        ...(syncedCompleted !== undefined && {
+          completed: syncedCompleted,
+          completedAt: syncedCompleted ? new Date() : null,
+          ...(syncedCompleted && { progress: 100 }),
         }),
       },
       select: {
@@ -385,6 +416,7 @@ export async function PATCH(
         completed: true,
         completedAt: true,
         progress: true,
+        status: true,
         startDate: true,
         startTime: true,
         dueDate: true,
@@ -497,6 +529,7 @@ export async function PATCH(
       dueDate: updated.dueDate ? updated.dueDate.toISOString().split('T')[0] : undefined,
       dueTime: updated.dueTime,
       progress: updated.progress,
+      status: updated.status,
       resourceCount: updated.resourceCount,
       manhours: updated.manhours,
       dependsOnTaskId: updated.dependsOnTaskId,

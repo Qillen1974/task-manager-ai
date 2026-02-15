@@ -1,5 +1,7 @@
 export type Priority = "urgent-important" | "not-urgent-important" | "urgent-not-important" | "not-urgent-not-important" | "";
 
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
+
 export type RecurringPattern = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 
 export type TaskAssignmentRole = "OWNER" | "COLLABORATOR" | "REVIEWER";
@@ -50,6 +52,7 @@ export interface Task {
   completed: boolean;
   completedAt?: string;
   progress?: number; // Task progress percentage (0-100)
+  status?: TaskStatus; // Kanban workflow status
   startDate?: string;
   startTime?: string;
   resourceCount?: number; // Number of people assigned to task

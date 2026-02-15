@@ -13,6 +13,7 @@ export function formatTaskForBot(task: any) {
     completed: task.completed,
     completedAt: task.completedAt ? task.completedAt.toISOString() : null,
     progress: task.progress,
+    status: task.status || "TODO",
     startDate: task.startDate
       ? task.startDate.toISOString().split("T")[0]
       : null,

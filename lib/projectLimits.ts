@@ -313,6 +313,14 @@ export function canCreateRecurringTask(
 }
 
 /**
+ * Check if user's plan supports the Kanban board feature
+ * Kanban board is an ENTERPRISE-only feature
+ */
+export function canAccessKanban(plan: SubscriptionPlan): boolean {
+  return plan === "ENTERPRISE";
+}
+
+/**
  * Get upgrade message based on what user is trying to do
  */
 export function getUpgradeMessage(

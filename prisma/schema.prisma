@@ -143,6 +143,13 @@ enum ProjectStatus {
   ON_HOLD
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
 // Project model - represents a task project with hierarchical support
 model Project {
   id                String   @id @default(cuid())
@@ -203,6 +210,7 @@ model Task {
   completed     Boolean  @default(false)
   completedAt   DateTime?
   progress      Int      @default(0)  // Task progress percentage (0-100)
+  status        TaskStatus @default(TODO)  // Kanban workflow status
   readOnlyUntil DateTime?              // Set when user downgrades/cancels - task is read-only until this date
 
   startDate     DateTime?
@@ -254,6 +262,7 @@ model Task {
   @@index([isRecurring])
   @@index([nextGenerationDate])
   @@index([assignedToBotId])
+  @@index([status])
 }
 
 enum TaskAssignmentRole {

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Task, Project, TaskAssignmentRole } from "@/lib/types";
+import { Task, Project, TaskAssignmentRole, TaskStatus } from "@/lib/types";
 
 // Note: Metadata export removed because this component uses "use client"
 // The metadata from root layout will be used for this page instead
@@ -20,6 +20,7 @@ import { ProjectHierarchyModal, ProjectFormData } from "@/components/ProjectHier
 import { ProjectBreadcrumb } from "@/components/ProjectBreadcrumb";
 import { ProjectStats } from "@/components/ProjectStats";
 import { GanttChart } from "@/components/GanttChart";
+import { KanbanBoard } from "@/components/KanbanBoard";
 import { OnboardingWizard } from "@/components/Wizard/OnboardingWizard";
 import { ChatBubble } from "@/components/AIButler";
 import { getPendingTaskCount, getAutoPriority } from "@/lib/utils";
@@ -517,6 +518,17 @@ export default function Home() {
     }
   };
 
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const response = await api.updateTask(taskId, { status: newStatus });
+      if (response.success && response.data) {
+        setTasks(tasks.map((t) => (t.id === taskId ? response.data : t)));
+      }
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+    }
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
@@ -1005,6 +1017,7 @@ export default function Home() {
         }}
         onProjectSelect={setActiveProjectId}
         pendingTaskCount={pendingTaskCount}
+        userPlan={userPlan}
         userName={localStorage.getItem("userEmail") || "User"}
         userEmail={localStorage.getItem("userEmail") || ""}
         isAdmin={localStorage.getItem("isAdmin") === "true"}
@@ -1222,6 +1235,60 @@ export default function Home() {
                   ))
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Kanban Board View */}
+          {activeView === "kanban" && (
+            <div className="space-y-4 sm:space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kanban Board</h1>
+                  <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Track your workflow across stages</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTask(undefined);
+                    setDefaultProjectId(projects[0]?.id || "");
+                    fetchBotsForProject(projects[0]?.id || "");
+                    setShowTaskForm(true);
+                  }}
+                  className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 whitespace-nowrap text-sm sm:text-base"
+                >
+                  + New Task
+                </button>
+              </div>
+
+              {userPlan === "ENTERPRISE" ? (
+                <KanbanBoard
+                  tasks={tasks}
+                  projects={projectsMap}
+                  onStatusChange={handleStatusChange}
+                  onTaskComplete={handleCompleteTask}
+                  onTaskEdit={handleEditTask}
+                  onTaskDelete={handleDeleteTask}
+                  onTaskAssign={openAssignmentModal}
+                  onTaskViewDetails={handleViewTaskDetails}
+                />
+              ) : (
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-8 text-center">
+                  <div className="inline-block p-3 bg-purple-100 rounded-full mb-4">
+                    <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Kanban Board</h3>
+                  <p className="text-gray-600 mb-6">
+                    Visualize your workflow with a Kanban board. Track tasks from To Do through In Progress, Review, and Done. Available on the Enterprise plan.
+                  </p>
+                  <a
+                    href="/upgrade"
+                    className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition"
+                  >
+                    Upgrade to Enterprise
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
