@@ -1,7 +1,9 @@
 import { loadConfig } from "./config";
 import { createLogger } from "../core/logger";
 import { TaskQuadrantClient } from "../core/api-client";
+import { LLMClient } from "../core/llm/types";
 import { KimiClient } from "../core/llm/kimi";
+import { MiniMaxClient } from "../core/llm/minimax";
 import { processTask } from "./brain";
 import { reviewTask } from "./review";
 
@@ -18,7 +20,18 @@ let reviewTimer: ReturnType<typeof setInterval> | null = null;
 
 // ── Initialize clients ──
 const api = new TaskQuadrantClient(config.TQ_BASE_URL, config.TQ_API_KEY);
-const llm = new KimiClient(config.KIMI_API_KEY);
+
+function createLLMClient(): LLMClient {
+  switch (config.LLM_PROVIDER) {
+    case "minimax":
+      return new MiniMaxClient(config.LLM_API_KEY);
+    case "kimi":
+      return new KimiClient(config.LLM_API_KEY);
+    default:
+      throw new Error(`Unknown LLM_PROVIDER: ${config.LLM_PROVIDER}`);
+  }
+}
+const llm = createLLMClient();
 
 // ── Poll loop ──
 
@@ -167,6 +180,7 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 async function main(): Promise<void> {
   log.info("Mark daemon starting...", {
     baseUrl: config.TQ_BASE_URL,
+    llmProvider: config.LLM_PROVIDER,
     pollInterval: config.POLL_INTERVAL_MS,
     maxToolRounds: config.MAX_TOOL_ROUNDS,
     codeExecTimeout: config.CODE_EXEC_TIMEOUT_MS,

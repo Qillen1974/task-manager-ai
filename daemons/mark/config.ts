@@ -4,11 +4,14 @@ import * as dotenv from "dotenv";
 // Load .env from daemons/ directory
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
+export type LLMProvider = "kimi" | "minimax";
+
 export interface MarkConfig {
   TQ_BASE_URL: string;
   TQ_API_KEY: string;
   TQ_PROJECT_ID: string;
-  KIMI_API_KEY: string;
+  LLM_PROVIDER: LLMProvider;
+  LLM_API_KEY: string;
   JOHN_BOT_ID: string;
   POLL_INTERVAL_MS: number;
   CODE_EXEC_TIMEOUT_MS: number;
@@ -43,7 +46,8 @@ export function loadConfig(): MarkConfig {
     TQ_BASE_URL: requireEnv("TQ_BASE_URL"),
     TQ_API_KEY: requireEnv("TQ_API_KEY"),
     TQ_PROJECT_ID: requireEnv("TQ_PROJECT_ID"),
-    KIMI_API_KEY: requireEnv("KIMI_API_KEY"),
+    LLM_PROVIDER: (process.env.LLM_PROVIDER || "kimi") as LLMProvider,
+    LLM_API_KEY: process.env.LLM_API_KEY || requireEnv("KIMI_API_KEY"),
     JOHN_BOT_ID: requireEnv("JOHN_BOT_ID"),
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 300_000), // 5 minutes
