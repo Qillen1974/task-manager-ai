@@ -32,7 +32,7 @@ export async function processTask(
     await api.updateTask(taskId, { progress: 10, status: "IN_PROGRESS" });
     await api.addComment(taskId, `[Mark] Picking up task: "${task.title}"`);
 
-    // ── Step 2: SANITIZE ──
+    // ── Step 2: SANITIZE + ORCHESTRATOR DECISION ──
     const description = task.description || task.title;
     const guard = analyzeAndSanitize(description);
 
@@ -49,23 +49,79 @@ export async function processTask(
       );
     }
 
-    // ── Step 3: BUILD LLM CONVERSATION ──
-    // Check for attached files
+    // Check for attached files (influences routing decision + used later for LLM context)
+    let hasAttachments = false;
     let artifactInfo = "";
     try {
       const artifactsResponse = await api.listArtifacts(taskId);
       const artifactsList = artifactsResponse.data?.artifacts;
       if (artifactsResponse.success && artifactsList && artifactsList.length > 0) {
-        const artifacts = artifactsList;
-        artifactInfo = "\n\nATTACHED FILES:\n" + artifacts.map(
+        hasAttachments = true;
+        artifactInfo = "\n\nATTACHED FILES:\n" + artifactsList.map(
           (a) => `- ${a.fileName} (${a.mimeType}, ${a.sizeBytes} bytes, ID: ${a.id})`
         ).join("\n");
         artifactInfo += "\n\nUse the download_artifact tool with the artifact ID to download these files before processing.";
       }
     } catch {
-      log.warn("Failed to fetch artifacts list", { taskId });
+      log.warn("Failed to check artifacts for routing", { taskId });
     }
 
+    // Ask LLM to decide: handle self or delegate to John
+    const routingMessages: LLMMessage[] = [
+      {
+        role: "system",
+        content: `You are Mark, an orchestrator bot. You must decide whether to handle a task yourself or delegate it to John.
+
+YOUR strengths (handle yourself): File processing, data transformation, Excel/CSV processing, PDF generation, image processing, heavy computation, tasks with file attachments.
+JOHN's strengths (delegate): Research, text generation, code analysis, general knowledge, writing, simple calculations, Q&A tasks.
+
+${hasAttachments ? "NOTE: This task has file attachments. You should almost always handle tasks with attachments yourself." : ""}
+
+Respond with ONLY a JSON object, no other text:
+{ "action": "self" | "delegate", "reason": "brief reason (one sentence)" }`,
+      },
+      {
+        role: "user",
+        content: `Task: ${task.title}\n\nDescription:\n${guard.sanitizedText}`,
+      },
+    ];
+
+    let routeToSelf = true; // Default: handle it ourselves
+    try {
+      const routingResponse = await llm.chat(routingMessages, []);
+      const routingText = routingResponse.content?.trim() || "";
+      log.debug("Routing LLM response", { taskId, routingText });
+
+      // Parse JSON from response (handle markdown code blocks)
+      const jsonMatch = routingText.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const decision = JSON.parse(jsonMatch[0]) as { action: string; reason: string };
+        if (decision.action === "delegate") {
+          routeToSelf = false;
+          log.info("Delegating task to John", { taskId, reason: decision.reason });
+
+          await api.addComment(taskId, `[Mark] Delegated to John: ${decision.reason}`);
+          await api.updateTask(taskId, {
+            assignedToBotId: config.JOHN_BOT_ID,
+            progress: 0,
+            status: "TODO",
+          });
+          return; // Done — John will pick it up
+        } else {
+          log.info("Handling task directly", { taskId, reason: decision.reason });
+          await api.addComment(taskId, `[Mark] Handling directly: ${decision.reason}`);
+        }
+      } else {
+        log.warn("Could not parse routing decision, defaulting to self", { taskId, routingText });
+      }
+    } catch (routingErr) {
+      log.warn("Routing decision failed, defaulting to self", {
+        taskId,
+        error: (routingErr as Error).message,
+      });
+    }
+
+    // ── Step 3: BUILD LLM CONVERSATION ──
     let userMessage = `Task: ${task.title}\n\nDescription:\n${guard.sanitizedText}${artifactInfo}`;
 
     if (guard.flags.length > 0) {
@@ -79,7 +135,7 @@ export async function processTask(
       { role: "user", content: userMessage },
     ];
 
-    // ── Step 4: LLM TOOL-CALL LOOP ──
+    // ── Step 4: LLM TOOL-CALL LOOP (only runs if routeToSelf) ──
     let lastExecOutput = "";
     let round = 0;
 

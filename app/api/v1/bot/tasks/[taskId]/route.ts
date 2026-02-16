@@ -134,7 +134,60 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, quadrant, progress, completed, status } = body;
+    const { title, description, quadrant, progress, completed, status, assignedToBotId } = body;
+
+    // ── Delegation: reassign task to another bot ──
+    if (assignedToBotId !== undefined) {
+      if (!botHasPermission(bot, "tasks:delegate")) {
+        return error("Bot does not have tasks:delegate permission", 403, "BOT_PERMISSION_DENIED");
+      }
+
+      // Validate target bot exists, is active, and belongs to same owner
+      const targetBot = await db.bot.findUnique({ where: { id: assignedToBotId } });
+      if (!targetBot) {
+        return error("Target bot not found", 404, "TARGET_BOT_NOT_FOUND");
+      }
+      if (!targetBot.isActive) {
+        return error("Target bot is not active", 400, "TARGET_BOT_INACTIVE");
+      }
+      if (targetBot.ownerId !== bot.ownerId) {
+        return error("Target bot does not belong to the same owner", 403, "TARGET_BOT_WRONG_OWNER");
+      }
+
+      const delegated = await db.task.update({
+        where: { id: params.taskId },
+        data: {
+          assignedToBotId,
+          progress: 0,
+          status: "TODO",
+          completed: false,
+          completedAt: null,
+        },
+        include: {
+          project: { select: { id: true, name: true, color: true } },
+        },
+      });
+
+      await logBotAction({
+        botId: bot.id,
+        ownerId: bot.ownerId,
+        action: "TASK_DELEGATED",
+        resource: "task",
+        resourceId: task.id,
+        details: { targetBotId: assignedToBotId, targetBotName: targetBot.name },
+        ipAddress:
+          request.headers.get("x-forwarded-for") ||
+          request.headers.get("x-real-ip") ||
+          undefined,
+      });
+
+      const headers = getRateLimitHeaders(bot.rateLimitPerMinute, rateLimit.remaining, rateLimit.resetAt);
+      const response = success(formatTaskForBot(delegated));
+      Object.entries(headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
+    }
 
     // Validate status if provided
     const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];

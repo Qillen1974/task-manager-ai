@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     const projectId = url.searchParams.get("projectId");
     const completed = url.searchParams.get("completed");
     const assignedToBot = url.searchParams.get("assignedToBot");
+    const statusFilter = url.searchParams.get("status");
     const cursor = url.searchParams.get("cursor"); // cursor is "createdAt|id"
     const limitParam = url.searchParams.get("limit");
     const limit = Math.min(Math.max(parseInt(limitParam || "50", 10) || 50, 1), 100);
@@ -64,6 +65,14 @@ export async function GET(request: NextRequest) {
 
     if (assignedToBot === "true") {
       where.assignedToBotId = bot.id;
+    }
+
+    if (statusFilter) {
+      const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+      if (!validStatuses.includes(statusFilter)) {
+        return error("Invalid status filter. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+      }
+      where.status = statusFilter;
     }
 
     // Cursor-based pagination

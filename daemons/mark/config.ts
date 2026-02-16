@@ -9,6 +9,7 @@ export interface MarkConfig {
   TQ_API_KEY: string;
   TQ_PROJECT_ID: string;
   KIMI_API_KEY: string;
+  JOHN_BOT_ID: string;
   POLL_INTERVAL_MS: number;
   CODE_EXEC_TIMEOUT_MS: number;
   MAX_TOOL_ROUNDS: number;
@@ -43,6 +44,7 @@ export function loadConfig(): MarkConfig {
     TQ_API_KEY: requireEnv("TQ_API_KEY"),
     TQ_PROJECT_ID: requireEnv("TQ_PROJECT_ID"),
     KIMI_API_KEY: requireEnv("KIMI_API_KEY"),
+    JOHN_BOT_ID: requireEnv("JOHN_BOT_ID"),
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 300_000), // 5 minutes
     MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 5),

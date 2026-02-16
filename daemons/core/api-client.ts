@@ -71,6 +71,7 @@ interface ApiResponse<T> {
 interface ListTasksParams {
   assignedToBot?: boolean;
   completed?: boolean;
+  status?: string;
   limit?: number;
   cursor?: string;
 }
@@ -169,6 +170,7 @@ export class TaskQuadrantClient {
     const query = new URLSearchParams();
     if (params.assignedToBot !== undefined) query.set("assignedToBot", String(params.assignedToBot));
     if (params.completed !== undefined) query.set("completed", String(params.completed));
+    if (params.status) query.set("status", params.status);
     if (params.limit !== undefined) query.set("limit", String(params.limit));
     if (params.cursor) query.set("cursor", params.cursor);
 
@@ -191,6 +193,7 @@ export class TaskQuadrantClient {
       startDate: string;
       dueDate: string;
       status: string;
+      assignedToBotId: string;
     }>
   ): Promise<ApiResponse<TaskQuadrantTask>> {
     return this.request<TaskQuadrantTask>("PATCH", `/api/v1/bot/tasks/${taskId}`, updates);
