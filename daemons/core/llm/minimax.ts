@@ -5,7 +5,7 @@ import { createLogger } from "../logger";
 const log = createLogger("core.llm.minimax");
 
 const MINIMAX_BASE_URL = "https://api.minimax.io/v1";
-const MINIMAX_MODEL = "minimax-m2.1";
+const MINIMAX_MODEL = process.env.MINIMAX_MODEL || "minimax-m2.1";
 
 export class MiniMaxClient implements LLMClient {
   private http: AxiosInstance;
