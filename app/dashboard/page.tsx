@@ -1261,7 +1261,10 @@ export default function Home() {
 
               {userPlan === "ENTERPRISE" ? (
                 <KanbanBoard
-                  tasks={tasks}
+                  tasks={tasks.filter((t) => {
+                    const proj = projectsMap.get(t.projectId);
+                    return proj && (proj as any).teamId;
+                  })}
                   projects={projectsMap}
                   onStatusChange={handleStatusChange}
                   onTaskComplete={handleCompleteTask}
