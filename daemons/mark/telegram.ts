@@ -209,7 +209,8 @@ async function handleChat(
       { role: "user", content: text },
     ]);
 
-    const reply = response.content || "Sorry, I couldn't come up with a response.";
+    const raw = response.content || "Sorry, I couldn't come up with a response.";
+    const reply = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || raw;
 
     let body = reply;
     if (body.length > TRUNCATE_AT) {
