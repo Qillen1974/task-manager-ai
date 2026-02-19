@@ -157,10 +157,11 @@ async function notifyOnce(): Promise<void> {
       const tracked = getTrackedTask(taskId);
       if (!tracked) continue;
 
-      // Find the result comment (last bot comment)
-      const resultComment = [...task.comments].reverse().find(
-        (c) => c.author.type === "bot"
-      );
+      // Find the result comment — look for "[Result]" pattern first, fall back to longest bot comment
+      const botComments = task.comments.filter((c) => c.author.type === "bot");
+      const resultComment =
+        botComments.find((c) => /\] Result:/i.test(c.body)) ||
+        botComments.sort((a, b) => b.body.length - a.body.length)[0];
       const resultText = resultComment?.body || "(no result comment found)";
 
       await notifyTaskCompleted(telegramBot, tracked.chatId, task, resultText);

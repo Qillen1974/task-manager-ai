@@ -52,13 +52,13 @@ export async function notifyTaskCompleted(
   task: TaskQuadrantTask,
   resultText: string
 ): Promise<void> {
-  let body = `✅ *Task completed:* ${escapeMarkdown(task.title)}\n\n${escapeMarkdown(resultText)}`;
+  let body = `✅ Task completed: ${task.title}\n\n${resultText}`;
 
   if (body.length > TRUNCATE_AT) {
-    body = body.slice(0, TRUNCATE_AT) + "\n\n_(see full result in TaskQuadrant)_";
+    body = body.slice(0, TRUNCATE_AT) + "\n\n(see full result in TaskQuadrant)";
   }
 
-  await bot.sendMessage(chatId, body, { parse_mode: "Markdown" });
+  await bot.sendMessage(chatId, body);
 }
 
 // ── Internal message handler ──
