@@ -1,10 +1,8 @@
 import TelegramBot from "node-telegram-bot-api";
 import { MarkConfig } from "./config";
 import { TaskQuadrantClient, TaskQuadrantTask } from "../core/api-client";
-import { LLMClient, LLMMessage } from "../core/llm/types";
 import { Logger } from "../core/logger";
 import { trackTask } from "./task-tracker";
-import { getSystemPrompt } from "./system-prompt";
 
 const TELEGRAM_MAX_MESSAGE = 4096;
 const TRUNCATE_AT = 3800;
@@ -24,13 +22,12 @@ const STATUS_KEYWORDS = [
 export function startTelegramBot(
   config: MarkConfig,
   api: TaskQuadrantClient,
-  llm: LLMClient,
   log: Logger
 ): TelegramBot {
   const bot = new TelegramBot(config.TELEGRAM_BOT_TOKEN, { polling: true });
 
   bot.on("message", (msg) => {
-    handleMessage(msg, bot, config, api, llm, log).catch((err) => {
+    handleMessage(msg, bot, config, api, log).catch((err) => {
       log.error("Telegram message handler error", { error: (err as Error).message });
     });
   });
@@ -71,7 +68,6 @@ async function handleMessage(
   bot: TelegramBot,
   config: MarkConfig,
   api: TaskQuadrantClient,
-  llm: LLMClient,
   log: Logger
 ): Promise<void> {
   const chatId = String(msg.chat.id);
@@ -115,8 +111,7 @@ async function handleMessage(
     return;
   }
 
-  // Anything else — casual chat via LLM
-  await handleChat(bot, chatId, text, llm, log);
+  // Anything else — ignore (handled by OpenClaw's bot)
 }
 
 // ── Status query ──
@@ -187,57 +182,6 @@ async function handleTaskCreation(
     `👍 Got it. Task created: *${escapeMarkdown(title)}*\nI'll let you know when it's done.`,
     { parse_mode: "Markdown" }
   );
-}
-
-// ── Casual chat with conversation history ──
-
-const MAX_CHAT_HISTORY = 20; // Keep last 20 messages (10 exchanges)
-const chatHistory: LLMMessage[] = [];
-
-const CHAT_SYSTEM_PROMPT = getSystemPrompt() +
-  "\n\nTELEGRAM CONTEXT:" +
-  "\nYou are chatting with your boss on Telegram. This is a casual conversation, not a task." +
-  "\nKeep replies concise and conversational — this is a chat, not a report." +
-  "\nIf the user seems to want a task done, suggest they use /task <title> to create one." +
-  "\nYou can also mention /status to check tasks and /help for commands.";
-
-async function handleChat(
-  bot: TelegramBot,
-  chatId: string,
-  text: string,
-  llm: LLMClient,
-  log: Logger
-): Promise<void> {
-  try {
-    chatHistory.push({ role: "user", content: text });
-
-    // Trim history if too long
-    while (chatHistory.length > MAX_CHAT_HISTORY) {
-      chatHistory.shift();
-    }
-
-    const messages: LLMMessage[] = [
-      { role: "system", content: CHAT_SYSTEM_PROMPT },
-      ...chatHistory,
-    ];
-
-    const response = await llm.chat(messages);
-
-    const raw = response.content || "Sorry, I couldn't come up with a response.";
-    const reply = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || raw;
-
-    chatHistory.push({ role: "assistant", content: reply });
-
-    let body = reply;
-    if (body.length > TRUNCATE_AT) {
-      body = body.slice(0, TRUNCATE_AT) + "\n\n(message truncated)";
-    }
-
-    await bot.sendMessage(chatId, body);
-  } catch (err) {
-    log.error("Chat LLM error", { error: (err as Error).message });
-    await bot.sendMessage(chatId, "Sorry, something went wrong. Try again in a moment.");
-  }
 }
 
 // ── Helpers ──

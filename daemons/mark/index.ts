@@ -253,7 +253,7 @@ async function main(): Promise<void> {
 
   // Start Telegram bot if enabled
   if (config.TELEGRAM_ENABLED) {
-    telegramBot = startTelegramBot(config, api, llm, log);
+    telegramBot = startTelegramBot(config, api, log);
     notifyTimer = setInterval(notifyOnce, config.POLL_INTERVAL_MS);
   }
 
