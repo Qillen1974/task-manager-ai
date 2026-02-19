@@ -1,9 +1,10 @@
 import TelegramBot from "node-telegram-bot-api";
 import { MarkConfig } from "./config";
 import { TaskQuadrantClient, TaskQuadrantTask } from "../core/api-client";
-import { LLMClient } from "../core/llm/types";
+import { LLMClient, LLMMessage } from "../core/llm/types";
 import { Logger } from "../core/logger";
 import { trackTask } from "./task-tracker";
+import { getSystemPrompt } from "./system-prompt";
 
 const TELEGRAM_MAX_MESSAGE = 4096;
 const TRUNCATE_AT = 3800;
@@ -188,13 +189,17 @@ async function handleTaskCreation(
   );
 }
 
-// ── Casual chat ──
+// ── Casual chat with conversation history ──
 
-const CHAT_SYSTEM_PROMPT =
-  "You are Mark, a friendly and helpful AI assistant on Telegram. " +
-  "Keep replies concise and conversational. " +
-  "If the user seems to want a task done, suggest they use /task <title> to create one. " +
-  "You can also mention /status to check tasks and /help for commands.";
+const MAX_CHAT_HISTORY = 20; // Keep last 20 messages (10 exchanges)
+const chatHistory: LLMMessage[] = [];
+
+const CHAT_SYSTEM_PROMPT = getSystemPrompt() +
+  "\n\nTELEGRAM CONTEXT:" +
+  "\nYou are chatting with your boss on Telegram. This is a casual conversation, not a task." +
+  "\nKeep replies concise and conversational — this is a chat, not a report." +
+  "\nIf the user seems to want a task done, suggest they use /task <title> to create one." +
+  "\nYou can also mention /status to check tasks and /help for commands.";
 
 async function handleChat(
   bot: TelegramBot,
@@ -204,13 +209,24 @@ async function handleChat(
   log: Logger
 ): Promise<void> {
   try {
-    const response = await llm.chat([
+    chatHistory.push({ role: "user", content: text });
+
+    // Trim history if too long
+    while (chatHistory.length > MAX_CHAT_HISTORY) {
+      chatHistory.shift();
+    }
+
+    const messages: LLMMessage[] = [
       { role: "system", content: CHAT_SYSTEM_PROMPT },
-      { role: "user", content: text },
-    ]);
+      ...chatHistory,
+    ];
+
+    const response = await llm.chat(messages);
 
     const raw = response.content || "Sorry, I couldn't come up with a response.";
     const reply = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || raw;
+
+    chatHistory.push({ role: "assistant", content: reply });
 
     let body = reply;
     if (body.length > TRUNCATE_AT) {
