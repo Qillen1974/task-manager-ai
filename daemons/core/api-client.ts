@@ -233,6 +233,16 @@ export class TaskQuadrantClient {
     );
   }
 
+  async createTask(params: {
+    title: string;
+    description?: string;
+    projectId: string;
+    quadrant?: string;
+    assignToSelf?: boolean;
+  }): Promise<ApiResponse<TaskQuadrantTask>> {
+    return this.request<TaskQuadrantTask>("POST", "/api/v1/bot/tasks", params);
+  }
+
   async listArtifacts(taskId: string): Promise<ApiResponse<{ artifacts: TaskArtifact[] }>> {
     return this.request<{ artifacts: TaskArtifact[] }>(
       "GET",

@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api";
 import { loadConfig } from "./config";
 import { createLogger } from "../core/logger";
 import { TaskQuadrantClient } from "../core/api-client";
@@ -6,6 +7,8 @@ import { KimiClient } from "../core/llm/kimi";
 import { MiniMaxClient } from "../core/llm/minimax";
 import { processTask } from "./brain";
 import { reviewTask } from "./review";
+import { startTelegramBot, stopTelegramBot, notifyTaskCompleted } from "./telegram";
+import { getTrackedTaskIds, getTrackedTask, untrackTask } from "./task-tracker";
 
 // ── Load config (exits if missing required vars) ──
 const config = loadConfig();
@@ -17,6 +20,8 @@ const inReview = new Set<string>();
 let shuttingDown = false;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let reviewTimer: ReturnType<typeof setInterval> | null = null;
+let notifyTimer: ReturnType<typeof setInterval> | null = null;
+let telegramBot: TelegramBot | null = null;
 
 // ── Initialize clients ──
 const api = new TaskQuadrantClient(config.TQ_BASE_URL, config.TQ_API_KEY);
@@ -133,6 +138,43 @@ async function reviewOnce(): Promise<void> {
   }
 }
 
+// ── Telegram notification loop ──
+
+async function notifyOnce(): Promise<void> {
+  if (shuttingDown || !telegramBot) return;
+
+  const taskIds = getTrackedTaskIds();
+  if (taskIds.length === 0) return;
+
+  for (const taskId of taskIds) {
+    try {
+      const response = await api.getTask(taskId);
+      if (!response.success || !response.data) continue;
+
+      const task = response.data;
+      if (task.status !== "DONE" && !task.completed) continue;
+
+      const tracked = getTrackedTask(taskId);
+      if (!tracked) continue;
+
+      // Find the result comment (last bot comment)
+      const resultComment = [...task.comments].reverse().find(
+        (c) => c.author.type === "bot"
+      );
+      const resultText = resultComment?.body || "(no result comment found)";
+
+      await notifyTaskCompleted(telegramBot, tracked.chatId, task, resultText);
+      untrackTask(taskId);
+      log.info("Sent Telegram notification for completed task", { taskId });
+    } catch (err) {
+      log.error("Error checking tracked task", {
+        taskId,
+        error: (err as Error).message,
+      });
+    }
+  }
+}
+
 // ── Graceful shutdown ──
 
 function shutdown(signal: string): void {
@@ -148,6 +190,14 @@ function shutdown(signal: string): void {
   if (reviewTimer) {
     clearInterval(reviewTimer);
     reviewTimer = null;
+  }
+  if (notifyTimer) {
+    clearInterval(notifyTimer);
+    notifyTimer = null;
+  }
+  if (telegramBot) {
+    stopTelegramBot(telegramBot);
+    telegramBot = null;
   }
 
   if (inProgress.size === 0 && inReview.size === 0) {
@@ -181,6 +231,7 @@ async function main(): Promise<void> {
   log.info("Mark daemon starting...", {
     baseUrl: config.TQ_BASE_URL,
     llmProvider: config.LLM_PROVIDER,
+    telegram: config.TELEGRAM_ENABLED ? "enabled" : "disabled",
     pollInterval: config.POLL_INTERVAL_MS,
     maxToolRounds: config.MAX_TOOL_ROUNDS,
     codeExecTimeout: config.CODE_EXEC_TIMEOUT_MS,
@@ -198,6 +249,12 @@ async function main(): Promise<void> {
     permissions: authResult.data.permissions,
     projects: authResult.data.projectIds,
   });
+
+  // Start Telegram bot if enabled
+  if (config.TELEGRAM_ENABLED) {
+    telegramBot = startTelegramBot(config, api, log);
+    notifyTimer = setInterval(notifyOnce, config.POLL_INTERVAL_MS);
+  }
 
   // Start polling (tasks + reviews on same interval)
   pollTimer = setInterval(pollOnce, config.POLL_INTERVAL_MS);

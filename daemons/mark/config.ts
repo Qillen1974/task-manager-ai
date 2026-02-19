@@ -19,6 +19,9 @@ export interface MarkConfig {
   MAX_DESCRIPTION_LENGTH: number;
   MAX_OUTPUT_BYTES: number;
   LOG_LEVEL: string;
+  TELEGRAM_ENABLED: boolean;
+  TELEGRAM_BOT_TOKEN: string;
+  TELEGRAM_CHAT_ID: string;
 }
 
 function requireEnv(name: string): string {
@@ -42,6 +45,8 @@ function optionalInt(name: string, defaultValue: number): number {
 }
 
 export function loadConfig(): MarkConfig {
+  const telegramEnabled = process.env.TELEGRAM_ENABLED === "true";
+
   return {
     TQ_BASE_URL: requireEnv("TQ_BASE_URL"),
     TQ_API_KEY: requireEnv("TQ_API_KEY"),
@@ -55,5 +60,8 @@ export function loadConfig(): MarkConfig {
     MAX_DESCRIPTION_LENGTH: optionalInt("MAX_DESCRIPTION_LENGTH", 5000),
     MAX_OUTPUT_BYTES: optionalInt("MAX_OUTPUT_BYTES", 500 * 1024), // 500KB
     LOG_LEVEL: process.env.LOG_LEVEL || "INFO",
+    TELEGRAM_ENABLED: telegramEnabled,
+    TELEGRAM_BOT_TOKEN: telegramEnabled ? requireEnv("TELEGRAM_BOT_TOKEN") : "",
+    TELEGRAM_CHAT_ID: telegramEnabled ? requireEnv("TELEGRAM_CHAT_ID") : "",
   };
 }

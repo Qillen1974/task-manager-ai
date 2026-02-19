@@ -1,0 +1,169 @@
+import TelegramBot from "node-telegram-bot-api";
+import { MarkConfig } from "./config";
+import { TaskQuadrantClient, TaskQuadrantTask } from "../core/api-client";
+import { Logger } from "../core/logger";
+import { trackTask } from "./task-tracker";
+
+const TELEGRAM_MAX_MESSAGE = 4096;
+const TRUNCATE_AT = 3800;
+
+const STATUS_KEYWORDS = [
+  "/status",
+  "status",
+  "what are you working on",
+  "what are you doing",
+  "any updates",
+  "task list",
+  "current tasks",
+];
+
+// ── Start / stop ──
+
+export function startTelegramBot(
+  config: MarkConfig,
+  api: TaskQuadrantClient,
+  log: Logger
+): TelegramBot {
+  const bot = new TelegramBot(config.TELEGRAM_BOT_TOKEN, { polling: true });
+
+  bot.on("message", (msg) => {
+    handleMessage(msg, bot, config, api, log).catch((err) => {
+      log.error("Telegram message handler error", { error: (err as Error).message });
+    });
+  });
+
+  bot.on("polling_error", (err) => {
+    log.error("Telegram polling error", { error: err.message });
+  });
+
+  log.info("Telegram bot started (long-polling)");
+  return bot;
+}
+
+export function stopTelegramBot(bot: TelegramBot): void {
+  bot.stopPolling();
+}
+
+// ── Notification ──
+
+export async function notifyTaskCompleted(
+  bot: TelegramBot,
+  chatId: string,
+  task: TaskQuadrantTask,
+  resultText: string
+): Promise<void> {
+  let body = `✅ *Task completed:* ${escapeMarkdown(task.title)}\n\n${escapeMarkdown(resultText)}`;
+
+  if (body.length > TRUNCATE_AT) {
+    body = body.slice(0, TRUNCATE_AT) + "\n\n_(see full result in TaskQuadrant)_";
+  }
+
+  await bot.sendMessage(chatId, body, { parse_mode: "Markdown" });
+}
+
+// ── Internal message handler ──
+
+async function handleMessage(
+  msg: TelegramBot.Message,
+  bot: TelegramBot,
+  config: MarkConfig,
+  api: TaskQuadrantClient,
+  log: Logger
+): Promise<void> {
+  const chatId = String(msg.chat.id);
+
+  // Gate: only the authorized user
+  if (chatId !== config.TELEGRAM_CHAT_ID) {
+    log.warn("Unauthorized Telegram message", { chatId, from: msg.from?.username });
+    return;
+  }
+
+  const text = (msg.text || "").trim();
+  if (!text) return;
+
+  // Status query
+  const lower = text.toLowerCase();
+  if (STATUS_KEYWORDS.some((kw) => lower === kw || lower.startsWith(kw + " "))) {
+    await handleStatusQuery(bot, chatId, api, log);
+    return;
+  }
+
+  // Everything else → task creation
+  await handleTaskCreation(bot, chatId, text, config, api, log);
+}
+
+// ── Status query ──
+
+async function handleStatusQuery(
+  bot: TelegramBot,
+  chatId: string,
+  api: TaskQuadrantClient,
+  log: Logger
+): Promise<void> {
+  const response = await api.listTasks({ assignedToBot: true, completed: false, limit: 20 });
+
+  if (!response.success || !response.data) {
+    await bot.sendMessage(chatId, "Could not fetch tasks. Try again in a moment.");
+    return;
+  }
+
+  const tasks = response.data.tasks;
+  if (tasks.length === 0) {
+    await bot.sendMessage(chatId, "No active tasks right now. Send me something to work on!");
+    return;
+  }
+
+  const lines = tasks.map((t, i) => {
+    const status = t.status || "PENDING";
+    return `${i + 1}. *${escapeMarkdown(t.title)}* — ${status}`;
+  });
+
+  const body = `📋 *Active tasks (${tasks.length}):*\n\n${lines.join("\n")}`;
+  await bot.sendMessage(chatId, body, { parse_mode: "Markdown" });
+}
+
+// ── Task creation ──
+
+async function handleTaskCreation(
+  bot: TelegramBot,
+  chatId: string,
+  text: string,
+  config: MarkConfig,
+  api: TaskQuadrantClient,
+  log: Logger
+): Promise<void> {
+  // First line = title, rest = description
+  const lines = text.split("\n");
+  const title = lines[0].slice(0, 200);
+  const description = lines.slice(1).join("\n").trim() || undefined;
+
+  const result = await api.createTask({
+    title,
+    description,
+    projectId: config.TQ_PROJECT_ID,
+    quadrant: "q1",
+    assignToSelf: true,
+  });
+
+  if (!result.success || !result.data) {
+    log.error("Failed to create task from Telegram", { error: result.error });
+    await bot.sendMessage(chatId, "Failed to create task. Please try again.");
+    return;
+  }
+
+  const task = result.data;
+  trackTask(task.id, chatId);
+  log.info("Task created from Telegram", { taskId: task.id, title });
+
+  await bot.sendMessage(
+    chatId,
+    `👍 Got it. Task created: *${escapeMarkdown(title)}*\nI'll let you know when it's done.`,
+    { parse_mode: "Markdown" }
+  );
+}
+
+// ── Helpers ──
+
+function escapeMarkdown(text: string): string {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
+}
