@@ -88,8 +88,34 @@ async function handleMessage(
     return;
   }
 
-  // Everything else → task creation
-  await handleTaskCreation(bot, chatId, text, config, api, log);
+  // Task creation — requires /task prefix
+  if (lower.startsWith("/task ") || lower === "/task") {
+    const taskText = text.slice(5).trim();
+    if (!taskText) {
+      await bot.sendMessage(chatId, "Usage: /task <title>\n\nExample: /task Research best React form libraries for 2026");
+      return;
+    }
+    await handleTaskCreation(bot, chatId, taskText, config, api, log);
+    return;
+  }
+
+  // Help
+  if (lower === "/help" || lower === "help") {
+    await bot.sendMessage(
+      chatId,
+      "Here's what I can do:\n\n" +
+      "/task <title> — Create a new task\n" +
+      "/status — Show active tasks\n" +
+      "/help — Show this message"
+    );
+    return;
+  }
+
+  // Anything else — friendly nudge
+  await bot.sendMessage(
+    chatId,
+    "To create a task, use:\n/task <title>\n\nSend /help to see all commands."
+  );
 }
 
 // ── Status query ──
