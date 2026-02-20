@@ -6,6 +6,7 @@ import { checkRateLimit, getRateLimitHeaders } from "@/lib/botRateLimit";
 import { quadrantToPriority, isValidQuadrant } from "@/lib/botQuadrantMap";
 import { formatTaskForBot } from "@/lib/botResponseFormatter";
 import { logBotAction } from "@/lib/botAuditLog";
+import { canAccessSubtasks } from "@/lib/projectLimits";
 
 /**
  * GET /api/v1/bot/tasks - List tasks in bot's scoped projects
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     const completed = url.searchParams.get("completed");
     const assignedToBot = url.searchParams.get("assignedToBot");
     const statusFilter = url.searchParams.get("status");
+    const subtaskOfId = url.searchParams.get("subtaskOfId");
     const cursor = url.searchParams.get("cursor"); // cursor is "createdAt|id"
     const limitParam = url.searchParams.get("limit");
     const limit = Math.min(Math.max(parseInt(limitParam || "50", 10) || 50, 1), 100);
@@ -68,11 +70,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (statusFilter) {
-      const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+      const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "TESTING", "DONE"];
       if (!validStatuses.includes(statusFilter)) {
-        return error("Invalid status filter. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+        return error("Invalid status filter. Use TODO, IN_PROGRESS, REVIEW, TESTING, or DONE", 400, "INVALID_STATUS");
       }
       where.status = statusFilter;
+    }
+
+    if (subtaskOfId) {
+      where.subtaskOfId = subtaskOfId;
     }
 
     // Cursor-based pagination
@@ -96,6 +102,9 @@ export async function GET(request: NextRequest) {
       include: {
         project: {
           select: { id: true, name: true, color: true },
+        },
+        _count: {
+          select: { subtasks: true },
         },
       },
     });
@@ -164,6 +173,7 @@ export async function POST(request: NextRequest) {
       dueDate,
       dueTime,
       assignToSelf,
+      subtaskOfId,
     } = body;
 
     if (!title || !title.trim()) {
@@ -193,6 +203,28 @@ export async function POST(request: NextRequest) {
       priority = quadrantToPriority(quadrant);
     }
 
+    // Validate subtaskOfId if provided
+    if (subtaskOfId) {
+      const ownerPlan = bot.owner.subscription?.plan || "FREE";
+      if (!canAccessSubtasks(ownerPlan)) {
+        return error("Subtasks require an ENTERPRISE plan", 403, "ENTERPRISE_REQUIRED");
+      }
+
+      const parentTask = await db.task.findUnique({
+        where: { id: subtaskOfId },
+        select: { id: true, projectId: true, userId: true, subtaskOfId: true },
+      });
+
+      if (!parentTask) {
+        return ApiErrors.NOT_FOUND("Parent task");
+      }
+
+      // Prevent nested subtasks (one level deep only)
+      if (parentTask.subtaskOfId) {
+        return error("Cannot create nested subtasks. Only one level of subtask hierarchy is supported.", 400, "NESTED_SUBTASK_NOT_ALLOWED");
+      }
+    }
+
     // Validate date logic
     if (startDate && dueDate) {
       const start = new Date(startDate + (startTime ? `T${startTime}` : "T00:00"));
@@ -214,10 +246,14 @@ export async function POST(request: NextRequest) {
         dueDate: dueDate ? new Date(dueDate) : null,
         dueTime: dueTime || null,
         assignedToBotId: assignToSelf ? bot.id : null,
+        subtaskOfId: subtaskOfId || null,
       },
       include: {
         project: {
           select: { id: true, name: true, color: true },
+        },
+        _count: {
+          select: { subtasks: true },
         },
       },
     });

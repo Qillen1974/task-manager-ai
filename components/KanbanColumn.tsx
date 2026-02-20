@@ -21,8 +21,20 @@ const STATUS_ACTIONS: Record<TaskStatus, StatusAction[]> = {
     { label: "Done", targetStatus: "DONE", className: "bg-green-600 hover:bg-green-700 text-white" },
     { label: "Rework", targetStatus: "IN_PROGRESS", className: "bg-gray-200 hover:bg-gray-300 text-gray-700" },
   ],
+  TESTING: [
+    { label: "Done", targetStatus: "DONE", className: "bg-green-600 hover:bg-green-700 text-white" },
+    { label: "Rework", targetStatus: "IN_PROGRESS", className: "bg-gray-200 hover:bg-gray-300 text-gray-700" },
+  ],
   DONE: [
     { label: "Reopen", targetStatus: "TODO", className: "bg-gray-200 hover:bg-gray-300 text-gray-700" },
+  ],
+};
+
+const ENTERPRISE_STATUS_ACTIONS: Record<TaskStatus, StatusAction[]> = {
+  ...STATUS_ACTIONS,
+  REVIEW: [
+    { label: "To Testing", targetStatus: "TESTING", className: "bg-purple-600 hover:bg-purple-700 text-white" },
+    { label: "Rework", targetStatus: "IN_PROGRESS", className: "bg-gray-200 hover:bg-gray-300 text-gray-700" },
   ],
 };
 
@@ -32,6 +44,7 @@ interface KanbanColumnProps {
   tasks: Task[];
   projects: Map<string, Project>;
   colorClass: string;
+  isEnterprise?: boolean;
   onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
   onTaskComplete: (taskId: string) => void;
   onTaskEdit: (task: Task) => void;
@@ -46,6 +59,7 @@ export function KanbanColumn({
   tasks,
   projects,
   colorClass,
+  isEnterprise = false,
   onStatusChange,
   onTaskComplete,
   onTaskEdit,
@@ -53,7 +67,8 @@ export function KanbanColumn({
   onTaskAssign,
   onTaskViewDetails,
 }: KanbanColumnProps) {
-  const actions = STATUS_ACTIONS[status];
+  const actionsMap = isEnterprise ? ENTERPRISE_STATUS_ACTIONS : STATUS_ACTIONS;
+  const actions = actionsMap[status];
 
   return (
     <div className={`flex flex-col rounded-xl border ${colorClass} min-h-[200px]`}>

@@ -4,6 +4,7 @@ import { verifyAuth } from "@/lib/middleware";
 import { success, error, ApiErrors, handleApiError } from "@/lib/apiResponse";
 import { sendTaskCompletionNotification } from "@/lib/notificationService";
 import { notifyBotsOfTaskEvent } from "@/lib/webhookService";
+import { canAccessPipeline } from "@/lib/projectLimits";
 
 /**
  * Cascade start date updates to dependent tasks
@@ -137,6 +138,7 @@ export async function GET(
         nextGenerationDate: true,
         lastGeneratedDate: true,
         parentTaskId: true,
+        subtaskOfId: true,
         createdAt: true,
         updatedAt: true,
         project: {
@@ -163,6 +165,9 @@ export async function GET(
               },
             },
           },
+        },
+        _count: {
+          select: { subtasks: true },
         },
       },
     });
@@ -237,6 +242,8 @@ export async function GET(
       nextGenerationDate: task.nextGenerationDate,
       lastGeneratedDate: task.lastGeneratedDate,
       parentTaskId: task.parentTaskId,
+      subtaskOfId: task.subtaskOfId,
+      subtaskCount: (task as any)._count?.subtasks ?? 0,
       assignedToBotId: task.assignedToBotId,
       assignedToBot: task.assignedToBot,
       createdAt: task.createdAt,
@@ -354,9 +361,17 @@ export async function PATCH(
     }
 
     // Validate status if provided
-    const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+    const userSubscription = await db.subscription.findUnique({
+      where: { userId: auth.userId },
+      select: { plan: true },
+    });
+    const userPlan = userSubscription?.plan || "FREE";
+    const validStatuses = canAccessPipeline(userPlan)
+      ? ["TODO", "IN_PROGRESS", "REVIEW", "TESTING", "DONE"]
+      : ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
     if (status !== undefined && !validStatuses.includes(status)) {
-      return error("Invalid status. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+      const statusList = validStatuses.join(", ");
+      return error(`Invalid status. Use ${statusList}`, 400, "INVALID_STATUS");
     }
 
     // Bidirectional sync between status and completed

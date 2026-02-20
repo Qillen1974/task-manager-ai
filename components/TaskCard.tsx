@@ -62,6 +62,13 @@ export function TaskCard({ task, project, onComplete, onEdit, onDelete, onAssign
               {task.priority.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
             </span>
 
+            {/* Subtask Count Badge */}
+            {task.subtaskCount && task.subtaskCount > 0 && (
+              <span className="text-xs px-2 py-1 rounded bg-indigo-100 text-indigo-800 font-medium">
+                {task.subtaskCount} subtask{task.subtaskCount !== 1 ? "s" : ""}
+              </span>
+            )}
+
             {/* Recurring Task Badge */}
             {task.isRecurring && (
               <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800 font-medium flex items-center gap-1" title={formatRecurringDescription(task.recurringPattern || "DAILY", task.recurringConfig)}>

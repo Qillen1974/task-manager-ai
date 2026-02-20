@@ -3,8 +3,18 @@
 import { useState, useEffect } from "react";
 import { Task, TaskComment, TaskArtifact } from "@/lib/types";
 
+interface SubtaskItem {
+  id: string;
+  title: string;
+  status: string;
+  completed: boolean;
+  progress: number;
+  assignedToBot?: { id: string; name: string } | null;
+}
+
 interface TaskDetailModalProps {
   task: Task;
+  isEnterprise?: boolean;
   onClose: () => void;
 }
 
@@ -24,13 +34,16 @@ function getFileIcon(mimeType: string): string {
   return "FILE";
 }
 
-export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, isEnterprise = false, onClose }: TaskDetailModalProps) {
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [artifacts, setArtifacts] = useState<TaskArtifact[]>([]);
+  const [subtasks, setSubtasks] = useState<SubtaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,14 +51,24 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         const token = localStorage.getItem("accessToken");
         if (!token) return;
 
-        const [commentsRes, artifactsRes] = await Promise.all([
+        const fetches: Promise<Response>[] = [
           fetch(`/api/tasks/${task.id}/comments`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`/api/tasks/${task.id}/artifacts`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-        ]);
+        ];
+
+        if (isEnterprise) {
+          fetches.push(
+            fetch(`/api/tasks/${task.id}/subtasks`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          );
+        }
+
+        const [commentsRes, artifactsRes, subtasksRes] = await Promise.all(fetches);
 
         if (commentsRes.ok) {
           const result = await commentsRes.json();
@@ -62,6 +85,13 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             setArtifacts(result.data);
           }
         }
+
+        if (subtasksRes?.ok) {
+          const result = await subtasksRes.json();
+          if (result.success && result.data) {
+            setSubtasks(result.data);
+          }
+        }
       } catch {
         setError("Failed to load task data");
       } finally {
@@ -70,7 +100,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     };
 
     fetchData();
-  }, [task.id]);
+  }, [task.id, isEnterprise]);
 
   const formatTimestamp = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -173,6 +203,39 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       alert("Download failed");
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleAddSubtask = async () => {
+    if (!newSubtaskTitle.trim()) return;
+    setIsAddingSubtask(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const res = await fetch(`/api/tasks/${task.id}/subtasks`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title: newSubtaskTitle.trim() }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && result.data) {
+          setSubtasks((prev) => [...prev, result.data]);
+          setNewSubtaskTitle("");
+        }
+      } else {
+        const result = await res.json().catch(() => null);
+        alert(result?.error?.message || "Failed to create subtask");
+      }
+    } catch {
+      alert("Failed to create subtask");
+    } finally {
+      setIsAddingSubtask(false);
     }
   };
 
@@ -283,6 +346,80 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               </div>
             )}
           </div>
+
+          {/* Subtasks Section (Enterprise only) */}
+          {isEnterprise && !task.subtaskOfId && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Subtasks {subtasks.length > 0 && `(${subtasks.length})`}
+              </h3>
+
+              {subtasks.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {subtasks.map((st) => (
+                    <div
+                      key={st.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{st.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                              st.status === "DONE"
+                                ? "bg-green-100 text-green-800"
+                                : st.status === "IN_PROGRESS"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : st.status === "REVIEW"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : st.status === "TESTING"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {st.status}
+                          </span>
+                          {st.assignedToBot && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 font-medium">
+                              {st.assignedToBot.name}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-400">{st.progress}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {subtasks.length === 0 && !isLoading && (
+                <p className="text-xs text-gray-400 mb-4">No subtasks yet</p>
+              )}
+
+              {/* Add Subtask Form */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                  placeholder="Add a subtask..."
+                  className="flex-1 text-sm px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newSubtaskTitle.trim()) {
+                      handleAddSubtask();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleAddSubtask}
+                  disabled={isAddingSubtask || !newSubtaskTitle.trim()}
+                  className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition font-medium disabled:opacity-50"
+                >
+                  {isAddingSubtask ? "Adding..." : "Add"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Activity Feed */}
           <div>

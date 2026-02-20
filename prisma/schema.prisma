@@ -147,6 +147,7 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   REVIEW
+  TESTING
   DONE
 }
 
@@ -239,6 +240,11 @@ model Task {
   parentTask      Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   childTasks      Task[]    @relation("RecurringTasks")  // Generated instances of this recurring task
 
+  // Subtask hierarchy (separate from recurring tasks - for multi-agent pipeline)
+  subtaskOfId     String?
+  subtaskOf       Task?     @relation("Subtasks", fields: [subtaskOfId], references: [id], onDelete: Cascade)
+  subtasks        Task[]    @relation("Subtasks")
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -263,6 +269,7 @@ model Task {
   @@index([nextGenerationDate])
   @@index([assignedToBotId])
   @@index([status])
+  @@index([subtaskOfId])
 }
 
 enum TaskAssignmentRole {

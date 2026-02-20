@@ -1,6 +1,6 @@
 export type Priority = "urgent-important" | "not-urgent-important" | "urgent-not-important" | "not-urgent-not-important" | "";
 
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "TESTING" | "DONE";
 
 export type RecurringPattern = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
 
@@ -68,6 +68,10 @@ export interface Task {
   nextGenerationDate?: string; // When next instance should be generated
   lastGeneratedDate?: string; // When last instance was generated
   parentTaskId?: string; // Reference to parent recurring task
+  // Subtask hierarchy
+  subtaskOfId?: string; // Reference to parent task (subtask of)
+  subtaskCount?: number; // Number of subtasks
+  subtasks?: Task[]; // Subtask list
   createdAt: string;
   updatedAt: string;
   // Bot assignment

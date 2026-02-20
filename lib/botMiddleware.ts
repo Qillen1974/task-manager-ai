@@ -43,6 +43,9 @@ export async function verifyBotAuth(request: NextRequest): Promise<BotAuthResult
           email: true,
           firstName: true,
           lastName: true,
+          subscription: {
+            select: { plan: true },
+          },
         },
       },
     },

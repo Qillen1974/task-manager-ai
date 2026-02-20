@@ -23,6 +23,8 @@ export function formatTaskForBot(task: any) {
     projectId: task.projectId,
     projectName: task.project?.name || null,
     assignedToBotId: task.assignedToBotId || null,
+    subtaskOfId: task.subtaskOfId || null,
+    subtaskCount: task._count?.subtasks ?? undefined,
     userId: task.userId,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),

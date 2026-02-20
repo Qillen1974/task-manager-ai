@@ -1266,6 +1266,7 @@ export default function Home() {
                     return proj && (proj as any).teamId;
                   })}
                   projects={projectsMap}
+                  isEnterprise={userPlan === "ENTERPRISE"}
                   onStatusChange={handleStatusChange}
                   onTaskComplete={handleCompleteTask}
                   onTaskEdit={handleEditTask}
@@ -1512,6 +1513,7 @@ export default function Home() {
       {showTaskDetail && detailTask && (
         <TaskDetailModal
           task={detailTask}
+          isEnterprise={userPlan === "ENTERPRISE"}
           onClose={() => {
             setShowTaskDetail(false);
             setDetailTask(undefined);

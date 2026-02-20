@@ -321,11 +321,27 @@ export function canAccessKanban(plan: SubscriptionPlan): boolean {
 }
 
 /**
+ * Check if user's plan supports subtask hierarchy (multi-agent pipeline)
+ * Subtasks are an ENTERPRISE-only feature
+ */
+export function canAccessSubtasks(plan: SubscriptionPlan): boolean {
+  return plan === "ENTERPRISE";
+}
+
+/**
+ * Check if user's plan supports pipeline stages (TESTING status)
+ * Pipeline stages are an ENTERPRISE-only feature
+ */
+export function canAccessPipeline(plan: SubscriptionPlan): boolean {
+  return plan === "ENTERPRISE";
+}
+
+/**
  * Get upgrade message based on what user is trying to do
  */
 export function getUpgradeMessage(
   currentPlan: SubscriptionPlan,
-  reason: "subprojects" | "more_projects" | "recurring_tasks" | "mind_maps",
+  reason: "subprojects" | "more_projects" | "recurring_tasks" | "mind_maps" | "subtasks" | "pipeline",
   mobileUnlocked: boolean = false
 ): string {
   const tier = getEffectiveTier(currentPlan, mobileUnlocked);
@@ -350,6 +366,12 @@ export function getUpgradeMessage(
   }
   if (reason === "mind_maps") {
     return `Upgrade to PRO to unlock mind mapping features.`;
+  }
+  if (reason === "subtasks") {
+    return `Upgrade to ENTERPRISE to unlock subtask hierarchy and multi-agent pipelines.`;
+  }
+  if (reason === "pipeline") {
+    return `Upgrade to ENTERPRISE to unlock pipeline stages (Testing).`;
   }
   return `Upgrade your plan to unlock this feature.`;
 }

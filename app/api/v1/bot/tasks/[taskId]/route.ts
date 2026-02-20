@@ -6,6 +6,7 @@ import { checkRateLimit, getRateLimitHeaders } from "@/lib/botRateLimit";
 import { quadrantToPriority, isValidQuadrant } from "@/lib/botQuadrantMap";
 import { formatTaskForBot, formatCommentForBot, formatArtifactForBot } from "@/lib/botResponseFormatter";
 import { logBotAction } from "@/lib/botAuditLog";
+import { canAccessSubtasks, canAccessPipeline } from "@/lib/projectLimits";
 
 /**
  * GET /api/v1/bot/tasks/[taskId] - Get task details with comments and artifacts
@@ -60,6 +61,17 @@ export async function GET(
           },
           orderBy: { createdAt: "desc" },
         },
+        subtasks: {
+          include: {
+            project: { select: { id: true, name: true, color: true } },
+            assignedToBot: { select: { id: true, name: true } },
+            _count: { select: { subtasks: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        _count: {
+          select: { subtasks: true },
+        },
       },
     });
 
@@ -79,6 +91,10 @@ export async function GET(
       ...formatTaskForBot(task),
       comments: task.comments.map(formatCommentForBot),
       artifacts: task.artifacts.map(formatArtifactForBot),
+      subtasks: task.subtasks.map((st: any) => ({
+        ...formatTaskForBot(st),
+        assignedToBot: st.assignedToBot ? { id: st.assignedToBot.id, name: st.assignedToBot.name } : null,
+      })),
     });
 
     Object.entries(headers).forEach(([key, value]) => {
@@ -190,9 +206,13 @@ export async function PATCH(
     }
 
     // Validate status if provided
-    const validStatuses = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+    const ownerPlan = bot.owner.subscription?.plan || "FREE";
+    const validStatuses = canAccessPipeline(ownerPlan)
+      ? ["TODO", "IN_PROGRESS", "REVIEW", "TESTING", "DONE"]
+      : ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
     if (status !== undefined && !validStatuses.includes(status)) {
-      return error("Invalid status. Use TODO, IN_PROGRESS, REVIEW, or DONE", 400, "INVALID_STATUS");
+      const statusList = validStatuses.join(", ");
+      return error(`Invalid status. Use ${statusList}`, 400, "INVALID_STATUS");
     }
 
     // Map quadrant to priority
@@ -240,6 +260,9 @@ export async function PATCH(
       include: {
         project: {
           select: { id: true, name: true, color: true },
+        },
+        _count: {
+          select: { subtasks: true },
         },
       },
     });
