@@ -66,19 +66,21 @@ export async function processTask(
       log.warn("Failed to check artifacts for routing", { taskId });
     }
 
-    // Ask LLM to decide: handle self or delegate to John
+    // Ask LLM to decide: handle self, delegate to John, or decompose into subtasks
     const routingMessages: LLMMessage[] = [
       {
         role: "system",
-        content: `You are Mark, an orchestrator bot. You must decide whether to handle a task yourself or delegate it to John.
+        content: `You are Mark, an orchestrator bot. Decide how to handle this task.
 
-YOUR strengths (handle yourself): File processing, data transformation, Excel/CSV processing, PDF generation, image processing, heavy computation, tasks with file attachments.
-JOHN's strengths (delegate): Research, text generation, code analysis, general knowledge, writing, simple calculations, Q&A tasks.
+Actions:
+- "self" — Handle yourself. Best for: file processing, data transformation, Excel/CSV, PDF generation, image processing, heavy computation, tasks with file attachments.
+- "delegate" — Assign entire task to John. Best for: research, text generation, code analysis, general knowledge, writing, simple calculations, Q&A tasks.
+- "decompose" — Break into subtasks for parallel execution. Best for: tasks with multiple distinct deliverables, tasks needing BOTH file processing AND text/research, explicitly multi-step work, or tasks large enough to benefit from parallel execution by multiple bots.
 
-${hasAttachments ? "NOTE: This task has file attachments. You should almost always handle tasks with attachments yourself." : ""}
+${hasAttachments ? "NOTE: This task has file attachments. You should almost always handle tasks with attachments yourself (action: self)." : ""}
 
 Respond with ONLY a JSON object, no other text:
-{ "action": "self" | "delegate", "reason": "brief reason (one sentence)" }`,
+{ "action": "self" | "delegate" | "decompose", "reason": "brief reason (one sentence)" }`,
       },
       {
         role: "user",
@@ -86,7 +88,7 @@ Respond with ONLY a JSON object, no other text:
       },
     ];
 
-    let routeToSelf = true; // Default: handle it ourselves
+    let routeAction: "self" | "delegate" | "decompose" = "self"; // Default: handle ourselves
     try {
       const routingResponse = await llm.chat(routingMessages, []);
       const routingText = routingResponse.content?.trim() || "";
@@ -97,7 +99,7 @@ Respond with ONLY a JSON object, no other text:
       if (jsonMatch) {
         const decision = JSON.parse(jsonMatch[0]) as { action: string; reason: string };
         if (decision.action === "delegate") {
-          routeToSelf = false;
+          routeAction = "delegate";
           log.info("Delegating task to John", { taskId, reason: decision.reason });
 
           await api.addComment(taskId, `[Mark] Delegated to John: ${decision.reason}`);
@@ -107,6 +109,13 @@ Respond with ONLY a JSON object, no other text:
             status: "TODO",
           });
           return; // Done — John will pick it up
+        } else if (decision.action === "decompose") {
+          routeAction = "decompose";
+          log.info("Decomposing task into subtasks", { taskId, reason: decision.reason });
+
+          await api.addComment(taskId, `[Mark] Decomposing into subtasks: ${decision.reason}`);
+          await decomposeTask(task, guard.sanitizedText, api, llm, config, log);
+          return; // Done — orchestration loop handles tracking
         } else {
           log.info("Handling task directly", { taskId, reason: decision.reason });
           await api.addComment(taskId, `[Mark] Handling directly: ${decision.reason}`);
@@ -307,4 +316,106 @@ Respond with ONLY a JSON object, no other text:
       });
     }
   }
+}
+
+// ── Decompose a complex task into subtasks ──
+
+interface SubtaskPlan {
+  title: string;
+  description: string;
+  assignTo: "mark" | "john";
+}
+
+const MAX_SUBTASKS = 5;
+
+async function decomposeTask(
+  task: TaskQuadrantTask,
+  sanitizedDescription: string,
+  api: TaskQuadrantClient,
+  llm: LLMClient,
+  config: MarkConfig,
+  log: Logger
+): Promise<void> {
+  const taskId = task.id;
+
+  // Ask LLM for a subtask decomposition plan
+  const decomposeMessages: LLMMessage[] = [
+    {
+      role: "system",
+      content: `You are Mark, an orchestrator bot. Break this task into subtasks (max ${MAX_SUBTASKS}).
+
+Each subtask should be a distinct, independently executable piece of work.
+
+Assign each subtask to the right bot:
+- "mark" — File processing, data transformation, Excel/CSV, PDF generation, computation, tasks needing code execution
+- "john" — Research, text generation, code analysis, writing, Q&A, general knowledge tasks
+
+Respond with ONLY a JSON array, no other text:
+[{ "title": "Subtask title", "description": "What to do", "assignTo": "mark" | "john" }]`,
+    },
+    {
+      role: "user",
+      content: `Task: ${task.title}\n\nDescription:\n${sanitizedDescription}`,
+    },
+  ];
+
+  const response = await llm.chat(decomposeMessages, []);
+  const responseText = response.content?.trim() || "";
+  log.debug("Decomposition LLM response", { taskId, responseText });
+
+  // Parse JSON array from response (handle markdown code blocks)
+  const arrayMatch = responseText.match(/\[[\s\S]*\]/);
+  if (!arrayMatch) {
+    log.warn("Could not parse decomposition plan, falling back to self", { taskId, responseText });
+    await api.addComment(taskId, `[Mark] Could not decompose task. Handling directly instead.`);
+    return;
+  }
+
+  let subtaskPlans: SubtaskPlan[];
+  try {
+    subtaskPlans = JSON.parse(arrayMatch[0]) as SubtaskPlan[];
+  } catch (parseErr) {
+    log.warn("JSON parse error on decomposition plan, falling back to self", { taskId });
+    await api.addComment(taskId, `[Mark] Could not parse decomposition plan. Handling directly instead.`);
+    return;
+  }
+
+  // Cap subtask count
+  if (subtaskPlans.length > MAX_SUBTASKS) {
+    subtaskPlans = subtaskPlans.slice(0, MAX_SUBTASKS);
+  }
+
+  if (subtaskPlans.length === 0) {
+    log.warn("Decomposition returned 0 subtasks, falling back to self", { taskId });
+    await api.addComment(taskId, `[Mark] Decomposition returned no subtasks. Handling directly instead.`);
+    return;
+  }
+
+  // Create each subtask via API
+  const createdSubtasks: string[] = [];
+  for (const plan of subtaskPlans) {
+    const botId = plan.assignTo === "john" ? config.JOHN_BOT_ID : config.MARK_BOT_ID;
+
+    const result = await api.createSubtask(taskId, {
+      title: plan.title,
+      description: plan.description,
+      assignedToBotId: botId,
+    });
+
+    if (result.success && result.data) {
+      createdSubtasks.push(`- "${plan.title}" → ${plan.assignTo}`);
+      log.info("Created subtask", { parentTaskId: taskId, subtaskId: result.data.id, assignTo: plan.assignTo });
+    } else {
+      log.error("Failed to create subtask", { parentTaskId: taskId, title: plan.title, error: result.error });
+    }
+  }
+
+  // Post summary comment on parent
+  const summary = `[Mark] Decomposed into ${createdSubtasks.length} subtask(s):\n${createdSubtasks.join("\n")}`;
+  await api.addComment(taskId, summary);
+
+  // Set parent to IN_PROGRESS with initial progress
+  await api.updateTask(taskId, { status: "IN_PROGRESS", progress: 10 });
+
+  log.info("Task decomposition complete", { taskId, subtaskCount: createdSubtasks.length });
 }

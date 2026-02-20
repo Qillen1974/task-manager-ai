@@ -21,6 +21,8 @@ export interface TaskQuadrantTask {
   projectId: string;
   projectName: string | null;
   assignedToBotId: string | null;
+  subtaskOfId: string | null;
+  subtaskCount?: number;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -49,6 +51,7 @@ export interface TaskArtifact {
 export interface TaskDetail extends TaskQuadrantTask {
   comments: TaskComment[];
   artifacts: TaskArtifact[];
+  subtasks: TaskQuadrantTask[];
 }
 
 export interface BotInfo {
@@ -72,6 +75,7 @@ interface ListTasksParams {
   assignedToBot?: boolean;
   completed?: boolean;
   status?: string;
+  subtaskOfId?: string;
   limit?: number;
   cursor?: string;
 }
@@ -171,6 +175,7 @@ export class TaskQuadrantClient {
     if (params.assignedToBot !== undefined) query.set("assignedToBot", String(params.assignedToBot));
     if (params.completed !== undefined) query.set("completed", String(params.completed));
     if (params.status) query.set("status", params.status);
+    if (params.subtaskOfId) query.set("subtaskOfId", params.subtaskOfId);
     if (params.limit !== undefined) query.set("limit", String(params.limit));
     if (params.cursor) query.set("cursor", params.cursor);
 
@@ -247,6 +252,24 @@ export class TaskQuadrantClient {
     return this.request<{ artifacts: TaskArtifact[] }>(
       "GET",
       `/api/v1/bot/tasks/${taskId}/artifacts`
+    );
+  }
+
+  async createSubtask(
+    parentTaskId: string,
+    params: { title: string; description?: string; assignedToBotId?: string }
+  ): Promise<ApiResponse<TaskQuadrantTask>> {
+    return this.request<TaskQuadrantTask>(
+      "POST",
+      `/api/v1/bot/tasks/${parentTaskId}/subtasks`,
+      params
+    );
+  }
+
+  async listSubtasks(parentTaskId: string): Promise<ApiResponse<{ subtasks: TaskQuadrantTask[] }>> {
+    return this.request<{ subtasks: TaskQuadrantTask[] }>(
+      "GET",
+      `/api/v1/bot/tasks/${parentTaskId}/subtasks`
     );
   }
 }

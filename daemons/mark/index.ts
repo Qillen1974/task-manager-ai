@@ -17,9 +17,11 @@ const log = createLogger("mark.main");
 // ── State ──
 const inProgress = new Set<string>();
 const inReview = new Set<string>();
+const inOrchestration = new Set<string>();
 let shuttingDown = false;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let reviewTimer: ReturnType<typeof setInterval> | null = null;
+let orchestrateTimer: ReturnType<typeof setInterval> | null = null;
 let notifyTimer: ReturnType<typeof setInterval> | null = null;
 let telegramBot: TelegramBot | null = null;
 
@@ -138,6 +140,72 @@ async function reviewOnce(): Promise<void> {
   }
 }
 
+// ── Orchestration loop (tracks decomposed parent tasks) ──
+
+async function orchestrateOnce(): Promise<void> {
+  if (shuttingDown) return;
+
+  try {
+    // Fetch IN_PROGRESS tasks assigned to Mark (parent tasks being orchestrated)
+    const response = await api.listTasks({
+      assignedToBot: true,
+      completed: false,
+      status: "IN_PROGRESS",
+    });
+
+    if (!response.success || !response.data) {
+      log.error("Failed to fetch orchestration tasks", { error: response.error });
+      return;
+    }
+
+    for (const task of response.data.tasks) {
+      // Skip if already being orchestrated this cycle
+      if (inOrchestration.has(task.id)) continue;
+
+      // Get full task details to check subtasks
+      const detailResponse = await api.getTask(task.id);
+      if (!detailResponse.success || !detailResponse.data) continue;
+
+      const detail = detailResponse.data;
+
+      // Skip tasks with no subtasks (regular self-handled tasks)
+      if (!detail.subtasks || detail.subtasks.length === 0) continue;
+
+      inOrchestration.add(task.id);
+
+      try {
+        // Calculate parent progress from subtask averages
+        const subtaskProgressSum = detail.subtasks.reduce((sum, st) => sum + st.progress, 0);
+        const avgProgress = Math.floor(subtaskProgressSum / detail.subtasks.length);
+        const parentProgress = Math.max(10, avgProgress); // Min 10 since we set it on decomposition
+
+        // Update parent progress if changed
+        if (parentProgress !== task.progress) {
+          await api.updateTask(task.id, { progress: parentProgress });
+          log.debug("Updated parent progress", { taskId: task.id, progress: parentProgress });
+        }
+
+        // Check if all subtasks are done
+        const allDone = detail.subtasks.every((st) => st.completed || st.status === "DONE");
+        if (allDone) {
+          await api.updateTask(task.id, { status: "DONE", completed: true, progress: 100 });
+          await api.addComment(task.id, `[Mark] All ${detail.subtasks.length} subtask(s) completed.`);
+          log.info("Parent task auto-completed (all subtasks done)", { taskId: task.id });
+        }
+      } catch (err) {
+        log.error("Error orchestrating task", {
+          taskId: task.id,
+          error: (err as Error).message,
+        });
+      } finally {
+        inOrchestration.delete(task.id);
+      }
+    }
+  } catch (err) {
+    log.error("Orchestration poll cycle error", { error: (err as Error).message });
+  }
+}
+
 // ── Telegram notification loop ──
 
 async function notifyOnce(): Promise<void> {
@@ -191,6 +259,10 @@ function shutdown(signal: string): void {
   if (reviewTimer) {
     clearInterval(reviewTimer);
     reviewTimer = null;
+  }
+  if (orchestrateTimer) {
+    clearInterval(orchestrateTimer);
+    orchestrateTimer = null;
   }
   if (notifyTimer) {
     clearInterval(notifyTimer);
@@ -246,6 +318,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Store Mark's own bot ID for subtask assignment
+  config.MARK_BOT_ID = authResult.data.id;
+
   log.info(`Auth verified: Bot "${authResult.data.name}" (${authResult.data.id})`, {
     permissions: authResult.data.permissions,
     projects: authResult.data.projectIds,
@@ -257,15 +332,17 @@ async function main(): Promise<void> {
     notifyTimer = setInterval(notifyOnce, config.POLL_INTERVAL_MS);
   }
 
-  // Start polling (tasks + reviews on same interval)
+  // Start polling (tasks + reviews + orchestration on same interval)
   pollTimer = setInterval(pollOnce, config.POLL_INTERVAL_MS);
   reviewTimer = setInterval(reviewOnce, config.POLL_INTERVAL_MS);
+  orchestrateTimer = setInterval(orchestrateOnce, config.POLL_INTERVAL_MS);
 
   // Also run immediately
   await pollOnce();
   await reviewOnce();
+  await orchestrateOnce();
 
-  log.info(`Mark daemon running. Polling every ${config.POLL_INTERVAL_MS / 1000}s (tasks + reviews). Press Ctrl+C to stop.`);
+  log.info(`Mark daemon running. Polling every ${config.POLL_INTERVAL_MS / 1000}s (tasks + reviews + orchestration). Press Ctrl+C to stop.`);
 }
 
 main().catch((err) => {

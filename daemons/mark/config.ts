@@ -13,6 +13,7 @@ export interface MarkConfig {
   LLM_PROVIDER: LLMProvider;
   LLM_API_KEY: string;
   JOHN_BOT_ID: string;
+  MARK_BOT_ID: string; // Populated at runtime from auth response
   POLL_INTERVAL_MS: number;
   CODE_EXEC_TIMEOUT_MS: number;
   MAX_TOOL_ROUNDS: number;
@@ -54,6 +55,7 @@ export function loadConfig(): MarkConfig {
     LLM_PROVIDER: (process.env.LLM_PROVIDER || "kimi") as LLMProvider,
     LLM_API_KEY: process.env.LLM_API_KEY || requireEnv("KIMI_API_KEY"),
     JOHN_BOT_ID: requireEnv("JOHN_BOT_ID"),
+    MARK_BOT_ID: "", // Set after auth verification in index.ts
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 300_000), // 5 minutes
     MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 5),
