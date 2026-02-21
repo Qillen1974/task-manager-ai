@@ -66,11 +66,24 @@ export async function processTask(
       log.warn("Failed to check artifacts for routing", { taskId });
     }
 
+    // Subtasks should never be decomposed — only self or delegate
+    const isSubtask = !!task.subtaskOfId;
+
     // Ask LLM to decide: handle self, delegate to John, or decompose into subtasks
     const routingMessages: LLMMessage[] = [
       {
         role: "system",
-        content: `You are Mark, an orchestrator bot. Decide how to handle this task.
+        content: isSubtask
+          ? `You are Mark, an orchestrator bot. This is a SUBTASK — you must handle it yourself or delegate to John. Do NOT decompose.
+
+Actions:
+- "self" — Handle yourself. Best for: file processing, data transformation, Excel/CSV, PDF generation, image processing, heavy computation, tasks with file attachments.
+- "delegate" — Assign to John. Best for: research, text generation, code analysis, general knowledge, writing, Q&A tasks.
+
+${hasAttachments ? "NOTE: This task has file attachments. Handle it yourself." : ""}
+
+Respond with ONLY a JSON object: { "action": "self" | "delegate", "reason": "brief reason" }`
+          : `You are Mark, an orchestrator bot. Decide how to handle this task.
 
 Actions:
 - "self" — Handle yourself. Best for: ONLY file processing, data transformation, Excel/CSV, PDF generation, image processing, heavy computation, tasks with file attachments that need NO research.
@@ -115,7 +128,7 @@ Respond with ONLY a JSON object, no other text:
             status: "TODO",
           });
           return; // Done — John will pick it up
-        } else if (decision.action === "decompose") {
+        } else if (decision.action === "decompose" && !isSubtask) {
           routeAction = "decompose";
           log.info("Decomposing task into subtasks", { taskId, reason: decision.reason });
 
@@ -350,14 +363,16 @@ async function decomposeTask(
       role: "system",
       content: `You are Mark, an orchestrator bot. Break this task into subtasks (max ${MAX_SUBTASKS}).
 
-Each subtask should be a distinct, independently executable piece of work.
+Each subtask should be self-contained with enough context to execute independently.
 
 Assign each subtask to the right bot:
 - "mark" — File processing, data transformation, Excel/CSV, PDF generation, computation, tasks needing code execution
 - "john" — Research, text generation, code analysis, writing, Q&A, general knowledge tasks
 
+IMPORTANT: Later subtasks that depend on earlier ones must include instructions to check the parent task's comments for input from the previous step. For example, if John researches and Mark creates a PDF, Mark's subtask description should say "Read the research results from the parent task comments and generate a PDF from them."
+
 Respond with ONLY a JSON array, no other text:
-[{ "title": "Subtask title", "description": "What to do", "assignTo": "mark" | "john" }]`,
+[{ "title": "Subtask title", "description": "Detailed instructions including where to find input data if needed", "assignTo": "mark" | "john" }]`,
     },
     {
       role: "user",
