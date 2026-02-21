@@ -73,9 +73,15 @@ export async function processTask(
         content: `You are Mark, an orchestrator bot. Decide how to handle this task.
 
 Actions:
-- "self" — Handle yourself. Best for: file processing, data transformation, Excel/CSV, PDF generation, image processing, heavy computation, tasks with file attachments.
-- "delegate" — Assign entire task to John. Best for: research, text generation, code analysis, general knowledge, writing, simple calculations, Q&A tasks.
-- "decompose" — Break into subtasks for parallel execution. Best for: tasks with multiple distinct deliverables, tasks needing BOTH file processing AND text/research, explicitly multi-step work, or tasks large enough to benefit from parallel execution by multiple bots.
+- "self" — Handle yourself. Best for: ONLY file processing, data transformation, Excel/CSV, PDF generation, image processing, heavy computation, tasks with file attachments that need NO research.
+- "delegate" — Assign entire task to John. Best for: ONLY simple single-focus tasks like pure research, text generation, code analysis, Q&A, writing — where no file output (PDF, Excel, etc.) is needed.
+- "decompose" — Break into subtasks assigned to different bots. ALWAYS choose this when:
+  * Task mentions BOTH research/analysis AND a file output (PDF, report, spreadsheet, etc.)
+  * Task has multiple distinct steps or deliverables
+  * Task combines John's strengths (research, writing) with Mark's strengths (file generation, computation)
+  * Example: "Research X and create a PDF" → decompose (John researches, Mark generates PDF)
+
+IMPORTANT: If a task involves research/writing AND producing a file (PDF, Excel, etc.), ALWAYS choose "decompose", never "delegate".
 
 ${hasAttachments ? "NOTE: This task has file attachments. You should almost always handle tasks with attachments yourself (action: self)." : ""}
 
