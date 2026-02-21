@@ -31,4 +31,27 @@ export const TOOL_DEFINITIONS: LLMToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description:
+        "Search the web for current information. Use this for recent events, product releases, " +
+        "documentation, pricing, or any topic where training data may be outdated.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The search query",
+          },
+          num_results: {
+            type: "number",
+            description: "Number of results to return (1-10, default 5)",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
 ];

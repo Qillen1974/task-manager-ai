@@ -10,6 +10,7 @@ import { getSystemPrompt } from "./system-prompt";
 import { TOOL_DEFINITIONS } from "./tools/definitions";
 import { executeCode, ExecutionResult } from "./tools/code-executor";
 import { downloadArtifact, uploadArtifact } from "./tools/file-handler";
+import { webSearch, formatSearchResults } from "../core/web-search";
 
 export async function processTask(
   task: TaskQuadrantTask,
@@ -262,6 +263,31 @@ Respond with ONLY a JSON object, no other text:
             name: toolCall.name,
             content: toolResultContent,
           });
+        } else if (toolCall.name === "web_search") {
+          const query = toolCall.input.query as string;
+          const numResults = (toolCall.input.num_results as number) || 5;
+
+          log.info("Web search", { taskId, query, numResults });
+
+          let toolResultContent: string;
+          try {
+            const searchResult = await webSearch(query, config.SERPER_API_KEY, numResults);
+            toolResultContent = formatSearchResults(searchResult);
+          } catch (searchErr) {
+            toolResultContent = `Web search failed: ${(searchErr as Error).message}`;
+          }
+
+          messages.push({
+            role: "assistant",
+            content: response.content || "",
+            tool_calls: [toolCall],
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.name,
+            content: toolResultContent,
+          });
         } else {
           // Unknown tool
           messages.push({
@@ -273,7 +299,7 @@ Respond with ONLY a JSON object, no other text:
             role: "tool",
             tool_call_id: toolCall.id,
             name: toolCall.name,
-            content: `Error: Unknown tool "${toolCall.name}". Available tools: execute_code, download_artifact, upload_artifact.`,
+            content: `Error: Unknown tool "${toolCall.name}". Available tools: execute_code, download_artifact, upload_artifact, web_search.`,
           });
         }
       }
