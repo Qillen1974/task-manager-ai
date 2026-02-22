@@ -7,6 +7,14 @@ import { getSystemPrompt } from "./system-prompt";
 import { TOOL_DEFINITIONS } from "./tools/definitions";
 import { executeCode, ExecutionResult } from "./tools/code-executor";
 import { webSearch, formatSearchResults } from "../core/web-search";
+import {
+  setupRepo,
+  writeFileToRepo,
+  commitAndPush,
+  getRepoStatus,
+  cleanupRepo,
+  GitRepoContext,
+} from "../core/git-operations";
 
 export async function processTask(
   task: TaskQuadrantTask,
@@ -17,6 +25,8 @@ export async function processTask(
 ): Promise<void> {
   const taskId = task.id;
   log.info("Processing task", { taskId, title: task.title });
+
+  let gitRepoContext: GitRepoContext | null = null;
 
   try {
     // ── Step 1: CLAIM ──
@@ -126,6 +136,51 @@ export async function processTask(
             name: toolCall.name,
             content: toolResultContent,
           });
+        } else if (toolCall.name === "git_push_code") {
+          const action = toolCall.input.action as string;
+
+          log.info("Git operation", { taskId, action });
+
+          let toolResultContent: string;
+          try {
+            if (action === "setup_repo") {
+              if (!config.GITHUB_TOKEN || !config.GIT_REPO_URL) {
+                throw new Error("Git is not configured — GITHUB_TOKEN or GIT_REPO_URL missing.");
+              }
+              gitRepoContext = await setupRepo(config.GIT_REPO_URL, config.GITHUB_TOKEN, taskId, "john");
+              toolResultContent = `Repository cloned and branch "${gitRepoContext.branch}" created.\nRepo dir: ${gitRepoContext.repoDir}\nYou can now use write_file to add files.`;
+            } else if (action === "write_file") {
+              if (!gitRepoContext) throw new Error("Call setup_repo first before write_file.");
+              const filePath = toolCall.input.file_path as string;
+              const fileContent = toolCall.input.file_content as string;
+              if (!filePath || fileContent === undefined) throw new Error("write_file requires file_path and file_content.");
+              toolResultContent = writeFileToRepo(gitRepoContext, filePath, fileContent);
+            } else if (action === "commit_and_push") {
+              if (!gitRepoContext) throw new Error("Call setup_repo first before commit_and_push.");
+              const commitMessage = toolCall.input.commit_message as string;
+              if (!commitMessage) throw new Error("commit_and_push requires commit_message.");
+              toolResultContent = await commitAndPush(gitRepoContext, commitMessage);
+            } else if (action === "status") {
+              if (!gitRepoContext) throw new Error("Call setup_repo first before status.");
+              toolResultContent = await getRepoStatus(gitRepoContext);
+            } else {
+              throw new Error(`Unknown git action: "${action}". Use setup_repo, write_file, commit_and_push, or status.`);
+            }
+          } catch (gitErr) {
+            toolResultContent = `Git error: ${(gitErr as Error).message}`;
+          }
+
+          messages.push({
+            role: "assistant",
+            content: response.content || "",
+            tool_calls: [toolCall],
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: toolCall.name,
+            content: toolResultContent,
+          });
         } else {
           // Unknown tool — tell the LLM
           messages.push({
@@ -137,7 +192,7 @@ export async function processTask(
             role: "tool",
             tool_call_id: toolCall.id,
             name: toolCall.name,
-            content: `Error: Unknown tool "${toolCall.name}". Available tools: execute_code, web_search.`,
+            content: `Error: Unknown tool "${toolCall.name}". Available tools: execute_code, web_search, git_push_code.`,
           });
         }
       }
@@ -185,6 +240,11 @@ export async function processTask(
       );
     } catch {
       log.error("Failed to post error comment", { taskId });
+    }
+  } finally {
+    // Clean up git repo
+    if (gitRepoContext) {
+      try { cleanupRepo(gitRepoContext); } catch { /* ignore */ }
     }
   }
 }

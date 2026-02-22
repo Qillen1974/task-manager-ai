@@ -21,6 +21,8 @@ export interface MarkConfig {
   MAX_OUTPUT_BYTES: number;
   LOG_LEVEL: string;
   SERPER_API_KEY: string;
+  GITHUB_TOKEN: string;
+  GIT_REPO_URL: string;
   TELEGRAM_ENABLED: boolean;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_CHAT_ID: string;
@@ -59,11 +61,13 @@ export function loadConfig(): MarkConfig {
     MARK_BOT_ID: "", // Set after auth verification in index.ts
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 300_000), // 5 minutes
-    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 5),
+    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 8),
     MAX_DESCRIPTION_LENGTH: optionalInt("MAX_DESCRIPTION_LENGTH", 5000),
     MAX_OUTPUT_BYTES: optionalInt("MAX_OUTPUT_BYTES", 500 * 1024), // 500KB
     LOG_LEVEL: process.env.LOG_LEVEL || "INFO",
     SERPER_API_KEY: requireEnv("SERPER_API_KEY"),
+    GITHUB_TOKEN: process.env.MARK_GITHUB_TOKEN || "",
+    GIT_REPO_URL: process.env.GIT_REPO_URL || "",
     TELEGRAM_ENABLED: telegramEnabled,
     TELEGRAM_BOT_TOKEN: telegramEnabled ? requireEnv("TELEGRAM_BOT_TOKEN") : "",
     TELEGRAM_CHAT_ID: telegramEnabled ? requireEnv("TELEGRAM_CHAT_ID") : "",
