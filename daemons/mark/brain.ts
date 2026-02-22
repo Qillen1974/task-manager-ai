@@ -185,7 +185,9 @@ Respond with ONLY a JSON object, no other text:
 
       // No tool calls — LLM has a final answer
       if (response.toolCalls.length === 0) {
-        const resultText = response.content || "Task processing completed but no text response was generated.";
+        // Strip leaked LLM internal tags
+        let resultText = response.content || "Task processing completed but no text response was generated.";
+        resultText = resultText.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || resultText;
         await api.addComment(taskId, `[Mark] Result:\n\n${resultText}`);
         break;
       }

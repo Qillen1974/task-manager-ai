@@ -75,8 +75,9 @@ export async function processTask(
 
       // No tool calls — LLM has a final answer
       if (response.toolCalls.length === 0) {
-        // Post the final result
-        const resultText = response.content || "Task processing completed but no text response was generated.";
+        // Post the final result (strip leaked LLM internal tags)
+        let resultText = response.content || "Task processing completed but no text response was generated.";
+        resultText = resultText.replace(/<think>[\s\S]*?<\/think>/g, "").trim() || resultText;
         await api.addComment(taskId, `[John] Result:\n\n${resultText}`);
         break;
       }
