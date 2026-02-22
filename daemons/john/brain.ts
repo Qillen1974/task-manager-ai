@@ -205,7 +205,10 @@ export async function processTask(
     // If we exhausted all rounds without a final answer, post the last LLM response
     if (round >= config.MAX_TOOL_ROUNDS) {
       const finalResponse = await llm.chat(messages, []); // No tools — force text response
-      const resultText = finalResponse.content || "Maximum tool call rounds reached. Here are the partial results.";
+      let resultText = finalResponse.content || "Maximum tool call rounds reached. Here are the partial results.";
+      // Strip raw LLM tool call XML that leaks when forcing text-only response
+      resultText = resultText.replace(/<minimax:tool_call>[\s\S]*?<\/minimax:tool_call>/g, "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (!resultText) resultText = "Maximum tool call rounds reached. Task may be partially complete — check the repo for any pushed branches.";
       await api.addComment(taskId, `[John] Result (max rounds reached):\n\n${resultText}`);
     }
 

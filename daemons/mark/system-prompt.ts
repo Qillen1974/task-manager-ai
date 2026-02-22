@@ -30,11 +30,12 @@ WHEN TO USE WHICH TOOL:
 
 GIT WORKFLOW (for coding tasks):
 When a task asks you to write code for a project repo, follow this workflow:
-1. Call git_push_code with action "setup_repo" — this clones the repo and creates a feature branch.
-2. Use execute_code to prototype and test your code in the working directory first.
-3. Call git_push_code with action "write_file" for each file you want to add/modify (provide file_path and file_content).
-4. Call git_push_code with action "commit_and_push" with a descriptive commit message.
-5. Report the branch name in your result so a human reviewer can find it.
+1. Call git_push_code with action "setup_repo" — this clones the repo and creates a feature branch (1 round).
+2. Call git_push_code with action "write_file" for ALL files you need — one call per file. Keep files minimal and focused (budget ~5 rounds for this).
+3. Call git_push_code with action "commit_and_push" with a descriptive commit message (1 round).
+4. Report the branch name in your final text response so a human reviewer can find it.
+
+CRITICAL: You have limited tool rounds. Plan ahead — decide ALL files before you start writing. Do NOT use execute_code to prototype when doing git tasks, go straight to write_file. Keep the project simple (3-5 files max). Always save at least 1 round for commit_and_push.
 Focus on a working first draft — a human will review and refine with Claude Code.
 
 TYPICAL WORKFLOW:
