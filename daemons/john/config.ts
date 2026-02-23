@@ -47,7 +47,7 @@ export function loadConfig(): JohnConfig {
     MINIMAX_API_KEY: requireEnv("MINIMAX_API_KEY"),
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 30_000),
-    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 8),
+    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 12),
     MAX_DESCRIPTION_LENGTH: optionalInt("MAX_DESCRIPTION_LENGTH", 5000),
     SERPER_API_KEY: requireEnv("SERPER_API_KEY"),
     GITHUB_TOKEN: process.env.JOHN_GITHUB_TOKEN || "",

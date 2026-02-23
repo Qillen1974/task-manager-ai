@@ -61,7 +61,7 @@ export function loadConfig(): MarkConfig {
     MARK_BOT_ID: "", // Set after auth verification in index.ts
     POLL_INTERVAL_MS: optionalInt("POLL_INTERVAL_MS", 30_000),
     CODE_EXEC_TIMEOUT_MS: optionalInt("CODE_EXEC_TIMEOUT_MS", 300_000), // 5 minutes
-    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 8),
+    MAX_TOOL_ROUNDS: optionalInt("MAX_TOOL_ROUNDS", 12),
     MAX_DESCRIPTION_LENGTH: optionalInt("MAX_DESCRIPTION_LENGTH", 5000),
     MAX_OUTPUT_BYTES: optionalInt("MAX_OUTPUT_BYTES", 500 * 1024), // 500KB
     LOG_LEVEL: process.env.LOG_LEVEL || "INFO",
