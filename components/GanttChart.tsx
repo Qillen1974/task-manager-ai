@@ -439,22 +439,6 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
   const ROW_HEIGHT = 68; // Height of each task row in pixels (h-14 = 56px + mb-3 = 12px)
   const TASK_BAR_HEIGHT = 56; // Height of the bar area (h-14)
 
-  if (ganttData.items.length === 0) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-        <p className="text-gray-500">No tasks with start or due dates to display in Gantt chart</p>
-        <p className="text-gray-400 text-sm mt-2">Add start dates or due dates to your tasks to see them on the timeline</p>
-      </div>
-    );
-  }
-
-  const getProgressColor = (progress: number) => {
-    if (progress === 0) return { backgroundColor: "#d1d5db" }; // gray-300
-    if (progress < 33) return { backgroundColor: "#ef4444" }; // red-500
-    if (progress < 100) return { backgroundColor: "#eab308" }; // yellow-500
-    return { backgroundColor: "#22c55e" }; // green-500
-  };
-
   const calculatePosition = (date: Date | null) => {
     if (!date) return 0;
 
@@ -537,6 +521,22 @@ export function GanttChart({ project, tasks, onTaskClick, userPlan = "FREE" }: G
 
     return arrows;
   }, [ganttData.items, ganttData.minDate, ganttData.maxDate]);
+
+  if (ganttData.items.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+        <p className="text-gray-500">No tasks with start or due dates to display in Gantt chart</p>
+        <p className="text-gray-400 text-sm mt-2">Add start dates or due dates to your tasks to see them on the timeline</p>
+      </div>
+    );
+  }
+
+  const getProgressColor = (progress: number) => {
+    if (progress === 0) return { backgroundColor: "#d1d5db" }; // gray-300
+    if (progress < 33) return { backgroundColor: "#ef4444" }; // red-500
+    if (progress < 100) return { backgroundColor: "#eab308" }; // yellow-500
+    return { backgroundColor: "#22c55e" }; // green-500
+  };
 
   // Generate month labels for timeline header (equal width like mobile app)
   const generateMonthLabels = () => {
