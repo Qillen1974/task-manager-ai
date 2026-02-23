@@ -94,9 +94,23 @@ export async function botCanAccessProject(
   bot: { id: string; ownerId: string; projectIds: string[] },
   projectId: string
 ): Promise<boolean> {
-  // If bot has explicit project IDs, check against those
+  // If bot has explicit project IDs, check against those and ancestor chain
   if (bot.projectIds.length > 0) {
-    return bot.projectIds.includes(projectId);
+    if (bot.projectIds.includes(projectId)) return true;
+
+    // Walk up the parent chain — bot can access subprojects of its assigned projects
+    let currentId: string | null = projectId;
+    while (currentId) {
+      const proj = await db.project.findUnique({
+        where: { id: currentId },
+        select: { parentProjectId: true },
+      });
+      if (!proj || !proj.parentProjectId) break;
+      if (bot.projectIds.includes(proj.parentProjectId)) return true;
+      currentId = proj.parentProjectId;
+    }
+
+    return false;
   }
 
   // Fall back to checking if project belongs to the bot's owner
