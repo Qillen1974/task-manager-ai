@@ -75,6 +75,7 @@ export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [userPlan, setUserPlan] = useState<"FREE" | "PRO" | "ENTERPRISE">("FREE");
+  const [mobileUnlocked, setMobileUnlocked] = useState(false);
   const initialLoadDoneRef = useRef(false);
   const wizardTriggeredRef = useRef(false);
 
@@ -167,6 +168,7 @@ export default function Home() {
           const userResponse = await api.getCurrentUser();
           if (userResponse.success && userResponse.data?.subscription?.plan) {
             setUserPlan(userResponse.data.subscription.plan);
+            setMobileUnlocked(userResponse.data.mobileUnlocked || false);
           }
         } catch (err) {
           console.warn("Could not fetch user subscription:", err);
@@ -245,6 +247,7 @@ export default function Home() {
           const userResponse = await api.getCurrentUser();
           if (userResponse.success && userResponse.data?.subscription?.plan) {
             setUserPlan(userResponse.data.subscription.plan);
+            setMobileUnlocked(userResponse.data.mobileUnlocked || false);
           }
         } catch (error) {
           console.error("Failed to load data:", error);
@@ -358,9 +361,9 @@ export default function Home() {
   }, [tasks]);
 
   const canCreateRecurringTasks = useMemo(() => {
-    const result = canCreateRecurringTask(userPlan, recurringTaskCount);
+    const result = canCreateRecurringTask(userPlan, recurringTaskCount, mobileUnlocked);
     return result.allowed;
-  }, [userPlan, recurringTaskCount]);
+  }, [userPlan, recurringTaskCount, mobileUnlocked]);
 
   // Filter tasks based on dashboard project filter (including subprojects)
   const filteredTasksForDashboard = useMemo(() => {
@@ -394,7 +397,8 @@ export default function Home() {
   const handleAddTask = async (task: Task, file?: File) => {
     try {
       // Check task limit for FREE users
-      const taskLimit = TASK_LIMITS[userPlan];
+      const effectivePlan = mobileUnlocked && userPlan === "FREE" ? "MOBILE_UNLOCK" as const : userPlan;
+      const taskLimit = TASK_LIMITS[effectivePlan];
       if (taskLimit.maxTasks !== -1 && tasks.length >= taskLimit.maxTasks) {
         alert(`You have reached your task limit (${taskLimit.maxTasks}) on the ${userPlan} plan. Upgrade to PRO or ENTERPRISE to create more tasks.`);
         return;
@@ -726,7 +730,7 @@ export default function Home() {
     try {
       // Check if user is trying to create a root project (no parentProjectId)
       if (!data.parentProjectId) {
-        const canCreate = canCreateRootProject(userPlan, rootProjects.length);
+        const canCreate = canCreateRootProject(userPlan, rootProjects.length, mobileUnlocked);
         if (!canCreate.allowed) {
           alert(`${canCreate.message}`);
           return;
@@ -1461,6 +1465,7 @@ export default function Home() {
         parentProjectId={parentProjectId}
         allProjects={projects}
         userPlan={userPlan}
+        mobileUnlocked={mobileUnlocked}
         onSubmit={async (data) => {
           if (editingProject) {
             await handleEditProject(data);

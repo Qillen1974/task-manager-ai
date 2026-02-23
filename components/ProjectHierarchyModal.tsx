@@ -10,6 +10,7 @@ interface ProjectHierarchyModalProps {
   parentProjectId?: string;
   allProjects: Project[];
   userPlan: "FREE" | "PRO" | "ENTERPRISE";
+  mobileUnlocked?: boolean;
   onSubmit: (data: ProjectFormData) => Promise<void>;
   onDelete?: (projectId: string) => Promise<void>;
   onClose: () => void;
@@ -45,6 +46,7 @@ export function ProjectHierarchyModal({
   parentProjectId,
   allProjects,
   userPlan,
+  mobileUnlocked = false,
   onSubmit,
   onDelete,
   onClose,
@@ -97,8 +99,8 @@ export function ProjectHierarchyModal({
       return;
     }
 
-    // Check if creating subproject on FREE plan
-    if (!isEditing && formData.parentProjectId && userPlan === "FREE") {
+    // Check if creating subproject on FREE plan (mobile-unlocked users are allowed)
+    if (!isEditing && formData.parentProjectId && userPlan === "FREE" && !mobileUnlocked) {
       setError("Free plan does not support subprojects. Upgrade to PRO to create subprojects.");
       return;
     }
@@ -191,9 +193,9 @@ export function ProjectHierarchyModal({
               <p className="text-sm text-blue-900">
                 <strong>Parent Project:</strong> {parentProject.name}
               </p>
-              {userPlan === "FREE" && (
+              {userPlan === "FREE" && !mobileUnlocked && (
                 <p className="text-xs text-blue-800 mt-1">
-                  ⚠️ Free plan does not support subprojects. Please upgrade to PRO.
+                  Free plan does not support subprojects. Please upgrade to PRO.
                 </p>
               )}
             </div>
