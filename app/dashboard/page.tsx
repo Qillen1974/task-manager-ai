@@ -349,7 +349,7 @@ export default function Home() {
 
   const projectsMap = useMemo(() => {
     const map = new Map<string, Project>();
-    projects.forEach((p) => map.set(p.id, p));
+    flattenProjectTree(projects).forEach((p) => map.set(p.id, p));
     return map;
   }, [projects]);
 
