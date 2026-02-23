@@ -48,7 +48,20 @@ export async function GET(request: NextRequest) {
       return ApiErrors.FORBIDDEN();
     }
 
-    // Find active bots whose projectIds include this project
+    // Collect this project's ID and all ancestor project IDs
+    // so bots assigned to a parent project are available in subprojects
+    const projectIdsToCheck = [projectId];
+    let current = project;
+    while (current.parentProjectId) {
+      projectIdsToCheck.push(current.parentProjectId);
+      const parent = await db.project.findUnique({
+        where: { id: current.parentProjectId },
+      });
+      if (!parent) break;
+      current = parent;
+    }
+
+    // Find active bots whose projectIds include this project or any ancestor
     const allActiveBots = await db.bot.findMany({
       where: { isActive: true },
       select: {
@@ -61,7 +74,7 @@ export async function GET(request: NextRequest) {
     });
 
     const bots = allActiveBots
-      .filter((bot) => bot.projectIds.includes(projectId))
+      .filter((bot) => projectIdsToCheck.some((pid) => bot.projectIds.includes(pid)))
       .map(({ projectIds, ...bot }) => bot);
 
     return success(bots);
