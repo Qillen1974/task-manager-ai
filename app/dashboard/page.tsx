@@ -715,7 +715,12 @@ export default function Home() {
   // Find active project (search recursively through hierarchy)
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
-    return findProjectInTree(projects, activeProjectId);
+    const found = findProjectInTree(projects, activeProjectId);
+    if (activeProjectId && !found) {
+      console.error("[Dashboard] activeProjectId set but project NOT found in tree!", activeProjectId);
+      console.error("[Dashboard] projects tree:", JSON.stringify(projects.map(p => ({ id: p.id, name: p.name, children: (p as any).children?.map((c: any) => ({ id: c.id, name: c.name })) }))));
+    }
+    return found;
   }, [activeProjectId, projects]);
 
   // Get child projects of active project
