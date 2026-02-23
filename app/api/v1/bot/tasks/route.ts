@@ -48,7 +48,11 @@ export async function GET(request: NextRequest) {
     // Build where clause scoped to bot's projects
     const where: any = {};
 
-    if (projectId) {
+    if (assignedToBot === "true") {
+      // When fetching tasks assigned to this bot, skip project scoping
+      // so tasks in subprojects (not directly in bot.projectIds) are included
+      where.assignedToBotId = bot.id;
+    } else if (projectId) {
       const canAccess = await botCanAccessProject(bot, projectId);
       if (!canAccess) {
         return error("Bot cannot access this project", 403, "BOT_PROJECT_ACCESS_DENIED");
@@ -63,10 +67,6 @@ export async function GET(request: NextRequest) {
 
     if (completed !== null && completed !== undefined) {
       where.completed = completed === "true";
-    }
-
-    if (assignedToBot === "true") {
-      where.assignedToBotId = bot.id;
     }
 
     if (statusFilter) {
