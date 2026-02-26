@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
       dueDate,
       dueTime,
       assignToSelf,
+      assignToBotId,
       subtaskOfId,
     } = body;
 
@@ -225,6 +226,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate assignToBotId (delegate to another bot)
+    let resolvedAssignedToBotId: string | null = null;
+    if (assignToBotId) {
+      if (!botHasPermission(bot, "tasks:delegate")) {
+        return error("Bot does not have tasks:delegate permission", 403, "BOT_PERMISSION_DENIED");
+      }
+      const targetBot = await db.bot.findUnique({
+        where: { id: assignToBotId },
+        select: { id: true, isActive: true, ownerId: true },
+      });
+      if (!targetBot) {
+        return error("Target bot not found", 404, "TARGET_BOT_NOT_FOUND");
+      }
+      if (!targetBot.isActive) {
+        return error("Target bot is not active", 400, "TARGET_BOT_INACTIVE");
+      }
+      if (targetBot.ownerId !== bot.ownerId) {
+        return error("Target bot does not belong to the same owner", 403, "TARGET_BOT_OWNER_MISMATCH");
+      }
+      resolvedAssignedToBotId = targetBot.id;
+    } else if (assignToSelf) {
+      resolvedAssignedToBotId = bot.id;
+    }
+
     // Validate date logic
     if (startDate && dueDate) {
       const start = new Date(startDate + (startTime ? `T${startTime}` : "T00:00"));
@@ -245,7 +270,7 @@ export async function POST(request: NextRequest) {
         startTime: startTime || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         dueTime: dueTime || null,
-        assignedToBotId: assignToSelf ? bot.id : null,
+        assignedToBotId: resolvedAssignedToBotId,
         subtaskOfId: subtaskOfId || null,
       },
       include: {
