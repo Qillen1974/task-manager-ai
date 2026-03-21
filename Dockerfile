@@ -26,8 +26,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production --legacy-peer-deps
+# Install production dependencies + prisma CLI for db push
+RUN npm ci --only=production --legacy-peer-deps && npm install prisma --save-dev
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
@@ -39,5 +39,5 @@ COPY --from=builder /app/prisma ./prisma
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000), (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Start application
-CMD ["npm", "run", "start"]
+# Apply any pending schema changes, then start application
+CMD npx prisma db push --skip-generate && npm run start
