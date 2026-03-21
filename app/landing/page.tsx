@@ -692,7 +692,7 @@ export default function LandingPage() {
               <h4 className="font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/about" className="hover:text-white transition">About</Link></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
+                <li><Link href="/blog" className="hover:text-white transition">Blog</Link></li>
                 <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
               </ul>
             </div>

@@ -88,6 +88,30 @@ export function createBreadcrumbSchema(items: Array<{ name: string; url: string 
   };
 }
 
+// Article schema for blog posts
+export function createArticleSchema(options: {
+  url: string;
+  title: string;
+  description: string;
+  datePublished: string;
+  dateModified: string;
+  authorName: string;
+  imageUrl?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: options.title,
+    description: options.description,
+    url: options.url,
+    datePublished: options.datePublished,
+    dateModified: options.dateModified,
+    author: { '@type': 'Person', name: options.authorName },
+    publisher: { '@type': 'Organization', name: 'TaskQuadrant', url: 'https://taskquadrant.io' },
+    ...(options.imageUrl ? { image: options.imageUrl } : {}),
+  };
+}
+
 // SoftwareApplication schema for the app
 export const softwareApplicationSchema = {
   '@context': 'https://schema.org',

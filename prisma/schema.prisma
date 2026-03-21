@@ -818,6 +818,33 @@ model TaskArtifact {
   @@index([botId])
 }
 
+// BlogPost model - public blog articles (published by agents or manually)
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String    @db.Text
+  excerpt         String?   @db.Text
+  metaDescription String?
+  keywords        String?
+  coverImageUrl   String?
+  authorName      String    @default("TaskQuadrant Team")
+
+  published       Boolean   @default(false)
+  publishedAt     DateTime?
+
+  category        String?
+  tags            String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([published])
+  @@index([publishedAt])
+  @@index([category])
+}
+
 // WebhookDelivery model - tracks webhook delivery attempts
 model WebhookDelivery {
   id            String   @id @default(cuid())
