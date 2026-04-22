@@ -78,13 +78,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
-    // Individual guides
-    {
-      url: `${baseUrl}/guides/eisenhower-matrix`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
+    // Individual guides live in guides-sitemap.xml
   ];
 
   // Tools pages
