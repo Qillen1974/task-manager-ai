@@ -58,6 +58,7 @@ export const metadata: Metadata = {
     description: "Manage your tasks with the Eisenhower Matrix",
   },
   metadataBase: new URL("https://taskquadrant.io"),
+  alternates: { canonical: "/" },
 };
 
 export const viewport: Viewport = {

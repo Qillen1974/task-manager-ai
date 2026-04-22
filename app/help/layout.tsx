@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Help & FAQ - TaskQuadrant Support Center',
   description: 'Find answers to common questions about TaskQuadrant. Learn about the Eisenhower Matrix, task management, projects, subscriptions, and more.',
   keywords: 'help, FAQ, support, questions, tutorial, how to, task management help',
+  alternates: { canonical: '/help' },
   openGraph: {
     title: 'TaskQuadrant Help & FAQ',
     description: 'Find answers to common questions about TaskQuadrant task management.',

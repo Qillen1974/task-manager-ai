@@ -5,6 +5,7 @@ import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 export const metadata: Metadata = {
   title: "Privacy Policy - TaskQuadrant",
   description: "Read TaskQuadrant's privacy policy to understand how we collect, use, and protect your personal data and task information.",
+  alternates: { canonical: "/privacy" },
 };
 
 const webPageSchema = createWebPageSchema({

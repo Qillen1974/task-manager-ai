@@ -5,6 +5,7 @@ import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 export const metadata: Metadata = {
   title: "About TaskQuadrant - Our Mission & Values",
   description: "Learn about TaskQuadrant's mission to help professionals master their priorities using the proven Eisenhower Matrix framework.",
+  alternates: { canonical: "/about" },
 };
 
 const webPageSchema = createWebPageSchema({

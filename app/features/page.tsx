@@ -5,6 +5,7 @@ import { CheckCircle, Zap, BarChart3, Clock, RefreshCw, Download, Smartphone } f
 export const metadata: Metadata = {
   title: "Features - TaskQuadrant Task Management Tool",
   description: "Discover TaskQuadrant's powerful features: Eisenhower Matrix, project management, recurring tasks, analytics, exports, and more for productivity.",
+  alternates: { canonical: "/features" },
 };
 
 export default function FeaturesPage() {

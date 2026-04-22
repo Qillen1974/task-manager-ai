@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Blog - TaskQuadrant",
   description:
     "Tips, strategies, and insights on task management, productivity, and the Eisenhower Matrix to help you work smarter.",
+  alternates: { canonical: "/blog" },
   openGraph: {
     title: "Blog - TaskQuadrant",
     description:

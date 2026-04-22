@@ -6,6 +6,7 @@ import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 export const metadata: Metadata = {
   title: "Security - TaskQuadrant Data Protection & Privacy",
   description: "TaskQuadrant uses HTTPS encryption, secure password handling, and AWS infrastructure to protect your data. Learn about our security measures.",
+  alternates: { canonical: "/security" },
 };
 
 const webPageSchema = createWebPageSchema({

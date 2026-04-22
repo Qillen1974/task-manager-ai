@@ -5,6 +5,7 @@ import { JsonLd, createWebPageSchema } from "@/components/JsonLd";
 export const metadata: Metadata = {
   title: "Terms of Service - TaskQuadrant",
   description: "Review TaskQuadrant's terms of service, including user accounts, content rights, billing, and service availability.",
+  alternates: { canonical: "/terms" },
 };
 
 const webPageSchema = createWebPageSchema({

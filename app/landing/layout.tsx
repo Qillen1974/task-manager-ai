@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Discover TaskQuadrant - The ultimate task management tool using the Eisenhower Matrix. Prioritize your tasks by urgency and importance. Start organizing your work today.',
   keywords:
     'task management, Eisenhower Matrix, productivity, prioritization, project management, work organization',
+  alternates: { canonical: '/landing' },
   openGraph: {
     title: 'TaskQuadrant - Master Task Management with Eisenhower Matrix',
     description:

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Contact Us - TaskQuadrant Support',
   description: 'Have questions about TaskQuadrant? Contact our support team for help with task management, features, billing, or general inquiries.',
   keywords: 'contact, support, help, customer service, task management support',
+  alternates: { canonical: '/contact' },
   openGraph: {
     title: 'Contact TaskQuadrant Support',
     description: 'Get in touch with TaskQuadrant support team for help and questions.',

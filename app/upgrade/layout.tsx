@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Upgrade to Pro or Enterprise - TaskQuadrant',
   description: 'Upgrade your TaskQuadrant subscription to unlock advanced features: recurring tasks, unlimited projects, exports, analytics, and more.',
   keywords: 'upgrade, subscription, pro plan, enterprise plan, premium features, pricing',
+  alternates: { canonical: '/upgrade' },
   openGraph: {
     title: 'Upgrade to TaskQuadrant Pro or Enterprise',
     description: 'Unlock advanced task management features with TaskQuadrant Pro or Enterprise plans.',

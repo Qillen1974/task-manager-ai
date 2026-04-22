@@ -37,6 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: guide.description,
     keywords: guide.keywords,
     authors: [{ name: 'TaskQuadrant Team' }],
+    alternates: { canonical: `/guides/${slug}` },
     openGraph: {
       title: guide.title,
       description: guide.description,

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Comprehensive guides on task management, productivity strategies, and team collaboration. In-depth analysis, actionable tips, and data-driven insights.',
   keywords:
     'task management, productivity, Eisenhower Matrix, prioritization, team collaboration, guides',
+  alternates: { canonical: '/guides' },
   openGraph: {
     title: 'Guides & Resources - TaskQuadrant',
     description:

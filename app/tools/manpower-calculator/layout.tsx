@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     'Free manpower calculator tool to estimate hours and resources needed for tasks. Calculate team requirements by task type, complexity, and duration. Perfect for project management and resource planning.',
   keywords:
     'manpower calculator, resource estimation, project planning, task estimation, man hours, resource allocation, project management tool',
+  alternates: { canonical: '/tools/manpower-calculator' },
   openGraph: {
     title: 'Manpower Calculator - Project Resource Estimation Tool',
     description:
