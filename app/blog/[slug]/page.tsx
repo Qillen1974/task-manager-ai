@@ -21,14 +21,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description = post.metaDescription || post.excerpt || `${post.title} - TaskQuadrant Blog`;
 
+  const canonicalUrl = `https://taskquadrant.io/blog/${slug}`;
+
   return {
     title: `${post.title} - TaskQuadrant Blog`,
     description,
     keywords: post.keywords || undefined,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: post.title,
       description,
-      url: `https://taskquadrant.io/blog/${slug}`,
+      url: canonicalUrl,
       siteName: "TaskQuadrant",
       type: "article",
       ...(post.coverImageUrl ? { images: [post.coverImageUrl] } : {}),
