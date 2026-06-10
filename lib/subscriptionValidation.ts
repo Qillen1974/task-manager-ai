@@ -8,7 +8,7 @@ import { PROJECT_LIMITS, TASK_LIMITS } from './projectLimits';
  * @returns Object with allowed boolean and message
  */
 export function validateDowngrade(
-  newPlan: 'FREE' | 'PRO' | 'ENTERPRISE',
+  newPlan: 'FREE' | 'PRO' | 'ENTERPRISE' | 'AGENT',
   currentProjectCount: number,
   currentTaskCount: number
 ): { allowed: boolean; message?: string; excessProjects?: number; excessTasks?: number } {

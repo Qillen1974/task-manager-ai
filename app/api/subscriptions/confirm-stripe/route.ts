@@ -23,7 +23,7 @@ function getStripeClient() {
 interface ConfirmRequest {
   setupIntentId: string;
   paymentMethodId: string | object;
-  plan: "FREE" | "PRO" | "ENTERPRISE";
+  plan: "FREE" | "PRO" | "ENTERPRISE" | "AGENT";
 }
 
 /**
@@ -98,6 +98,10 @@ export async function POST(request: NextRequest) {
       ENTERPRISE: {
         monthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "",
         annual: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "",
+      },
+      AGENT: {
+        monthly: process.env.STRIPE_AGENT_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_AGENT_ANNUAL_PRICE_ID || "",
       },
     };
 

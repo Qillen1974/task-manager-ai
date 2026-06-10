@@ -21,7 +21,7 @@ function getStripeClient() {
 }
 
 interface UpgradeRequest {
-  plan: "FREE" | "PRO" | "ENTERPRISE";
+  plan: "FREE" | "PRO" | "ENTERPRISE" | "AGENT";
   billingCycle: "monthly" | "annual";
 }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Check if this is a downgrade and validate
     const currentPlan = user.subscription?.plan || "FREE";
-    const newPlan = plan as "FREE" | "PRO" | "ENTERPRISE";
+    const newPlan = plan as "FREE" | "PRO" | "ENTERPRISE" | "AGENT";
 
     // Only validate if plan is different and it's a downgrade
     if (plan !== currentPlan) {
@@ -98,6 +98,10 @@ export async function POST(request: NextRequest) {
       ENTERPRISE: {
         monthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || "",
         annual: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || "",
+      },
+      AGENT: {
+        monthly: process.env.STRIPE_AGENT_MONTHLY_PRICE_ID || "",
+        annual: process.env.STRIPE_AGENT_ANNUAL_PRICE_ID || "",
       },
     };
 

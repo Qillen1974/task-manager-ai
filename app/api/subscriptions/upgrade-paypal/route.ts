@@ -7,7 +7,7 @@ import { validateDowngrade } from "@/lib/subscriptionValidation";
 import * as btoa from "btoa";
 
 interface UpgradeRequest {
-  plan: "FREE" | "PRO" | "ENTERPRISE";
+  plan: "FREE" | "PRO" | "ENTERPRISE" | "AGENT";
   amount: string; // Amount as a string (e.g., "29.99")
 }
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // Check if this is a downgrade and validate
     const currentPlan = user.subscription?.plan || "FREE";
-    const newPlan = plan as "FREE" | "PRO" | "ENTERPRISE";
+    const newPlan = plan as "FREE" | "PRO" | "ENTERPRISE" | "AGENT";
 
     // Only validate if plan is different and it's a downgrade
     if (plan !== currentPlan) {
