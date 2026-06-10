@@ -127,6 +127,7 @@ enum SubscriptionPlan {
   FREE
   PRO
   ENTERPRISE
+  AGENT
 }
 
 enum SubscriptionStatus {
