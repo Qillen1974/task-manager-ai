@@ -8,6 +8,8 @@ import { SubscriptionPlan } from "@prisma/client";
  * - MOBILE_UNLOCK ($4.99 one-time): Unlimited projects/tasks, 10 recurring, 1 level subprojects
  * - PRO ($4.99/month): Same as Mobile Unlock + Mind Maps + Exports
  * - ENTERPRISE ($9.99/month): Unlimited everything + Teams
+ * - AGENT ($19/month or $190/year): Everything in ENTERPRISE + Bot API + MCP server access
+ *   (Lets users connect their own external AI agents — Claude Code, Cursor, etc.)
  */
 export const PROJECT_LIMITS = {
   FREE: {
@@ -35,6 +37,12 @@ export const PROJECT_LIMITS = {
     maxSubprojectsPerProject: -1, // Unlimited subprojects
     description: "Unlimited projects with unlimited nesting",
   },
+  AGENT: {
+    maxProjects: -1, // Unlimited
+    maxProjectNestingLevel: -1, // Unlimited nesting
+    maxSubprojectsPerProject: -1, // Unlimited subprojects
+    description: "Unlimited projects with unlimited nesting (Agent tier)",
+  },
 };
 
 export const TASK_LIMITS = {
@@ -54,6 +62,10 @@ export const TASK_LIMITS = {
     maxTasks: -1, // Unlimited
     description: "Unlimited tasks",
   },
+  AGENT: {
+    maxTasks: -1, // Unlimited
+    description: "Unlimited tasks",
+  },
 };
 
 export const RECURRING_TASK_LIMITS = {
@@ -70,6 +82,10 @@ export const RECURRING_TASK_LIMITS = {
     description: "Up to 10 recurring task templates",
   },
   ENTERPRISE: {
+    maxRecurringTasks: -1, // Unlimited
+    description: "Unlimited recurring task templates",
+  },
+  AGENT: {
     maxRecurringTasks: -1, // Unlimited
     description: "Unlimited recurring task templates",
   },
@@ -101,6 +117,11 @@ export const MIND_MAP_LIMITS = {
     maxNodesPerMindMap: -1, // Unlimited
     description: "Unlimited mind maps with unlimited nodes",
   },
+  AGENT: {
+    maxMindMaps: -1, // Unlimited
+    maxNodesPerMindMap: -1, // Unlimited
+    description: "Unlimited mind maps with unlimited nodes",
+  },
 };
 
 /**
@@ -119,8 +140,8 @@ export function getEffectiveTier(
   plan: SubscriptionPlan,
   mobileUnlocked: boolean
 ): EffectiveTier {
-  // PRO and ENTERPRISE always take precedence
-  if (plan === "PRO" || plan === "ENTERPRISE") {
+  // PRO, ENTERPRISE, and AGENT always take precedence
+  if (plan === "PRO" || plan === "ENTERPRISE" || plan === "AGENT") {
     return plan;
   }
   // Mobile Unlock upgrades FREE users
@@ -317,7 +338,7 @@ export function canCreateRecurringTask(
  * Kanban board is an ENTERPRISE-only feature
  */
 export function canAccessKanban(plan: SubscriptionPlan): boolean {
-  return plan === "ENTERPRISE";
+  return plan === "ENTERPRISE" || plan === "AGENT";
 }
 
 /**
@@ -325,7 +346,7 @@ export function canAccessKanban(plan: SubscriptionPlan): boolean {
  * Subtasks are an ENTERPRISE-only feature
  */
 export function canAccessSubtasks(plan: SubscriptionPlan): boolean {
-  return plan === "ENTERPRISE";
+  return plan === "ENTERPRISE" || plan === "AGENT";
 }
 
 /**
@@ -333,7 +354,7 @@ export function canAccessSubtasks(plan: SubscriptionPlan): boolean {
  * Pipeline stages are an ENTERPRISE-only feature
  */
 export function canAccessPipeline(plan: SubscriptionPlan): boolean {
-  return plan === "ENTERPRISE";
+  return plan === "ENTERPRISE" || plan === "AGENT";
 }
 
 /**
